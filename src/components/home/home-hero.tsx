@@ -1,6 +1,5 @@
 "use client";
 
-import { WeekendCountdown } from "@/components/home/weekend-countdown";
 import { QuickVibes } from "@/components/search/quick-vibes";
 import { SearchBar } from "@/components/search/search-bar";
 import { Button } from "@/components/ui/button";
@@ -114,13 +113,6 @@ export function HomeHero({
           >
             Discover Zimbabwe&apos;s most unforgettable places.
           </motion.p>
-
-          <motion.div
-            variants={prefersReduced ? undefined : fadeUp}
-            className="mt-6"
-          >
-            <WeekendCountdown />
-          </motion.div>
 
           <motion.div
             variants={prefersReduced ? undefined : fadeUp}

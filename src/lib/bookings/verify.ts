@@ -1,6 +1,12 @@
+import {
+  isBookingReference,
+  isCustomerNumber,
+  normalizeTicketCode,
+  type BookingRow,
+  type BookingStatus,
+} from "@/lib/bookings/codes";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import type { BookingRow, BookingStatus } from "@/lib/bookings/codes";
 
 export type PublicBookingView = {
   bookingReference: string;
@@ -17,10 +23,18 @@ export type PublicBookingView = {
   verifiedAt: string | null;
 };
 
+export type VerifyHints = {
+  guest?: string | null;
+  venue?: string | null;
+  date?: string | null;
+  ref?: string | null;
+  status?: string | null;
+};
+
 export async function getBookingForVerify(
   customerNumber: string,
 ): Promise<PublicBookingView | null> {
-  const code = customerNumber.trim();
+  const code = normalizeTicketCode(customerNumber);
   if (!code) return null;
 
   const service = createServiceClient();
@@ -33,18 +47,25 @@ export async function getBookingForVerify(
     );
 
     if (!error && Array.isArray(data) && data.length > 0) {
-      const row = data[0] as Record<string, unknown>;
-      return mapPublic(row);
+      return mapPublic(data[0] as Record<string, unknown>);
     }
 
-    // Direct select fallback (admin / service role)
-    const { data: booking } = await client
-      .from("bookings")
-      .select("*")
-      .ilike("customer_number", code)
-      .maybeSingle();
+    // Direct select fallback (service role bypasses RLS; anon cannot read bookings)
+    if (service) {
+      let query = service.from("bookings").select("*");
+      if (isCustomerNumber(code)) {
+        query = query.ilike("customer_number", code);
+      } else if (isBookingReference(code)) {
+        query = query.ilike("booking_reference", code);
+      } else {
+        query = query.or(
+          `customer_number.ilike.${code},booking_reference.ilike.${code}`,
+        );
+      }
 
-    if (booking) return mapPublic(booking as Record<string, unknown>);
+      const { data: booking } = await query.maybeSingle();
+      if (booking) return mapPublic(booking as Record<string, unknown>);
+    }
   } catch (err) {
     console.info(
       "[bookings] verify lookup failed:",
@@ -58,10 +79,13 @@ export async function getBookingForVerify(
 export async function markVerified(
   customerNumber: string,
 ): Promise<string | null> {
+  const code = normalizeTicketCode(customerNumber);
+  if (!code) return null;
+
   const client = createServiceClient() ?? (await createClient());
   try {
     const { data, error } = await client.rpc("mark_booking_verified", {
-      p_customer_number: customerNumber.trim(),
+      p_customer_number: code,
     });
     if (!error && data) return String(data);
   } catch {

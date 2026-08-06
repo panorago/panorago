@@ -637,19 +637,88 @@ export async function getAdminProfiles(): Promise<AdminProfile[]> {
     const { supabase } = await requireAdmin();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, role, display_name, email, suspended_at")
+      .select(
+        "id, role, display_name, email, suspended_at, admin_credentials(password_updated_at, must_reset, is_active)",
+      )
       .order("created_at", { ascending: false });
-    if (error || !data) return [];
-    return data.map((row) => ({
-      id: row.id as string,
-      email: (row.email as string) || "",
-      role: row.role as ProfileRole,
-      displayName: (row.display_name as string | null) ?? null,
-      suspendedAt: (row.suspended_at as string | null) ?? null,
-    }));
+    if (error || !data) {
+      // Fallback if admin_credentials relation is missing (pre-migration).
+      const fallback = await supabase
+        .from("profiles")
+        .select("id, role, display_name, email, suspended_at")
+        .order("created_at", { ascending: false });
+      if (fallback.error || !fallback.data) return [];
+      return fallback.data.map((row) => ({
+        id: row.id as string,
+        email: (row.email as string) || "",
+        role: row.role as ProfileRole,
+        displayName: (row.display_name as string | null) ?? null,
+        suspendedAt: (row.suspended_at as string | null) ?? null,
+      }));
+    }
+    return data.map((row) => {
+      const credsRaw = row.admin_credentials as
+        | {
+            password_updated_at?: string | null;
+            must_reset?: boolean;
+            is_active?: boolean;
+          }
+        | {
+            password_updated_at?: string | null;
+            must_reset?: boolean;
+            is_active?: boolean;
+          }[]
+        | null;
+      const creds = Array.isArray(credsRaw) ? credsRaw[0] : credsRaw;
+      return {
+        id: row.id as string,
+        email: (row.email as string) || "",
+        role: row.role as ProfileRole,
+        displayName: (row.display_name as string | null) ?? null,
+        suspendedAt: (row.suspended_at as string | null) ?? null,
+        passwordUpdatedAt: creds?.password_updated_at ?? null,
+        mustReset: Boolean(creds?.must_reset),
+        credentialsActive: creds?.is_active ?? undefined,
+      };
+    });
   } catch {
     return [];
   }
+}
+
+async function upsertAdminCredentialsMeta(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  opts: {
+    userId: string;
+    email?: string;
+    isActive?: boolean;
+    mustReset?: boolean;
+    passwordUpdatedAt?: string | null;
+    passwordSetBy?: string | null;
+  },
+) {
+  const payload: Record<string, unknown> = {
+    user_id: opts.userId,
+    updated_at: new Date().toISOString(),
+  };
+  if (opts.email !== undefined) payload.email = opts.email;
+  if (opts.isActive !== undefined) payload.is_active = opts.isActive;
+  if (opts.mustReset !== undefined) payload.must_reset = opts.mustReset;
+  if (opts.passwordUpdatedAt !== undefined) {
+    payload.password_updated_at = opts.passwordUpdatedAt;
+  }
+  if (opts.passwordSetBy !== undefined) {
+    payload.password_set_by = opts.passwordSetBy;
+  }
+
+  const { error } = await supabase.from("admin_credentials").upsert(payload, {
+    onConflict: "user_id",
+  });
+  // Table may not exist yet in partial deploys — ignore relation errors.
+  if (error && !/admin_credentials|schema cache|does not exist/i.test(error.message)) {
+    return error.message;
+  }
+  return null;
 }
 
 export async function setProfileRole(
@@ -669,6 +738,19 @@ export async function setProfileRole(
     }
     const { error } = await supabase.from("profiles").update(payload).eq("id", id);
     if (error) return { ok: false, error: error.message };
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", id)
+      .maybeSingle();
+
+    await upsertAdminCredentialsMeta(supabase, {
+      userId: id,
+      email: (profile?.email as string) || "",
+      isActive: role === "admin",
+    });
+
     await writeAudit("profile_role", "profile", id, { role });
     revalidatePath("/admin/users");
     return { ok: true, message: "Role updated." };
@@ -676,6 +758,73 @@ export async function setProfileRole(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Update failed.",
+    };
+  }
+}
+
+/**
+ * Sets an admin user's password via Supabase Auth Admin API (service role).
+ * Updates admin_credentials metadata only — never stores the password.
+ */
+export async function setAdminPassword(
+  userId: string,
+  password: string,
+  options: { mustReset?: boolean } = {},
+): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireAdmin();
+    const trimmed = password.trim();
+    if (trimmed.length < 8) {
+      return { ok: false, error: "Password must be at least 8 characters." };
+    }
+
+    const service = createServiceClient();
+    if (!service) {
+      return {
+        ok: false,
+        error:
+          "SUPABASE_SERVICE_ROLE_KEY is required to set passwords. Set it in the server env, or use the Supabase Auth dashboard.",
+      };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, email, role")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!profile) return { ok: false, error: "Profile not found." };
+
+    const { error: authError } = await service.auth.admin.updateUserById(
+      userId,
+      { password: trimmed },
+    );
+    if (authError) return { ok: false, error: authError.message };
+
+    const now = new Date().toISOString();
+    const metaError = await upsertAdminCredentialsMeta(supabase, {
+      userId,
+      email: (profile.email as string) || "",
+      isActive: profile.role === "admin",
+      mustReset: Boolean(options.mustReset),
+      passwordUpdatedAt: now,
+      passwordSetBy: user.id,
+    });
+    if (metaError) {
+      return {
+        ok: false,
+        error: `Password updated in Auth, but credentials metadata failed: ${metaError}`,
+      };
+    }
+
+    await writeAudit("admin_password_set", "admin_credentials", userId, {
+      must_reset: Boolean(options.mustReset),
+    });
+    revalidatePath("/admin/users");
+    return { ok: true, message: "Password updated in Supabase Auth." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Password update failed.",
     };
   }
 }

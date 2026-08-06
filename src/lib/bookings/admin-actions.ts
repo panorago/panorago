@@ -15,7 +15,8 @@ import {
   regenerateConfirmedTicketAssets,
 } from "@/lib/bookings/regenerate-assets";
 import { createClient } from "@/lib/supabase/server";
-import { absoluteUrl, mailtoUrl, ticketDownloadUrl } from "@/lib/utils";
+import { buildVerificationUrl } from "@/lib/bookings/qr";
+import { mailtoUrl, ticketDownloadUrl } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export type BookingActionResult =
@@ -180,7 +181,14 @@ export async function updateBookingStatusAction(
         ? mailtoUrl(
             booking.email,
             `Confirmed — ${booking.venue_name} (${booking.customer_number})`,
-            `Hello ${booking.customer_name},\n\nYour visit to ${booking.venue_name} is CONFIRMED.\n\nCustomer Number: ${booking.customer_number}\nReference: ${booking.booking_reference}\n\nVerify: ${absoluteUrl(`/verify/${booking.customer_number}`)}\n`,
+            `Hello ${booking.customer_name},\n\nYour visit to ${booking.venue_name} is CONFIRMED.\n\nCustomer Number: ${booking.customer_number}\nReference: ${booking.booking_reference}\n\nVerify: ${buildVerificationUrl({
+              customerNumber: booking.customer_number,
+              bookingReference: booking.booking_reference,
+              venueName: booking.venue_name,
+              customerName: booking.customer_name,
+              visitDate: booking.preferred_date,
+              status: "confirmed",
+            })}\n`,
           )
         : undefined;
 

@@ -12,7 +12,6 @@ import {
 import { buildLuxuryTicketPdf } from "@/lib/bookings/ticket-pdf";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { absoluteUrl } from "@/lib/utils";
 
 export type CreateBookingInput = {
   firstName: string;
@@ -92,11 +91,19 @@ export async function createBooking(
   const firstName = input.firstName.trim();
   const surname = input.surname.trim();
   const customerName = `${firstName} ${surname}`.trim();
-  const supabase = await createClient();
-  const bookingReference = await resolveBookingReference(supabase);
   const customerNumber = generateCustomerNumber();
   const timestamp = new Date().toISOString();
-  const verificationUrl = absoluteUrl(`/verify/${customerNumber}`);
+
+  let bookingReference = generateBookingReference();
+  try {
+    const supabase = await createClient();
+    bookingReference = await resolveBookingReference(supabase);
+  } catch (err) {
+    console.info(
+      "[bookings] supabase client unavailable for REF sequence:",
+      err instanceof Error ? err.message : err,
+    );
+  }
 
   const qrPayload = buildQrPayload({
     bookingReference,
@@ -108,7 +115,9 @@ export async function createBooking(
     adults: input.adults,
     children: input.children,
     timestamp,
+    status: "pending",
   });
+  const verificationUrl = qrPayload.verificationUrl;
 
   let qrDataUrl: string | null = null;
   try {
@@ -215,36 +224,44 @@ export async function createBooking(
   let stored = false;
   let id: string | undefined;
 
-  const service = createServiceClient();
-  const writer = service ?? supabase;
-
   try {
-    const { data, error } = await writer
-      .from("bookings")
-      .insert(row)
-      .select("id")
-      .maybeSingle();
-    if (!error && data) {
-      stored = true;
-      id = data.id as string;
-    } else {
-      // Retry without optional columns if migration 004 not applied yet
-      const legacy = { ...row } as Record<string, unknown>;
-      delete legacy.customer_first_name;
-      delete legacy.customer_surname;
-      const retry = await writer
+    const service = createServiceClient();
+    let writer = service;
+    if (!writer) {
+      try {
+        writer = await createClient();
+      } catch {
+        writer = null;
+      }
+    }
+
+    if (writer) {
+      const { data, error } = await writer
         .from("bookings")
-        .insert(legacy)
+        .insert(row)
         .select("id")
         .maybeSingle();
-      if (!retry.error && retry.data) {
+      if (!error && data) {
         stored = true;
-        id = retry.data.id as string;
+        id = data.id as string;
       } else {
-        console.info(
-          "[bookings] insert skipped:",
-          error?.message ?? retry.error?.message,
-        );
+        const legacy = { ...row } as Record<string, unknown>;
+        delete legacy.customer_first_name;
+        delete legacy.customer_surname;
+        const retry = await writer
+          .from("bookings")
+          .insert(legacy)
+          .select("id")
+          .maybeSingle();
+        if (!retry.error && retry.data) {
+          stored = true;
+          id = retry.data.id as string;
+        } else {
+          console.info(
+            "[bookings] insert skipped:",
+            error?.message ?? retry.error?.message,
+          );
+        }
       }
     }
   } catch (err) {

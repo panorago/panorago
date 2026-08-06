@@ -106,6 +106,7 @@ begin
     b.verified_at
   from public.bookings b
   where upper(b.customer_number) = upper(trim(p_customer_number))
+     or upper(b.booking_reference) = upper(trim(p_customer_number))
   limit 1;
 end;
 $$;
@@ -120,6 +121,7 @@ set search_path = public
 as $$
 declare
   ts timestamptz;
+  code text := upper(trim(p_customer_number));
 begin
   update public.bookings
   set
@@ -132,7 +134,8 @@ begin
         'status', status
       )
     )
-  where upper(customer_number) = upper(trim(p_customer_number))
+  where upper(customer_number) = code
+     or upper(booking_reference) = code
   returning verified_at into ts;
 
   return ts;

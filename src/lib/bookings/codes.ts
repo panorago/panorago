@@ -13,6 +13,25 @@ export function generateCustomerNumber(year = new Date().getFullYear()): string 
   return `PGO-${year}-${randomSegment(6)}`;
 }
 
+/** Normalize path/query ticket codes (case, spaces, URI encoding). */
+export function normalizeTicketCode(raw: string): string {
+  let value = raw.trim();
+  try {
+    value = decodeURIComponent(value);
+  } catch {
+    // keep raw trim
+  }
+  return value.replace(/\s+/g, "").toUpperCase();
+}
+
+export function isCustomerNumber(code: string): boolean {
+  return /^PGO-\d{4}-[A-Z0-9]{4,}$/.test(normalizeTicketCode(code));
+}
+
+export function isBookingReference(code: string): boolean {
+  return /^REF-\d+$/.test(normalizeTicketCode(code));
+}
+
 /**
  * Booking reference — REF-000127 style.
  * Prefer DB sequence via next_booking_reference(); this is a unique padded fallback.

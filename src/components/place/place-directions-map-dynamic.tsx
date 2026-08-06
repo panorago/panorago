@@ -20,6 +20,8 @@ type Props = {
   lat: number;
   lng: number;
   googleMapsUrl?: string | null;
+  shareSlug?: string;
+  onSmartShare?: () => void;
 };
 
 /** Client-only wrapper so `ssr: false` is valid (App Router). */

@@ -5,10 +5,11 @@ import { ExperienceStories } from "@/components/place/experience-stories";
 import { GalleryLightbox } from "@/components/place/gallery-lightbox";
 import { HighlightsPanel } from "@/components/place/highlights-panel";
 import { NearbyDiscoveries } from "@/components/place/interested-in";
-import { PlaceDirectionsMapDynamic } from "@/components/place/place-directions-map-dynamic";
 import { PlaceVideo } from "@/components/place/place-video";
 import { PricingSneakPeek } from "@/components/place/pricing-sneak-peek";
 import { VerificationBadges } from "@/components/place/verification-badges";
+import { PlaceMapShare } from "@/components/smart-share/place-map-share";
+import { SmartShareButton } from "@/components/smart-share/smart-share-button";
 import { SEED_PLACES } from "@/data/seed-places";
 import {
   getPlaceBySlug,
@@ -16,6 +17,7 @@ import {
   getRecommendationsForPlace,
   getStoriesForPlace,
 } from "@/lib/data/places";
+import { smartShareUrl } from "@/lib/panora/smart-share";
 import { absoluteUrl, formatDistance, formatPriceGuide } from "@/lib/utils";
 import {
   BadgeCheck,
@@ -53,18 +55,28 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      canonical: absoluteUrl(`/panoras/${place.slug}`),
+    },
     openGraph: {
       title,
       description,
-      url: absoluteUrl(`/panoras/${place.slug}`),
+      url: smartShareUrl(place.slug),
       type: "article",
-      images: [{ url: place.heroImage, alt: place.name }],
+      images: [
+        {
+          url: absoluteUrl(`/p/${place.slug}/opengraph-image`),
+          width: 1200,
+          height: 630,
+          alt: place.name,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [place.heroImage],
+      images: [absoluteUrl(`/p/${place.slug}/opengraph-image`)],
     },
   };
 }
@@ -174,6 +186,26 @@ export default async function PlacePage({
               </span>
             )}
           </p>
+          <div className="mt-5">
+            <SmartShareButton
+              place={{
+                name: place.name,
+                slug: place.slug,
+                city: place.city,
+                location: place.location,
+                country: place.country,
+                heroImage: place.heroImage,
+                mood: place.mood,
+                category: place.category,
+                amenities: place.amenities,
+                story: place.story,
+                contact: place.contact,
+              }}
+              label="SmartShare™"
+              variant="accent"
+              size="md"
+            />
+          </div>
         </div>
       </section>
 
@@ -213,11 +245,22 @@ export default async function PlacePage({
             {/* 6. Google Map */}
             {hasCoords ? (
               <Reveal>
-                <PlaceDirectionsMapDynamic
-                  name={place.name}
-                  lat={place.latitude!}
-                  lng={place.longitude!}
-                  googleMapsUrl={place.contact.googleMapsUrl}
+                <PlaceMapShare
+                  place={{
+                    name: place.name,
+                    slug: place.slug,
+                    city: place.city,
+                    location: place.location,
+                    country: place.country,
+                    heroImage: place.heroImage,
+                    mood: place.mood,
+                    category: place.category,
+                    amenities: place.amenities,
+                    story: place.story,
+                    contact: place.contact,
+                    latitude: place.latitude!,
+                    longitude: place.longitude!,
+                  }}
                 />
               </Reveal>
             ) : null}
@@ -334,10 +377,19 @@ export default async function PlacePage({
                         className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm hover:border-[var(--accent)]"
                       >
                         <MapPin className="h-4 w-4 text-[var(--accent)]" />
-                        Open in Maps
+                        Navigate with Google Maps
                       </a>
                     </li>
                   )}
+                  <li>
+                    <Link
+                      href={`/p/${place.slug}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm hover:border-[var(--accent)]"
+                    >
+                      <Globe className="h-4 w-4 text-[var(--accent)]" />
+                      SmartShare page
+                    </Link>
+                  </li>
                 </ul>
               </Reveal>
             )}

@@ -36,6 +36,7 @@ type SuccessState = {
   code: string;
   customerNumber: string;
   qrDataUrl: string | null;
+  ticketPdfBase64: string | null;
 };
 
 type EnquiryBookingFormProps = EnquiryFormFields & {
@@ -152,20 +153,19 @@ export function EnquiryBookingForm({
       }
 
       const code = data.booking_reference ?? data.code ?? "";
+      const ticketPdfBase64 = data.ticket_pdf_base64 ?? null;
       const next: SuccessState = {
         code,
         customerNumber: data.customer_number ?? code,
         qrDataUrl: data.qr_data_url ?? null,
+        ticketPdfBase64,
       };
       setSuccess(next);
       onSubmitted?.(next);
 
-      if (data.ticket_pdf_base64 && typeof window !== "undefined") {
+      if (ticketPdfBase64 && typeof window !== "undefined") {
         try {
-          sessionStorage.setItem(
-            `panora-ticket-${code}`,
-            data.ticket_pdf_base64,
-          );
+          sessionStorage.setItem(`panora-ticket-${code}`, ticketPdfBase64);
         } catch {
           // ignore quota
         }
@@ -201,20 +201,51 @@ export function EnquiryBookingForm({
     window.open(whatsappUrl(panoraWhatsapp, text), "_blank", "noopener,noreferrer");
   }
 
-  const ticketHref = success
-    ? ticketDownloadUrl(success.code, {
-        placeName,
-        date: date || undefined,
-        adults,
-        children,
-        phone: phone || undefined,
-        specialRequest: specialRequest || undefined,
-        name: `${firstName} ${surname}`.trim(),
-        customerNumber: success.customerNumber,
-        occasion: occasion || undefined,
-        address: venueAddress || undefined,
-      })
-    : null;
+  function downloadTicket() {
+    if (!success) return;
+    const filename = `panora-go-${success.customerNumber || success.code}.pdf`;
+
+    const fromMemory =
+      success.ticketPdfBase64 ||
+      (typeof window !== "undefined"
+        ? sessionStorage.getItem(`panora-ticket-${success.code}`)
+        : null);
+
+    if (fromMemory) {
+      try {
+        const binary = atob(fromMemory);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return;
+      } catch {
+        // fall through to API
+      }
+    }
+
+    window.location.href = ticketDownloadUrl(success.code, {
+      placeName,
+      date: date || undefined,
+      adults,
+      children,
+      phone: phone || undefined,
+      specialRequest: specialRequest || undefined,
+      name: `${firstName} ${surname}`.trim(),
+      customerNumber: success.customerNumber,
+      occasion: occasion || undefined,
+      address: venueAddress || undefined,
+    });
+  }
 
   if (success) {
     return (
@@ -255,14 +286,15 @@ export function EnquiryBookingForm({
         </div>
 
         <div className="grid gap-2">
-          {ticketHref ? (
-            <a href={ticketHref} download className="block">
-              <Button type="button" variant="accent" className="w-full rounded-full">
-                <Download className="h-4 w-4" />
-                Download Ticket
-              </Button>
-            </a>
-          ) : null}
+          <Button
+            type="button"
+            variant="accent"
+            className="w-full rounded-full"
+            onClick={downloadTicket}
+          >
+            <Download className="h-4 w-4" />
+            Download Ticket
+          </Button>
           <Button
             type="button"
             variant="secondary"

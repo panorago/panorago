@@ -11,15 +11,21 @@ import {
   panoraMarkerSvg,
   userMarkerSvg,
 } from "@/lib/maps/panora-map";
+import { haversineKm } from "@/lib/maps/geo";
 import { formatDistance } from "@/lib/utils";
 import { MapPin, Navigation, Share2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+export { haversineKm };
 
 type PlaceDirectionsMapProps = {
   name: string;
   lat: number;
   lng: number;
   googleMapsUrl?: string | null;
+  /** When set, Share uses Panora SmartShare™ (`/p/{slug}`) instead of Maps. */
+  shareSlug?: string;
+  onSmartShare?: () => void;
 };
 
 type RouteInfo = {
@@ -43,25 +49,6 @@ type GeoState =
       route: RouteInfo | null;
     };
 
-function toRad(deg: number) {
-  return (deg * Math.PI) / 180;
-}
-
-export function haversineKm(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number,
-): number {
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 function estimateDriveMinutes(distanceKm: number): number {
   const speedKmh = distanceKm < 40 ? 40 : 60;
   return Math.max(1, Math.round((distanceKm / speedKmh) * 60));
@@ -74,16 +61,18 @@ function embedSrc(lat: number, lng: number, googleMapsUrl?: string | null) {
   return `https://maps.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
 }
 
-function shareLocation(name: string, lat: number, lng: number) {
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-  const text = `${name} — ${url}`;
+function sharePanoraPlace(name: string, slug: string) {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}/p/${encodeURIComponent(slug)}`;
+  const text = `Discover ${name} on Panora Go\n${url}`;
   if (navigator.share) {
     void navigator.share({ title: name, text, url }).catch(() => {
-      void navigator.clipboard?.writeText(text);
+      void navigator.clipboard?.writeText(url);
     });
     return;
   }
-  void navigator.clipboard?.writeText(text);
+  void navigator.clipboard?.writeText(url);
 }
 
 function MapHeader({
@@ -95,7 +84,7 @@ function MapHeader({
   name: string;
   geo: GeoState;
   directionsHref: string;
-  onShare: () => void;
+  onShare?: () => void;
 }) {
   const arrival =
     geo.status === "ready" && geo.route
@@ -106,7 +95,7 @@ function MapHeader({
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-          Directions
+          Navigate
         </p>
         <h2 className="mt-1 font-display text-2xl">Find your way</h2>
         {geo.status === "ready" && geo.route ? (
@@ -133,16 +122,18 @@ function MapHeader({
         )}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-full"
-          onClick={onShare}
-        >
-          <Share2 className="h-4 w-4" />
-          Share location
-        </Button>
+        {onShare ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={onShare}
+          >
+            <Share2 className="h-4 w-4" />
+            Share place
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="accent"
@@ -153,11 +144,21 @@ function MapHeader({
           }}
         >
           <Navigation className="h-4 w-4" />
-          Open in Google Maps
+          Navigate with Google Maps
         </Button>
       </div>
     </div>
   );
+}
+
+function resolveShareAction(opts: {
+  name: string;
+  shareSlug?: string;
+  onSmartShare?: () => void;
+}): (() => void) | undefined {
+  if (opts.onSmartShare) return opts.onSmartShare;
+  if (opts.shareSlug) return () => sharePanoraPlace(opts.name, opts.shareSlug!);
+  return undefined;
 }
 
 function EmbedFallback({
@@ -166,12 +167,16 @@ function EmbedFallback({
   lng,
   googleMapsUrl,
   geo,
+  shareSlug,
+  onSmartShare,
 }: {
   name: string;
   lat: number;
   lng: number;
   googleMapsUrl?: string | null;
   geo: GeoState;
+  shareSlug?: string;
+  onSmartShare?: () => void;
 }) {
   const directionsHref =
     geo.status === "ready"
@@ -186,7 +191,7 @@ function EmbedFallback({
         name={name}
         geo={geo}
         directionsHref={directionsHref}
-        onShare={() => shareLocation(name, lat, lng)}
+        onShare={resolveShareAction({ name, shareSlug, onSmartShare })}
       />
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)]">
         <iframe
@@ -209,6 +214,8 @@ export function PlaceDirectionsMap({
   lat,
   lng,
   googleMapsUrl,
+  shareSlug,
+  onSmartShare,
 }: PlaceDirectionsMapProps) {
   const apiKey = getMapsApiKey();
   const mapRef = useRef<HTMLDivElement>(null);
@@ -417,6 +424,8 @@ export function PlaceDirectionsMap({
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
   }, [geo, lat, lng, googleMapsUrl]);
 
+  const handleShare = resolveShareAction({ name, shareSlug, onSmartShare });
+
   if (!apiKey || mapFailed) {
     return (
       <EmbedFallback
@@ -425,6 +434,8 @@ export function PlaceDirectionsMap({
         lng={lng}
         googleMapsUrl={googleMapsUrl}
         geo={geo}
+        shareSlug={shareSlug}
+        onSmartShare={onSmartShare}
       />
     );
   }
@@ -435,7 +446,7 @@ export function PlaceDirectionsMap({
         name={name}
         geo={geo}
         directionsHref={directionsHref}
-        onShare={() => shareLocation(name, lat, lng)}
+        onShare={handleShare}
       />
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] shadow-[var(--shadow)]">
         <div

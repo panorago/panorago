@@ -6,7 +6,6 @@ import {
 } from "@/lib/bookings/qr";
 import { buildLuxuryTicketPdf } from "@/lib/bookings/ticket-pdf";
 import { createServiceClient } from "@/lib/supabase/service";
-import { absoluteUrl } from "@/lib/utils";
 
 async function uploadAsset(
   path: string,
@@ -56,6 +55,7 @@ export async function regenerateConfirmedTicketAssets(input: {
     visitDate: input.preferredDate,
     adults: input.adults,
     children: input.children,
+    status: "confirmed",
   });
 
   let qrDataUrl: string | null = null;
@@ -91,7 +91,7 @@ export async function regenerateConfirmedTicketAssets(input: {
       occasion: input.occasion ?? "",
       specialRequest: input.specialRequest ?? "",
       qrDataUrl,
-      verificationUrl: absoluteUrl(`/verify/${input.customerNumber}`),
+      verificationUrl: qrPayload.verificationUrl,
     });
 
     if (qrDataUrl) {

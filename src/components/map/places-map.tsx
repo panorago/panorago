@@ -5,12 +5,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProgressiveImage } from "@/components/media/progressive-image";
+import { SmartShareSheet } from "@/components/smart-share/smart-share-sheet";
 import { loadGoogleMaps } from "@/lib/maps/load-google-maps";
 import {
   getMapsApiKey,
   PANORA_MAP_STYLES,
   panoraMarkerIconUrl,
 } from "@/lib/maps/panora-map";
+import { smartSharePath } from "@/lib/panora/smart-share";
 import { cn, formatPriceGuide } from "@/lib/utils";
 import { motionTokens } from "@/lib/motion/variants";
 import type { Place } from "@/types";
@@ -50,6 +52,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapFailed, setMapFailed] = useState(false);
   const [routeHint, setRouteHint] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const userPos = useRef<{ lat: number; lng: number } | null>(null);
 
   const filtered = useMemo(
@@ -303,43 +306,24 @@ export function PlacesMap({ places }: PlacesMapProps) {
                     {formatPriceGuide(selected.priceGuide)}
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    <a
-                      href={
-                        selected.latitude != null && selected.longitude != null
-                          ? `https://www.google.com/maps/dir/?api=1&destination=${selected.latitude},${selected.longitude}&travelmode=driving`
-                          : selected.contact.googleMapsUrl ||
-                            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.name)}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full border border-white/25 px-3 py-2 text-xs font-medium text-white/90 hover:bg-white/10"
-                    >
-                      Directions
-                    </a>
                     <button
                       type="button"
                       className="rounded-full border border-white/25 px-3 py-2 text-xs font-medium text-white/90 hover:bg-white/10"
-                      onClick={() => {
-                        const url =
-                          typeof window !== "undefined"
-                            ? `${window.location.origin}/panoras/${selected.slug}`
-                            : `/panoras/${selected.slug}`;
-                        void navigator.clipboard?.writeText(url);
-                        if (navigator.share) {
-                          void navigator.share({
-                            title: selected.name,
-                            url,
-                          });
-                        }
-                      }}
+                      onClick={() => setShareOpen(true)}
                     >
                       Share
                     </button>
                     <Link
+                      href={smartSharePath(selected.slug)}
+                      className="rounded-full border border-white/25 px-3 py-2 text-xs font-medium text-white/90 hover:bg-white/10"
+                    >
+                      Discover
+                    </Link>
+                    <Link
                       href={`/panoras/${selected.slug}`}
                       className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--brand-navy)] transition hover:opacity-90"
                     >
-                      View place →
+                      Full place →
                     </Link>
                   </div>
                 </div>
@@ -348,6 +332,14 @@ export function PlacesMap({ places }: PlacesMapProps) {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      {selected ? (
+        <SmartShareSheet
+          place={selected}
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+        />
+      ) : null}
     </div>
   );
 }

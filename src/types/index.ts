@@ -190,6 +190,10 @@ export interface AdminProfile {
   role: ProfileRole;
   displayName: string | null;
   suspendedAt?: string | null;
+  /** From admin_credentials — password itself is in Supabase Auth. */
+  passwordUpdatedAt?: string | null;
+  mustReset?: boolean;
+  credentialsActive?: boolean;
 }
 
 export interface PlaceSubmission {

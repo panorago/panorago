@@ -35,12 +35,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  const smartShareRoutes: MetadataRoute.Sitemap = places.map((place) => ({
+    url: absoluteUrl(`/p/${place.slug}`),
+    lastModified: new Date(place.updatedAt),
+    changeFrequency: "weekly",
+    priority: 0.85,
+  }));
+
   const placeRoutes: MetadataRoute.Sitemap = places.map((place) => ({
     url: absoluteUrl(`/panoras/${place.slug}`),
     lastModified: new Date(place.updatedAt),
     changeFrequency: "weekly",
-    priority: 0.8,
+    priority: 0.75,
   }));
 
-  return [...staticRoutes, ...placeRoutes];
+  return [...staticRoutes, ...smartShareRoutes, ...placeRoutes];
 }

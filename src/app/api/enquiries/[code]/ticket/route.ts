@@ -1,13 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
+import { isCustomerNumber, normalizeTicketCode } from "@/lib/bookings/codes";
 import { buildLuxuryTicketPdf } from "@/lib/bookings/ticket-pdf";
 import { buildQrPayload, generateQrDataUrl } from "@/lib/bookings/qr";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { absoluteUrl } from "@/lib/utils";
+import { siteOriginFromRequest } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
+/** ASCII placeholder so empty fields stay WinAnsi-safe for Helvetica. */
 function dash(value: string | null | undefined) {
   const v = value?.trim();
-  return v && v.length > 0 ? v : "—";
+  return v && v.length > 0 ? v : "-";
 }
 
 export async function GET(
@@ -15,8 +17,9 @@ export async function GET(
   context: { params: Promise<{ code: string }> },
 ) {
   const { code: rawCode } = await context.params;
-  const code = decodeURIComponent(rawCode).trim().toUpperCase();
+  const code = normalizeTicketCode(rawCode);
   const { searchParams } = new URL(request.url);
+  const origin = siteOriginFromRequest(request);
 
   let customerName = dash(searchParams.get("name"));
   let customerNumber = dash(searchParams.get("customer_number"));
@@ -30,6 +33,7 @@ export async function GET(
   let specialRequest = dash(searchParams.get("special_request"));
   let statusLabel = "ENQUIRY RECEIVED";
   let confirmed = false;
+  let status = "pending";
   let bookingReference = code;
 
   try {
@@ -53,7 +57,7 @@ export async function GET(
       phone = dash(booking.phone as string | null);
       occasion = dash(booking.occasion as string | null);
       specialRequest = dash(booking.special_request as string | null);
-      const status = booking.status as string;
+      status = (booking.status as string) || "pending";
       confirmed = status === "confirmed";
       statusLabel =
         status === "confirmed"
@@ -106,32 +110,43 @@ export async function GET(
     // Query-string fallback
   }
 
-  const resolvedCustomerNumber =
-    customerNumber === "—" ? bookingReference : customerNumber;
-  const verificationUrl = absoluteUrl(`/verify/${resolvedCustomerNumber}`);
+  // Never encode REF-* as the verify path — only real PGO customer numbers.
+  const resolvedCustomerNumber = isCustomerNumber(customerNumber)
+    ? normalizeTicketCode(customerNumber)
+    : isCustomerNumber(code)
+      ? code
+      : "";
 
-  let qrDataUrl: string | null = null;
-  try {
-    qrDataUrl = await generateQrDataUrl(
-      buildQrPayload({
+  const qrPayload = resolvedCustomerNumber
+    ? buildQrPayload({
         bookingReference,
         customerNumber: resolvedCustomerNumber,
-        venueName: place === "—" ? "Panora Go" : place,
-        visitDate: date === "—" ? null : date,
+        venueName: place === "-" ? "Panora Go" : place,
+        visitDate: date === "-" ? null : date,
         adults: Number(adults) || 0,
         children: Number(children) || 0,
-        customerName: customerName === "—" ? "Guest" : customerName,
-      }),
-    );
-  } catch {
-    qrDataUrl = null;
+        customerName: customerName === "-" ? "Guest" : customerName,
+        status,
+        origin,
+      })
+    : null;
+
+  const verificationUrl = qrPayload?.verificationUrl ?? null;
+
+  let qrDataUrl: string | null = null;
+  if (qrPayload) {
+    try {
+      qrDataUrl = await generateQrDataUrl(qrPayload);
+    } catch {
+      qrDataUrl = null;
+    }
   }
 
   const bytes = await buildLuxuryTicketPdf({
     statusLabel,
     confirmed,
     customerName,
-    customerNumber: resolvedCustomerNumber,
+    customerNumber: resolvedCustomerNumber || dash(customerNumber),
     bookingReference,
     venueName: place,
     venueAddress: address,
@@ -145,11 +160,11 @@ export async function GET(
     children,
     occasion,
     specialRequest:
-      specialRequest === "—" && phone !== "—"
+      specialRequest === "-" && phone !== "-"
         ? `Phone: ${phone}`
         : specialRequest,
     qrDataUrl,
-    verificationUrl,
+    verificationUrl: verificationUrl ?? undefined,
   });
 
   const filename = `panora-go-${code.replace(/[^A-Z0-9-]/gi, "")}.pdf`;

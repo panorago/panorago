@@ -1,3 +1,4 @@
+import { buildVerificationUrl } from "@/lib/bookings/qr";
 import { absoluteUrl, whatsappUrl } from "@/lib/utils";
 
 export type NotifyBookingInput = {
@@ -25,8 +26,19 @@ function supportContacts() {
   };
 }
 
+function verifyLink(input: NotifyBookingInput): string {
+  return buildVerificationUrl({
+    customerNumber: input.customerNumber,
+    bookingReference: input.bookingReference,
+    venueName: input.venueName,
+    customerName: input.customerName,
+    visitDate: input.preferredDate,
+    status: input.status,
+  });
+}
+
 export function customerWhatsAppTemplate(input: NotifyBookingInput): string {
-  const verify = absoluteUrl(`/verify/${input.customerNumber}`);
+  const verify = verifyLink(input);
   return [
     `Hello ${input.customerName},`,
     "",
@@ -67,7 +79,7 @@ export function adminWhatsAppTemplate(input: NotifyBookingInput): string {
 }
 
 export function confirmationWhatsAppTemplate(input: NotifyBookingInput): string {
-  const verify = absoluteUrl(`/verify/${input.customerNumber}`);
+  const verify = verifyLink(input);
   return [
     `Hello ${input.customerName},`,
     "",
@@ -144,7 +156,7 @@ async function sendWithResend(opts: {
 }
 
 function enquiryEmailHtml(input: NotifyBookingInput): string {
-  const verify = absoluteUrl(`/verify/${input.customerNumber}`);
+  const verify = verifyLink(input);
   const contacts = supportContacts();
   return `
   <div style="font-family:Georgia,serif;background:#0A192F;color:#fff;padding:32px">
@@ -213,7 +225,7 @@ export async function notifyBookingConfirmed(
     <p>Your visit to <strong>${escapeHtml(input.venueName)}</strong> is confirmed.</p>
     <p>Customer Number: <strong style="color:#C29B62">${escapeHtml(input.customerNumber)}</strong></p>
     <p>Reference: ${escapeHtml(input.bookingReference)}</p>
-    <p><a href="${absoluteUrl(`/verify/${input.customerNumber}`)}" style="color:#C29B62">Verify ticket</a></p>
+    <p><a href="${verifyLink(input)}" style="color:#C29B62">Verify ticket</a></p>
     <p style="font-size:13px;color:#9eb0c4">${escapeHtml(contacts.phone)} · ${escapeHtml(contacts.email)}</p>
   </div>`;
 

@@ -27,25 +27,42 @@ export type TicketPdfInput = {
   verificationUrl?: string;
 };
 
+/** Helvetica/WinAnsi-safe text — pdf-lib throws on em dashes, bullets, etc. */
+function winAnsi(value: string | null | undefined): string {
+  if (!value) return "";
+  return value
+    .normalize("NFKD")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/[\u2018\u2019\u201A\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')
+    .replace(/[\u2022\u00B7\u2023\u2043]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/\u00A0/g, " ")
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
+}
+
 function dash(value: string | null | undefined) {
-  const v = value?.trim();
-  return v && v.length > 0 ? v : "—";
+  const v = winAnsi(value).trim();
+  return v.length > 0 ? v : "-";
 }
 
 function supportLine(fields: TicketPdfInput) {
-  const wa =
+  const wa = winAnsi(
     fields.supportWhatsApp ||
-    process.env.NEXT_PUBLIC_PANORA_WHATSAPP ||
-    "263715708327";
-  const phone =
+      process.env.NEXT_PUBLIC_PANORA_WHATSAPP ||
+      "263715708327",
+  );
+  const phone = winAnsi(
     fields.supportPhone ||
-    process.env.NEXT_PUBLIC_PANORA_PHONE_DISPLAY ||
-    "+263 71 553 5982";
-  const email =
+      process.env.NEXT_PUBLIC_PANORA_PHONE_DISPLAY ||
+      "+263 71 553 5982",
+  );
+  const email = winAnsi(
     fields.supportEmail ||
-    process.env.NEXT_PUBLIC_PANORA_EMAIL ||
-    "info@panora.co.zw";
-  return `WhatsApp ${wa}  ·  Phone ${phone}  ·  ${email}  ·  panora.co.zw`;
+      process.env.NEXT_PUBLIC_PANORA_EMAIL ||
+      "info@panora.co.zw",
+  );
+  return `WhatsApp ${wa}  |  Phone ${phone}  |  ${email}  |  panora.co.zw`;
 }
 
 async function drawWrapped(
@@ -61,7 +78,8 @@ async function drawWrapped(
     lineHeight?: number;
   },
 ): Promise<number> {
-  const words = text.split(/\s+/);
+  const safe = winAnsi(text) || "-";
+  const words = safe.split(/\s+/);
   let line = "";
   let y = opts.y;
   const lh = opts.lineHeight ?? opts.size + 4;
@@ -106,6 +124,10 @@ export async function buildLuxuryTicketPdf(
       return await buildOnce(fields);
     } catch (err) {
       lastError = err;
+      console.info(
+        "[ticket-pdf] attempt failed:",
+        err instanceof Error ? err.message : err,
+      );
     }
   }
   throw lastError instanceof Error ? lastError : new Error("PDF failed");
@@ -118,9 +140,12 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
+  const status = winAnsi(fields.statusLabel).toUpperCase() || "ENQUIRY RECEIVED";
+  const customerNumber = dash(fields.customerNumber);
+  const bookingReference = dash(fields.bookingReference);
+
   page.drawRectangle({ x: 0, y: 0, width, height, color: WHITE });
 
-  // Boarding-pass header
   page.drawRectangle({
     x: 0,
     y: height - 108,
@@ -135,14 +160,14 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     font: bold,
     color: GOLD,
   });
-  page.drawText("Discover  ·  Connect  ·  Belong", {
+  page.drawText("Discover - Connect - Belong", {
     x: 36,
     y: height - 64,
     size: 10,
     font: regular,
     color: WHITE,
   });
-  page.drawText(fields.statusLabel.toUpperCase(), {
+  page.drawText(status, {
     x: 36,
     y: height - 88,
     size: 12,
@@ -150,7 +175,6 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     color: GOLD,
   });
 
-  // Perforation-style divider
   for (let x = 28; x < width - 28; x += 10) {
     page.drawRectangle({
       x,
@@ -161,7 +185,6 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     });
   }
 
-  // Reference strip
   page.drawRectangle({
     x: 28,
     y: height - 178,
@@ -178,10 +201,10 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     font: bold,
     color: GOLD,
   });
-  page.drawText(fields.customerNumber, {
+  page.drawText(customerNumber, {
     x: 40,
     y: height - 166,
-    size: 16,
+    size: Math.min(16, customerNumber.length > 14 ? 12 : 16),
     font: bold,
     color: NAVY,
   });
@@ -192,10 +215,10 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     font: bold,
     color: GOLD,
   });
-  page.drawText(fields.bookingReference, {
+  page.drawText(bookingReference, {
     x: width - 150,
     y: height - 166,
-    size: 12,
+    size: 11,
     font: bold,
     color: NAVY,
   });
@@ -214,6 +237,7 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
 
   let y = height - 208;
   for (const row of rows) {
+    if (y < 160) break;
     page.drawText(row.label.toUpperCase(), {
       x: 36,
       y,
@@ -234,26 +258,31 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     y -= 6;
   }
 
-  if (fields.qrDataUrl) {
+  if (fields.qrDataUrl?.startsWith("data:image/")) {
     try {
-      const png = await pdf.embedPng(
-        Buffer.from(fields.qrDataUrl.split(",")[1] ?? "", "base64"),
-      );
-      page.drawImage(png, {
-        x: width - 132,
-        y: height - 350,
-        width: 88,
-        height: 88,
-      });
-      page.drawText("Scan on arrival", {
-        x: width - 130,
-        y: height - 362,
-        size: 7,
-        font: regular,
-        color: MUTED,
-      });
+      const comma = fields.qrDataUrl.indexOf(",");
+      const b64 = comma >= 0 ? fields.qrDataUrl.slice(comma + 1) : "";
+      if (b64) {
+        const bytes = Buffer.from(b64, "base64");
+        const png = fields.qrDataUrl.startsWith("data:image/png")
+          ? await pdf.embedPng(bytes)
+          : await pdf.embedJpg(bytes);
+        page.drawImage(png, {
+          x: width - 132,
+          y: Math.max(y - 20, 200),
+          width: 88,
+          height: 88,
+        });
+        page.drawText("Scan on arrival", {
+          x: width - 130,
+          y: Math.max(y - 32, 188),
+          size: 7,
+          font: regular,
+          color: MUTED,
+        });
+      }
     } catch {
-      // QR optional on PDF if embed fails
+      // QR optional — ticket text + verification URL remain
     }
   }
 
@@ -273,19 +302,23 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
         "We look forward to helping you create unforgettable memories.",
       ];
 
-  y = Math.min(y, 230);
+  const boxTop = Math.min(Math.max(y - 8, 200), 240);
+  const boxBottom = 78;
+  const boxHeight = Math.max(40, boxTop - boxBottom);
+
   page.drawRectangle({
     x: 28,
-    y: 78,
+    y: boxBottom,
     width: width - 56,
-    height: y - 64,
+    height: boxHeight,
     color: LIGHT,
     borderColor: GOLD,
     borderWidth: 0.75,
   });
 
-  let my = y - 16;
+  let my = boxTop - 14;
   for (const line of message) {
+    if (my < boxBottom + 12) break;
     my = await drawWrapped(page, line, {
       x: 40,
       y: my,
