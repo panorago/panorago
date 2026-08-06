@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Map · Panora Go",
   description:
-    "Explore curated Zimbabwe places on an interactive map — Harare, Nyanga, Kariba, Victoria Falls, Bulawayo, and beyond.",
+    "Explore curated Zimbabwe places on an interactive map — Chinhoyi, Mashonaland West, Kariba, Victoria Falls, and beyond.",
 };
 
 export default async function MapPage() {

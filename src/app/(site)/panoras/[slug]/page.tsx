@@ -5,6 +5,8 @@ import { ExperienceStories } from "@/components/place/experience-stories";
 import { GalleryLightbox } from "@/components/place/gallery-lightbox";
 import { HighlightsPanel } from "@/components/place/highlights-panel";
 import { InterestedIn } from "@/components/place/interested-in";
+import { PlaceDirectionsMapDynamic } from "@/components/place/place-directions-map-dynamic";
+import { PricingSneakPeek } from "@/components/place/pricing-sneak-peek";
 import { VerificationBadges } from "@/components/place/verification-badges";
 import { SEED_PLACES } from "@/data/seed-places";
 import {
@@ -66,22 +68,6 @@ export async function generateMetadata({
   };
 }
 
-function mapEmbedUrl(place: {
-  contact: { googleMapsUrl?: string | null };
-  latitude: number | null;
-  longitude: number | null;
-  name: string;
-}) {
-  if (place.contact.googleMapsUrl) {
-    const encoded = encodeURIComponent(place.contact.googleMapsUrl);
-    return `https://maps.google.com/maps?q=${encoded}&z=14&output=embed`;
-  }
-  if (place.latitude != null && place.longitude != null) {
-    return `https://maps.google.com/maps?q=${place.latitude},${place.longitude}&z=14&output=embed`;
-  }
-  return null;
-}
-
 export default async function PlacePage({
   params,
 }: {
@@ -95,9 +81,9 @@ export default async function PlacePage({
     getStoriesForPlace(place.id),
     getRecommendationsForPlace(place.slug),
   ]);
-  const mapUrl = mapEmbedUrl(place);
   const gallery =
     place.gallery.length > 0 ? place.gallery : [place.heroImage];
+  const hasCoords = place.latitude != null && place.longitude != null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -233,6 +219,10 @@ export default async function PlacePage({
             </Reveal>
 
             <Reveal>
+              <PricingSneakPeek place={place} />
+            </Reveal>
+
+            <Reveal>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                 Highlights
               </p>
@@ -313,20 +303,16 @@ export default async function PlacePage({
               </Reveal>
             )}
 
-            {mapUrl && (
+            {hasCoords ? (
               <Reveal>
-                <h2 className="mb-4 font-display text-2xl">Find your way</h2>
-                <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)]">
-                  <iframe
-                    title={`Map of ${place.name}`}
-                    src={mapUrl}
-                    className="h-72 w-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
+                <PlaceDirectionsMapDynamic
+                  name={place.name}
+                  lat={place.latitude!}
+                  lng={place.longitude!}
+                  googleMapsUrl={place.contact.googleMapsUrl}
+                />
               </Reveal>
-            )}
+            ) : null}
 
             <Reveal>
               <ExperienceStories
@@ -340,7 +326,7 @@ export default async function PlacePage({
           </div>
 
           <div className="lg:pt-2">
-            <EnquiryPanel placeName={place.name} />
+            <EnquiryPanel placeName={place.name} placeSlug={place.slug} />
           </div>
         </div>
       </div>

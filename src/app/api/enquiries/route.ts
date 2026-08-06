@@ -7,6 +7,8 @@ const enquirySchema = z.object({
   place_name: z.string().trim().max(160).optional().nullable(),
   preferred_date: z.string().trim().max(80).optional().nullable(),
   guests: z.string().trim().max(80).optional().nullable(),
+  adults: z.number().int().min(0).max(99).optional().nullable(),
+  children: z.number().int().min(0).max(99).optional().nullable(),
   phone: z.string().trim().max(40).optional().nullable(),
   email: z.string().trim().email().optional().nullable().or(z.literal("")),
   budget: z.string().trim().max(80).optional().nullable(),
@@ -26,6 +28,19 @@ function generateEnquiryCode() {
   return `PGO-${suffix}`;
 }
 
+function formatGuestsLabel(
+  adults: number | null | undefined,
+  children: number | null | undefined,
+  guests: string | null | undefined,
+) {
+  if (adults != null || children != null) {
+    const a = adults ?? 0;
+    const c = children ?? 0;
+    return `${a} adult${a === 1 ? "" : "s"}, ${c} child${c === 1 ? "" : "ren"}`;
+  }
+  return guests ?? null;
+}
+
 export async function POST(request: Request) {
   let json: unknown;
   try {
@@ -43,19 +58,30 @@ export async function POST(request: Request) {
   }
 
   const code = generateEnquiryCode();
+  const guests = formatGuestsLabel(
+    parsed.data.adults,
+    parsed.data.children,
+    parsed.data.guests,
+  );
+
   const payload = {
     code,
     place_id: parsed.data.place_id ?? null,
     place_name: parsed.data.place_name ?? null,
     preferred_date: parsed.data.preferred_date ?? null,
-    guests: parsed.data.guests ?? null,
+    guests,
     phone: parsed.data.phone ?? null,
     email: parsed.data.email || null,
     budget: parsed.data.budget ?? null,
     special_request: parsed.data.special_request ?? null,
     channel: parsed.data.channel,
     status: "new",
-    payload: parsed.data,
+    payload: {
+      ...parsed.data,
+      adults: parsed.data.adults ?? null,
+      children: parsed.data.children ?? null,
+      guests,
+    },
   };
 
   try {

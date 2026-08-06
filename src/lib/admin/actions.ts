@@ -491,3 +491,121 @@ export async function updatePlaceJson(
     };
   }
 }
+
+const CSV_CATEGORIES = new Set<PlaceCategory>([
+  "dining",
+  "escape",
+  "nightlife",
+  "wellness",
+  "culture",
+  "outdoors",
+  "coffee",
+  "weekend",
+]);
+
+export type CsvPlaceImportRow = {
+  name: string;
+  slug: string;
+  location: string;
+  city: string;
+  category: string;
+  story: string;
+  panora_notes: string;
+  latitude: string;
+  longitude: string;
+  price_guide: string;
+  hero_image: string;
+};
+
+/** Bulk-insert places from CSV as unpublished drafts (admin only). */
+export async function importPlacesCsv(
+  rows: CsvPlaceImportRow[],
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return { ok: false, error: "No rows to import." };
+    }
+
+    const now = new Date().toISOString();
+    const payloads: Record<string, unknown>[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = (row.name ?? "").trim();
+      const story = (row.story ?? "").trim();
+      const heroImage = (row.hero_image ?? "").trim();
+
+      if (!name || !story || !heroImage) {
+        return {
+          ok: false,
+          error: `Row ${i + 1}: name, story, and hero_image are required.`,
+        };
+      }
+
+      const categoryRaw = (row.category ?? "dining").trim().toLowerCase();
+      if (!CSV_CATEGORIES.has(categoryRaw as PlaceCategory)) {
+        return {
+          ok: false,
+          error: `Row ${i + 1}: invalid category "${row.category}".`,
+        };
+      }
+
+      const slugInput = (row.slug ?? "").trim();
+      const slug =
+        slugInput ||
+        slugify(name, { lower: true, strict: true, trim: true });
+
+      const latRaw = (row.latitude ?? "").trim();
+      const lngRaw = (row.longitude ?? "").trim();
+
+      payloads.push({
+        slug,
+        name,
+        location: (row.location ?? "").trim() || "Chinhoyi",
+        city: (row.city ?? "").trim() || "Chinhoyi",
+        country: "Zimbabwe",
+        latitude: latRaw ? Number(latRaw) : null,
+        longitude: lngRaw ? Number(lngRaw) : null,
+        category: categoryRaw as PlaceCategory,
+        mood: [] as MoodTag[],
+        story,
+        panora_notes: (row.panora_notes ?? "").trim(),
+        highlights: {},
+        amenities: {},
+        contact: {},
+        price_guide: (row.price_guide ?? "").trim() || "Enquire",
+        distance_km: null,
+        verified: false,
+        published: false,
+        hero_image: heroImage,
+        gallery: [] as string[],
+        meta_title: null,
+        meta_description: null,
+        homepage_sections: [] as HomepageSectionKey[],
+        verifications: [] as string[],
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    const { error } = await supabase.from("places").insert(payloads);
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath("/admin/places");
+    revalidatePath("/discover");
+    revalidatePath("/");
+
+    return {
+      ok: true,
+      message: `Imported ${payloads.length} place${payloads.length === 1 ? "" : "s"} as unpublished drafts.`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Could not import CSV places.",
+    };
+  }
+}

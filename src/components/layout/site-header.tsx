@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion, useScroll } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Heart, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PanoraLogo } from "@/components/brand/panora-logo";
@@ -111,6 +111,19 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/saved"
+            aria-label="Wishlist"
+            className={cn(
+              "focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)]",
+              "text-[var(--foreground-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]",
+              pathname === "/saved" || pathname.startsWith("/saved/")
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : null,
+            )}
+          >
+            <Heart className="h-4 w-4" strokeWidth={2} />
+          </Link>
           <ThemeToggle className="hidden sm:inline-flex" />
           <Button
             href="/enquiry"
@@ -163,7 +176,17 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                 </Link>
               ))}
               <div className="mt-3 flex items-center justify-between gap-3 px-1">
-                <ThemeToggle />
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/saved"
+                    aria-label="Wishlist"
+                    className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--foreground-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Heart className="h-4 w-4" strokeWidth={2} />
+                  </Link>
+                  <ThemeToggle />
+                </div>
                 <Button href="/enquiry" variant="gold" size="md">
                   Enquiry
                 </Button>

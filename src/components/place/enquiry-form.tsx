@@ -1,13 +1,15 @@
 "use client";
 
+import { RelatedPlaces } from "@/components/place/related-places";
 import { Button } from "@/components/ui/button";
 import {
   buildEnquiryMessage,
   mailtoUrl,
   telUrl,
+  ticketDownloadUrl,
   whatsappUrl,
 } from "@/lib/utils";
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { Download, Mail, MessageCircle, Phone } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 type EnquiryFormProps = {
@@ -17,7 +19,8 @@ type EnquiryFormProps = {
 export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
   const [placeName, setPlaceName] = useState(initialPlaceName);
   const [date, setDate] = useState("");
-  const [guests, setGuests] = useState("");
+  const [adults, setAdults] = useState("2");
+  const [children, setChildren] = useState("0");
   const [phone, setPhone] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
@@ -40,7 +43,8 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
     return buildEnquiryMessage({
       placeName: subjectPlace,
       date,
-      guests,
+      adults: adults === "" ? undefined : Number(adults),
+      children: children === "" ? undefined : Number(children),
       phone,
       budget,
       specialRequest,
@@ -50,13 +54,16 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
   async function registerEnquiry(channel: "whatsapp" | "email" | "call" | "web") {
     try {
       setSubmitting(true);
+      const adultsNum = adults === "" ? null : Number(adults);
+      const childrenNum = children === "" ? null : Number(children);
       const res = await fetch("/api/enquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           place_name: placeName.trim() || null,
           preferred_date: date || null,
-          guests: guests || null,
+          adults: Number.isFinite(adultsNum) ? adultsNum : null,
+          children: Number.isFinite(childrenNum) ? childrenNum : null,
           phone: phone || null,
           budget: budget || null,
           special_request: specialRequest || null,
@@ -107,6 +114,17 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
   const fieldClass =
     "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
 
+  const ticketHref = code
+    ? ticketDownloadUrl(code, {
+        placeName: placeName.trim() || undefined,
+        date: date || undefined,
+        adults,
+        children,
+        phone: phone || undefined,
+        specialRequest: specialRequest || undefined,
+      })
+    : null;
+
   return (
     <div className="surface-card rounded-[var(--radius-lg)] p-6 sm:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
@@ -120,6 +138,30 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
         specific place in mind.
       </p>
 
+      {code ? (
+        <div className="mt-8 space-y-4">
+          <div className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-4 py-4">
+            <p className="text-sm">
+              Your enquiry reference:{" "}
+              <span className="font-semibold text-[var(--accent)]">{code}</span>
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Save this code — we&apos;ll use it when we follow up.
+            </p>
+            {ticketHref ? (
+              <a
+                href={ticketHref}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                download
+              >
+                <Download className="h-4 w-4" />
+                Download PDF ticket
+              </a>
+            ) : null}
+          </div>
+          <RelatedPlaces limit={4} />
+        </div>
+      ) : (
       <form className="mt-8 space-y-3" onSubmit={openWhatsApp}>
         <label className="block space-y-1.5">
           <span className="text-xs font-medium text-muted">
@@ -143,17 +185,32 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
             className={fieldClass}
           />
         </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-medium text-muted">Guests</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="e.g. 2 adults"
-            value={guests}
-            onChange={(e) => setGuests(e.target.value)}
-            className={fieldClass}
-          />
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted">Adults</span>
+            <input
+              type="number"
+              min={0}
+              max={99}
+              inputMode="numeric"
+              value={adults}
+              onChange={(e) => setAdults(e.target.value)}
+              className={fieldClass}
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted">Children</span>
+            <input
+              type="number"
+              min={0}
+              max={99}
+              inputMode="numeric"
+              value={children}
+              onChange={(e) => setChildren(e.target.value)}
+              className={fieldClass}
+            />
+          </label>
+        </div>
         <label className="block space-y-1.5">
           <span className="text-xs font-medium text-muted">Your phone</span>
           <input
@@ -184,13 +241,6 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
             className={`${fieldClass} resize-y`}
           />
         </label>
-
-        {code ? (
-          <p className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-4 py-3 text-sm">
-            Your enquiry reference:{" "}
-            <span className="font-semibold text-[var(--accent)]">{code}</span>
-          </p>
-        ) : null}
 
         <div className="grid gap-2 pt-2 sm:grid-cols-3">
           <Button
@@ -224,6 +274,7 @@ export function EnquiryForm({ initialPlaceName = "" }: EnquiryFormProps) {
           </Button>
         </div>
       </form>
+      )}
 
       {callConfirm && (
         <div

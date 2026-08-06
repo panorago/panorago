@@ -55,6 +55,11 @@ export interface PlaceAmenityFlags {
   roadCondition?: "excellent" | "good" | "fair" | "challenging";
 }
 
+export interface PricingItem {
+  label: string;
+  price: string;
+}
+
 export interface PlaceHighlights {
   goldenHour?: string;
   bestTime?: string;
@@ -64,6 +69,8 @@ export interface PlaceHighlights {
   paymentMethods?: string[];
   averageSpend?: string;
   openingHours?: string;
+  /** Optional sneak-peek pricing rows for admin / detail UI later */
+  pricingItems?: PricingItem[];
 }
 
 export interface PlaceContact {
@@ -119,6 +126,8 @@ export interface Place {
   metaDescription: string | null;
   homepageSections: HomepageSectionKey[];
   verifications: string[];
+  /** Optional structured pricing sneak peek (admin / detail later) */
+  pricingItems?: PricingItem[];
   createdAt: string;
   updatedAt: string;
 }

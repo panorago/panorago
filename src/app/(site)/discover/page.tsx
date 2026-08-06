@@ -93,7 +93,7 @@ export default async function DiscoverPage({
           <PlaceGrid
             places={places}
             emptyTitle="No matches this time"
-            emptyDescription="Try a different vibe or a shorter search. Harare gardens, Zambezi lodges, and quiet cafés are all a filter away."
+            emptyDescription="Try a different vibe or a shorter search. Chinhoyi caves, courtyard kitchens, and Mashonaland West weekends are all a filter away."
           />
         </Reveal>
       </div>

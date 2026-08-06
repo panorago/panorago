@@ -1,9 +1,10 @@
 "use client";
 
+import { WeekendCountdown } from "@/components/home/weekend-countdown";
 import { QuickVibes } from "@/components/search/quick-vibes";
 import { SearchBar } from "@/components/search/search-bar";
 import { Button } from "@/components/ui/button";
-import { fadeUp, motionTokens, staggerContainer } from "@/lib/motion/variants";
+import { fadeUp, staggerContainer } from "@/lib/motion/variants";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -111,6 +112,13 @@ export function HomeHero({
           >
             Discover Zimbabwe&apos;s most unforgettable places.
           </motion.p>
+
+          <motion.div
+            variants={prefersReduced ? undefined : fadeUp}
+            className="mt-3"
+          >
+            <WeekendCountdown />
+          </motion.div>
 
           <motion.div
             variants={prefersReduced ? undefined : fadeUp}

@@ -25,11 +25,27 @@ export function formatPriceGuide(value: string | null | undefined) {
 export function buildEnquiryMessage(params: {
   placeName: string;
   date?: string;
+  adults?: number | string;
+  children?: number | string;
+  /** @deprecated Prefer adults / children */
   guests?: string;
   phone?: string;
   budget?: string;
   specialRequest?: string;
 }) {
+  const adults =
+    params.adults === "" || params.adults == null
+      ? "—"
+      : String(params.adults);
+  const children =
+    params.children === "" || params.children == null
+      ? "—"
+      : String(params.children);
+  const guestLine =
+    params.adults != null || params.children != null
+      ? [`Adults: ${adults}`, `Children: ${children}`]
+      : [`Guests: ${params.guests || "—"}`];
+
   const lines = [
     "Hello Panora Go.",
     "",
@@ -37,12 +53,36 @@ export function buildEnquiryMessage(params: {
     params.placeName,
     "",
     `Date: ${params.date || "—"}`,
-    `Guests: ${params.guests || "—"}`,
+    ...guestLine,
     `Phone: ${params.phone || "—"}`,
     `Budget: ${params.budget || "—"}`,
     `Special Request: ${params.specialRequest || "—"}`,
   ];
   return lines.join("\n");
+}
+
+export function ticketDownloadUrl(
+  code: string,
+  params: {
+    placeName?: string;
+    date?: string;
+    adults?: number | string;
+    children?: number | string;
+    phone?: string;
+    specialRequest?: string;
+  },
+) {
+  const qs = new URLSearchParams();
+  if (params.placeName) qs.set("place", params.placeName);
+  if (params.date) qs.set("date", params.date);
+  if (params.adults != null && params.adults !== "")
+    qs.set("adults", String(params.adults));
+  if (params.children != null && params.children !== "")
+    qs.set("children", String(params.children));
+  if (params.phone) qs.set("phone", params.phone);
+  if (params.specialRequest) qs.set("special_request", params.specialRequest);
+  const query = qs.toString();
+  return `/api/enquiries/${encodeURIComponent(code)}/ticket${query ? `?${query}` : ""}`;
 }
 
 export function whatsappUrl(phone: string, message: string) {

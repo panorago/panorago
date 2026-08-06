@@ -12,14 +12,15 @@ import type { Place } from "@/types";
 
 const REGIONS = [
   "All",
-  "Harare",
-  "Nyanga",
+  "Chinhoyi",
   "Kariba",
   "Victoria Falls",
-  "Bulawayo",
 ] as const;
 
 type Region = (typeof REGIONS)[number];
+
+/** Default map filter — Chinhoyi-first MVP */
+const DEFAULT_REGION: Region = "Chinhoyi";
 
 /** Approximate Zimbabwe geographic bounds for pin projection */
 const BOUNDS = {
@@ -55,7 +56,7 @@ type PlacesMapProps = {
 
 export function PlacesMap({ places }: PlacesMapProps) {
   const reduceMotion = useReducedMotion();
-  const [region, setRegion] = useState<Region>("All");
+  const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(

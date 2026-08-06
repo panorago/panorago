@@ -12,6 +12,7 @@ import type {
   PlaceAmenityFlags,
   PlaceContact,
   PlaceHighlights,
+  PricingItem,
 } from "@/types";
 
 export interface PlaceRow {
@@ -40,6 +41,7 @@ export interface PlaceRow {
   meta_description: string | null;
   homepage_sections: HomepageSectionKey[] | null;
   verifications?: string[] | null;
+  pricing_items?: PricingItem[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -79,7 +81,26 @@ function asObject<T>(value: unknown, fallback: T): T {
   return fallback;
 }
 
+function asPricingItems(value: unknown): PricingItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (item): item is PricingItem =>
+        !!item &&
+        typeof item === "object" &&
+        typeof (item as PricingItem).label === "string" &&
+        typeof (item as PricingItem).price === "string",
+    )
+    .map((item) => ({ label: item.label, price: item.price }));
+}
+
 export function mapPlaceRow(row: PlaceRow): Place {
+  const highlights = asObject<PlaceHighlights>(row.highlights, {});
+  const pricingFromColumn = asPricingItems(row.pricing_items);
+  const pricingFromHighlights = asPricingItems(highlights.pricingItems);
+  const pricingItems =
+    pricingFromColumn.length > 0 ? pricingFromColumn : pricingFromHighlights;
+
   return {
     id: row.id,
     slug: row.slug,
@@ -93,7 +114,7 @@ export function mapPlaceRow(row: PlaceRow): Place {
     mood: asMoodTags(row.mood),
     story: row.story,
     panoraNotes: row.panora_notes,
-    highlights: asObject<PlaceHighlights>(row.highlights, {}),
+    highlights,
     amenities: asObject<PlaceAmenityFlags>(row.amenities, {}),
     contact: asObject<PlaceContact>(row.contact, {}),
     priceGuide: row.price_guide,
@@ -106,6 +127,7 @@ export function mapPlaceRow(row: PlaceRow): Place {
     metaDescription: row.meta_description,
     homepageSections: asSectionKeys(row.homepage_sections),
     verifications: asStringArray(row.verifications),
+    pricingItems,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

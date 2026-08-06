@@ -37,7 +37,7 @@ const INTRINSIC: Record<LogoVariant, { width: number; height: number }> = {
 /**
  * Theme-aware logo without forced square boxes.
  * - Header: variant="full" → h-10 w-auto object-contain
- * - Footer: variant="icon" → h-12 w-auto object-contain mix-blend-screen
+ * - Footer: variant="icon" → h-12 w-auto object-contain
  * Both light/dark assets stay mounted; opacity swaps to avoid layout shift.
  */
 export function PanoraLogo({
@@ -60,7 +60,7 @@ export function PanoraLogo({
   const sizeClass =
     variant === "full"
       ? "h-10 w-auto object-contain"
-      : "h-12 w-auto object-contain mix-blend-screen";
+      : "h-12 w-auto object-contain";
 
   const mark = (
     <span

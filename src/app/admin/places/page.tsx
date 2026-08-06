@@ -3,6 +3,7 @@ import {
   getAdminPlaces,
   setPlacePublished,
 } from "@/lib/admin/actions";
+import { CsvImport } from "@/components/admin/csv-import";
 import { SEED_PLACES } from "@/data/seed-places";
 import Link from "next/link";
 
@@ -37,6 +38,8 @@ export default async function AdminPlacesPage() {
           live records.
         </p>
       )}
+
+      {fetched.length > 0 && <CsvImport />}
 
       <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)]">
         <table className="w-full min-w-[640px] text-left text-sm">
