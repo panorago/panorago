@@ -1,0 +1,81 @@
+import { Reveal } from "@/components/motion/reveal";
+import { PlaceGrid } from "@/components/place/place-grid";
+import { QuickVibes } from "@/components/search/quick-vibes";
+import { SearchBar } from "@/components/search/search-bar";
+import { searchPlaces } from "@/lib/data/places";
+import type { MoodTag } from "@/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Discover",
+  description:
+    "Search Zimbabwe's curated places by name, city, or vibe — restaurants, escapes, coffee rituals, and more.",
+};
+
+const MOODS: MoodTag[] = [
+  "Golden Hour",
+  "Date Night",
+  "Hidden Escape",
+  "Weekend Away",
+  "Coffee Ritual",
+  "Tonight",
+  "Quiet Luxury",
+  "Celebration",
+];
+
+function isMoodTag(value: string | undefined): value is MoodTag {
+  return Boolean(value && MOODS.includes(value as MoodTag));
+}
+
+export default async function DiscoverPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; vibe?: string }>;
+}) {
+  const params = await searchParams;
+  const q = params.q?.trim() ?? "";
+  const vibe = isMoodTag(params.vibe) ? params.vibe : undefined;
+  const places = await searchPlaces(q, vibe);
+
+  const heading = vibe
+    ? `Places for ${vibe}`
+    : q
+      ? `Results for “${q}”`
+      : "Discover Zimbabwe";
+
+  return (
+    <div className="gradient-mesh pt-[calc(var(--nav-height)+2rem)]">
+      <div className="container-panora pb-[var(--space-section)]">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Discover
+          </p>
+          <h1 className="mt-3 font-display text-4xl md:text-5xl">{heading}</h1>
+          <p className="mt-3 text-sm text-muted">
+            Filter by vibe or search by place, city, or feeling. Every listing
+            is curated with insider notes.
+          </p>
+          <div className="mt-8">
+            <SearchBar initialQuery={q} initialVibe={vibe} large />
+          </div>
+          <div className="mt-6">
+            <QuickVibes activeVibe={vibe} />
+          </div>
+        </Reveal>
+
+        <Reveal className="mt-14" delay={0.08}>
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <p className="text-sm text-muted">
+              {places.length} {places.length === 1 ? "place" : "places"}
+            </p>
+          </div>
+          <PlaceGrid
+            places={places}
+            emptyTitle="No matches this time"
+            emptyDescription="Try a different vibe or a shorter search. Harare gardens, Zambezi lodges, and quiet cafés are all a filter away."
+          />
+        </Reveal>
+      </div>
+    </div>
+  );
+}
