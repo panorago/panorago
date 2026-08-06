@@ -8,29 +8,52 @@ import {
 } from "react";
 
 const STORAGE_KEY = "panora-saved";
+const EMPTY_SAVED: string[] = [];
 
-function readSaved(): string[] {
-  if (typeof window === "undefined") return [];
+let cachedRaw: string | null = null;
+let cachedIds: string[] = EMPTY_SAVED;
+
+function parseSaved(raw: string | null): string[] {
+  if (!raw) return EMPTY_SAVED;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((id): id is string => typeof id === "string");
+    if (!Array.isArray(parsed)) return EMPTY_SAVED;
+    const ids = parsed.filter((id): id is string => typeof id === "string");
+    return ids.length === 0 ? EMPTY_SAVED : ids;
   } catch {
-    return [];
+    return EMPTY_SAVED;
   }
 }
 
+function getSnapshot(): string[] {
+  if (typeof window === "undefined") return EMPTY_SAVED;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (raw === cachedRaw) return cachedIds;
+  cachedRaw = raw;
+  cachedIds = parseSaved(raw);
+  return cachedIds;
+}
+
+function getServerSnapshot(): string[] {
+  return EMPTY_SAVED;
+}
+
 function writeSaved(ids: string[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  const next = ids.length === 0 ? EMPTY_SAVED : ids;
+  const raw = JSON.stringify(next);
+  window.localStorage.setItem(STORAGE_KEY, raw);
+  cachedRaw = raw;
+  cachedIds = next;
   window.dispatchEvent(new Event("panora-saved-change"));
   window.dispatchEvent(new Event("panora-saved-changed"));
 }
 
 function subscribe(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {};
-  const handler = () => onStoreChange();
+  const handler = () => {
+    cachedRaw = null;
+    onStoreChange();
+  };
   window.addEventListener("storage", handler);
   window.addEventListener("panora-saved-change", handler);
   window.addEventListener("panora-saved-changed", handler);
@@ -42,11 +65,7 @@ function subscribe(onStoreChange: () => void) {
 }
 
 export function useSavedPlaces() {
-  const saved = useSyncExternalStore(
-    subscribe,
-    readSaved,
-    () => [] as string[],
-  );
+  const saved = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const isSaved = useCallback(
     (placeId: string) => saved.includes(placeId),
@@ -54,7 +73,7 @@ export function useSavedPlaces() {
   );
 
   const toggle = useCallback((placeId: string) => {
-    const current = readSaved();
+    const current = getSnapshot();
     const next = current.includes(placeId)
       ? current.filter((id) => id !== placeId)
       : [...current, placeId];
@@ -62,20 +81,20 @@ export function useSavedPlaces() {
   }, []);
 
   const save = useCallback((placeId: string) => {
-    const current = readSaved();
+    const current = getSnapshot();
     if (current.includes(placeId)) return;
     writeSaved([...current, placeId]);
   }, []);
 
   const unsave = useCallback((placeId: string) => {
-    writeSaved(readSaved().filter((id) => id !== placeId));
+    writeSaved(getSnapshot().filter((id) => id !== placeId));
   }, []);
 
   return { saved, isSaved, toggle, save, unsave };
 }
 
 export function getSavedPlaceIds(): string[] {
-  return readSaved();
+  return getSnapshot();
 }
 
 /** Hydration-safe saved check for first paint */
