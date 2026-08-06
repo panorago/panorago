@@ -12,16 +12,18 @@ import { useEffect, useRef, useState } from "react";
 
 interface HomeHeroProps {
   heroImage: string;
-  /** Optional MP4/WebM URL. Falls back to poster image when reduced motion or load failure. */
+  /**
+   * Optional MP4/WebM URL. When unset, the Zimbabwe hero photograph is shown
+   * (preferred). Set NEXT_PUBLIC_HERO_VIDEO to opt into video.
+   */
   heroVideoSrc?: string;
 }
 
-const DEFAULT_HERO_VIDEO =
-  process.env.NEXT_PUBLIC_HERO_VIDEO ?? "/videos/hero.mp4";
+const OPTIONAL_HERO_VIDEO = process.env.NEXT_PUBLIC_HERO_VIDEO || undefined;
 
 export function HomeHero({
   heroImage,
-  heroVideoSrc = DEFAULT_HERO_VIDEO,
+  heroVideoSrc = OPTIONAL_HERO_VIDEO,
 }: HomeHeroProps) {
   const prefersReduced = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,11 +74,11 @@ export function HomeHero({
         ) : (
           <Image
             src={heroImage}
-            alt="Zimbabwe landscape at golden hour"
+            alt="Victoria Falls, Zimbabwe — rainbow over the gorge"
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            className="object-cover object-center"
           />
         )}
       </motion.div>
@@ -96,9 +98,9 @@ export function HomeHero({
         >
           <motion.p
             variants={prefersReduced ? undefined : fadeUp}
-            className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]"
+            className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)] sm:text-sm"
           >
-            Panora Go · Zimbabwe
+            Discover. Connect. Belong.
           </motion.p>
           <motion.h1
             variants={prefersReduced ? undefined : fadeUp}
@@ -115,7 +117,7 @@ export function HomeHero({
 
           <motion.div
             variants={prefersReduced ? undefined : fadeUp}
-            className="mt-3"
+            className="mt-6"
           >
             <WeekendCountdown />
           </motion.div>

@@ -2,7 +2,7 @@ import { HomeHero } from "@/components/home/home-hero";
 import { Reveal } from "@/components/motion/reveal";
 import { PlaceGrid } from "@/components/place/place-grid";
 import { SEED_SECRET_COLLECTIONS, SEED_SECTIONS } from "@/data/seed-places";
-import { getPlacesBySection, getPublishedPlaces } from "@/lib/data/places";
+import { getPlacesBySection } from "@/lib/data/places";
 import type { HomepageSectionKey } from "@/types";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -22,14 +22,12 @@ const SECTION_ORDER: HomepageSectionKey[] = [
 ];
 
 export default async function HomePage() {
-  const [places, ...sectionPlaces] = await Promise.all([
-    getPublishedPlaces(),
-    ...SECTION_ORDER.map((key) => getPlacesBySection(key)),
-  ]);
+  const sectionPlaces = await Promise.all(
+    SECTION_ORDER.map((key) => getPlacesBySection(key)),
+  );
 
-  const heroImage =
-    places[0]?.heroImage ??
-    "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=2000&q=80";
+  // Curated Victoria Falls still — full-bleed Zimbabwe hero
+  const heroImage = "/images/hero-zimbabwe.jpg";
 
   const sections = SECTION_ORDER.map((key, index) => {
     const meta =
