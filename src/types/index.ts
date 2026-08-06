@@ -35,6 +35,19 @@ export type VerificationKey =
   | "borehole_water"
   | "starlink";
 
+export type PaidTier = "basic" | "silver" | "gold" | "platinum";
+
+export type ProfileRole = "admin" | "editor" | "viewer" | "suspended";
+
+export type PlaceSubmissionStatus = "pending" | "approved" | "rejected";
+
+export type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "unavailable"
+  | "cancelled"
+  | "completed";
+
 export interface PlaceAmenityFlags {
   power?: boolean;
   solar?: boolean;
@@ -120,6 +133,9 @@ export interface Place {
   distanceKm: number | null;
   verified: boolean;
   published: boolean;
+  featured: boolean;
+  archived: boolean;
+  paidTier: PaidTier;
   heroImage: string;
   gallery: string[];
   metaTitle: string | null;
@@ -128,6 +144,8 @@ export interface Place {
   verifications: string[];
   /** Optional structured pricing sneak peek (admin / detail later) */
   pricingItems?: PricingItem[];
+  /** Optional venue video (mp4 URL or YouTube/Vimeo) shown below hero */
+  videoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -139,6 +157,8 @@ export interface ExperienceStory {
   body: string;
   likesCount: number;
   published: boolean;
+  pinned?: boolean;
+  reported?: boolean;
   createdAt: string;
   feeling?: string | null;
   likedByMe?: boolean;
@@ -159,12 +179,105 @@ export interface SecretCollection {
   key: string;
   title: string;
   subtitle: string;
+  sortOrder: number;
+  enabled: boolean;
   placeIds: string[];
 }
 
 export interface AdminProfile {
   id: string;
   email: string;
-  role: "admin";
+  role: ProfileRole;
   displayName: string | null;
+  suspendedAt?: string | null;
+}
+
+export interface PlaceSubmission {
+  id: string;
+  status: PlaceSubmissionStatus;
+  submitterName: string;
+  submitterEmail: string | null;
+  submitterPhone: string | null;
+  placeName: string;
+  location: string;
+  city: string;
+  country: string;
+  category: string;
+  story: string;
+  website: string | null;
+  whatsapp: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  heroImage: string | null;
+  notes: string | null;
+  createdPlaceId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SiteSettings {
+  whatsapp: string;
+  email: string;
+  phone: string;
+  phoneDisplay: string;
+  heroVideoUrl: string;
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  mapsApiKeyNote: string;
+}
+
+export interface MediaAsset {
+  id: string;
+  bucket: string;
+  path: string;
+  publicUrl: string | null;
+  filename: string;
+  contentType: string | null;
+  sizeBytes: number | null;
+  alt: string;
+  tags: string[];
+  createdAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  meta: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface BookingHistoryEntry {
+  at: string;
+  event: string;
+  status?: string;
+  note?: string;
+  actorId?: string | null;
+}
+
+export interface Booking {
+  id: string;
+  bookingReference: string;
+  customerNumber: string;
+  customerName: string;
+  email: string | null;
+  phone: string | null;
+  venueId: string | null;
+  venueName: string;
+  venueAddress: string | null;
+  preferredDate: string | null;
+  adults: number;
+  children: number;
+  occasion: string | null;
+  budget: string | null;
+  specialRequest: string | null;
+  status: BookingStatus;
+  qrCodeUrl: string | null;
+  ticketPdfUrl: string | null;
+  history: BookingHistoryEntry[];
+  createdAt: string;
+  updatedAt: string;
 }

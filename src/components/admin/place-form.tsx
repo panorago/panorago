@@ -303,11 +303,41 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="verified" defaultChecked={place?.verified ?? true} />
-          Verified
+          Panora Verified
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="published" defaultChecked={place?.published ?? false} />
           Published
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="featured" defaultChecked={place?.featured ?? false} />
+          Featured
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="archived" defaultChecked={place?.archived ?? false} />
+          Archived
+        </label>
+        <label className="space-y-1.5">
+          <span className="text-xs font-medium text-muted">Paid listing tier</span>
+          <select
+            name="paidTier"
+            defaultValue={place?.paidTier ?? "basic"}
+            className={field}
+          >
+            <option value="basic">Basic</option>
+            <option value="silver">Silver</option>
+            <option value="gold">Gold</option>
+            <option value="platinum">Platinum</option>
+          </select>
+        </label>
+        <label className="space-y-1.5">
+          <span className="text-xs font-medium text-muted">Video URL</span>
+          <input
+            name="videoUrl"
+            defaultValue={place?.videoUrl ?? ""}
+            className={field}
+            placeholder="mp4 or YouTube/Vimeo"
+          />
         </label>
       </section>
 

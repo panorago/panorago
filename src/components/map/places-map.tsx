@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
-import { useMemo, useState } from "react";
-
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ProgressiveImage } from "@/components/media/progressive-image";
+import { loadGoogleMaps } from "@/lib/maps/load-google-maps";
+import {
+  getMapsApiKey,
+  PANORA_MAP_STYLES,
+  panoraMarkerIconUrl,
+} from "@/lib/maps/panora-map";
 import { cn, formatPriceGuide } from "@/lib/utils";
 import { motionTokens } from "@/lib/motion/variants";
 import type { Place } from "@/types";
@@ -19,27 +24,7 @@ const REGIONS = [
 
 type Region = (typeof REGIONS)[number];
 
-/** Default map filter — Chinhoyi-first MVP */
 const DEFAULT_REGION: Region = "Chinhoyi";
-
-/** Approximate Zimbabwe geographic bounds for pin projection */
-const BOUNDS = {
-  minLat: -22.5,
-  maxLat: -15.5,
-  minLng: 25.0,
-  maxLng: 33.5,
-};
-
-function project(lat: number, lng: number) {
-  const x =
-    ((lng - BOUNDS.minLng) / (BOUNDS.maxLng - BOUNDS.minLng)) * 100;
-  const y =
-    ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat)) * 100;
-  return {
-    left: Math.min(96, Math.max(4, x)),
-    top: Math.min(94, Math.max(6, y)),
-  };
-}
 
 function matchesRegion(place: Place, region: Region) {
   if (region === "All") return true;
@@ -56,8 +41,14 @@ type PlacesMapProps = {
 
 export function PlacesMap({ places }: PlacesMapProps) {
   const reduceMotion = useReducedMotion();
+  const apiKey = getMapsApiKey();
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapFailed, setMapFailed] = useState(false);
 
   const filtered = useMemo(
     () =>
@@ -71,6 +62,78 @@ export function PlacesMap({ places }: PlacesMapProps) {
   );
 
   const selected = filtered.find((p) => p.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!apiKey || mapFailed || !mapRef.current) return;
+
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const g = await loadGoogleMaps(apiKey!);
+        if (cancelled || !mapRef.current) return;
+
+        if (!mapInstance.current) {
+          mapInstance.current = new g.Map(mapRef.current, {
+            center: { lat: -17.3667, lng: 30.2 },
+            zoom: 8,
+            styles: PANORA_MAP_STYLES as google.maps.MapTypeStyle[],
+            zoomControl: true,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true,
+            backgroundColor: "#0A192F",
+          });
+        }
+
+        const map = mapInstance.current;
+        if (!map) return;
+
+        markersRef.current.forEach((m) => m.setMap(null));
+        markersRef.current = [];
+
+        const bounds = new g.LatLngBounds();
+        for (const place of filtered) {
+          const position = {
+            lat: place.latitude as number,
+            lng: place.longitude as number,
+          };
+          bounds.extend(position);
+          const marker = new g.Marker({
+            position,
+            map,
+            title: place.name,
+            icon: {
+              url: panoraMarkerIconUrl(),
+              scaledSize: new g.Size(40, 40),
+              anchor: new g.Point(20, 40),
+            },
+          });
+          marker.addListener("click", () => setSelectedId(place.id));
+          marker.addListener("mouseover", () => {
+            marker.setAnimation(g.Animation.BOUNCE);
+            window.setTimeout(() => marker.setAnimation(null), 650);
+          });
+          markersRef.current.push(marker);
+        }
+
+        if (filtered.length > 0) {
+          map.fitBounds(bounds, 72);
+        }
+      } catch (err) {
+        console.info(
+          "[maps] Explore map failed:",
+          err instanceof Error ? err.message : err,
+        );
+        if (!cancelled) setMapFailed(true);
+      }
+    }
+
+    void init();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, mapFailed, filtered]);
 
   return (
     <div className="relative flex h-[calc(100dvh-var(--nav-height)-var(--bottom-nav-height)-env(safe-area-inset-bottom))] min-h-[28rem] flex-col bg-[var(--brand-navy)] text-white md:h-[calc(100dvh-var(--nav-height))]">
@@ -108,113 +171,16 @@ export function PlacesMap({ places }: PlacesMapProps) {
       </div>
 
       <div className="relative flex-1 overflow-hidden pt-[7.5rem] sm:pt-[6.5rem]">
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage: `
-              radial-gradient(ellipse 70% 55% at 55% 45%, rgba(194,155,98,0.14), transparent 70%),
-              linear-gradient(160deg, #0d2137 0%, #0a192f 45%, #071222 100%)
-            `,
-          }}
-          aria-hidden
-        />
-
-        {/* Stylized Zimbabwe silhouette canvas */}
-        <svg
-          viewBox="0 0 100 100"
-          className="pointer-events-none absolute inset-[8%] h-auto w-[84%] opacity-30"
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
-          <path
-            d="M18 28 L42 18 L58 20 L72 16 L88 28 L86 42 L90 58 L78 78 L62 86 L48 84 L32 88 L18 72 L14 52 L18 28 Z"
-            fill="none"
-            stroke="rgba(194,155,98,0.55)"
-            strokeWidth="0.6"
+        {apiKey && !mapFailed ? (
+          <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+        ) : (
+          <ElegantMapFallback
+            places={filtered}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            reduceMotion={!!reduceMotion}
           />
-          <path
-            d="M22 34 L40 26 L56 28 L70 24 L82 34 L80 46 L84 60 L74 74 L60 80 L46 78 L34 82 L22 68 L20 50 Z"
-            fill="rgba(194,155,98,0.06)"
-            stroke="rgba(194,155,98,0.25)"
-            strokeWidth="0.35"
-          />
-          {/* Soft grid */}
-          {[25, 40, 55, 70].map((y) => (
-            <line
-              key={`h-${y}`}
-              x1="12"
-              x2="92"
-              y1={y}
-              y2={y}
-              stroke="rgba(255,255,255,0.06)"
-              strokeWidth="0.2"
-            />
-          ))}
-          {[25, 40, 55, 70, 85].map((x) => (
-            <line
-              key={`v-${x}`}
-              y1="14"
-              y2="90"
-              x1={x}
-              x2={x}
-              stroke="rgba(255,255,255,0.05)"
-              strokeWidth="0.2"
-            />
-          ))}
-        </svg>
-
-        <div className="relative mx-auto h-full w-full max-w-5xl px-2 sm:px-6">
-          <div className="relative h-full w-full">
-            {filtered.map((place) => {
-              const { left, top } = project(
-                place.latitude as number,
-                place.longitude as number,
-              );
-              const active = selectedId === place.id;
-              return (
-                <motion.button
-                  key={place.id}
-                  type="button"
-                  className="absolute z-10 -translate-x-1/2 -translate-y-full focus:outline-none"
-                  style={{ left: `${left}%`, top: `${top}%` }}
-                  onClick={() =>
-                    setSelectedId((prev) =>
-                      prev === place.id ? null : place.id,
-                    )
-                  }
-                  initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  whileHover={reduceMotion ? undefined : { scale: 1.12 }}
-                  transition={motionTokens.spring.soft}
-                  aria-label={`Show ${place.name}`}
-                  aria-pressed={active}
-                >
-                  <span
-                    className={cn(
-                      "relative flex flex-col items-center",
-                      active && "drop-shadow-[0_0_12px_rgba(194,155,98,0.65)]",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full border-2 shadow-lg transition",
-                        active
-                          ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--brand-navy)]"
-                          : "border-[var(--accent)] bg-[var(--brand-navy)] text-[var(--accent)]",
-                      )}
-                    >
-                      <MapPin className="h-4 w-4" strokeWidth={2.25} />
-                    </span>
-                    <span className="mt-0.5 h-0 w-0 border-x-[5px] border-t-[7px] border-x-transparent border-t-[var(--accent)]" />
-                    <span className="mt-1 max-w-[7rem] truncate rounded-full bg-black/35 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur-sm">
-                      {place.name}
-                    </span>
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {filtered.length === 0 && (
           <p className="absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 text-center text-sm text-white/70">
@@ -278,6 +244,99 @@ export function PlacesMap({ places }: PlacesMapProps) {
           </motion.div>
         ) : null}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** Soft fallback when Maps API key is missing or fails to load. */
+function ElegantMapFallback({
+  places,
+  selectedId,
+  onSelect,
+  reduceMotion,
+}: {
+  places: Place[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  reduceMotion: boolean;
+}) {
+  const BOUNDS = {
+    minLat: -22.5,
+    maxLat: -15.5,
+    minLng: 25.0,
+    maxLng: 33.5,
+  };
+
+  function project(lat: number, lng: number) {
+    const x = ((lng - BOUNDS.minLng) / (BOUNDS.maxLng - BOUNDS.minLng)) * 100;
+    const y = ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat)) * 100;
+    return {
+      left: Math.min(96, Math.max(4, x)),
+      top: Math.min(94, Math.max(6, y)),
+    };
+  }
+
+  return (
+    <div className="absolute inset-0">
+      <div
+        className="absolute inset-0 opacity-40"
+        style={{
+          backgroundImage: `
+            radial-gradient(ellipse 70% 55% at 55% 45%, rgba(194,155,98,0.14), transparent 70%),
+            linear-gradient(160deg, #0d2137 0%, #0a192f 45%, #071222 100%)
+          `,
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto h-full w-full max-w-5xl px-2 sm:px-6">
+        <div className="relative h-full w-full">
+          {places.map((place) => {
+            const { left, top } = project(
+              place.latitude as number,
+              place.longitude as number,
+            );
+            const active = selectedId === place.id;
+            return (
+              <motion.button
+                key={place.id}
+                type="button"
+                className="absolute z-10 -translate-x-1/2 -translate-y-full focus:outline-none"
+                style={{ left: `${left}%`, top: `${top}%` }}
+                onClick={() =>
+                  onSelect(selectedId === place.id ? null : place.id)
+                }
+                initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={reduceMotion ? undefined : { scale: 1.12 }}
+                transition={motionTokens.spring.soft}
+                aria-label={`Show ${place.name}`}
+              >
+                <span
+                  className={cn(
+                    "relative flex flex-col items-center",
+                    active && "drop-shadow-[0_0_12px_rgba(194,155,98,0.65)]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full border-2 shadow-lg",
+                      active
+                        ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--brand-navy)]"
+                        : "border-[var(--accent)] bg-[var(--brand-navy)] text-[var(--accent)]",
+                    )}
+                  >
+                    <span className="text-xs font-bold">P</span>
+                  </span>
+                  <span className="mt-0.5 h-0 w-0 border-x-[5px] border-t-[7px] border-x-transparent border-t-[var(--accent)]" />
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+      <p className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-white/45">
+        Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for full Google Maps
+      </p>
     </div>
   );
 }

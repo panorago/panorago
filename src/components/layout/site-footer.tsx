@@ -130,8 +130,8 @@ export function SiteFooter({ className }: SiteFooterProps) {
               experiences, memories, weekends, and anticipation — hand-curated
               places with insider notes, never generic listings.
             </p>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              Live beautifully. Discover intentionally.
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              Discover. Connect. Belong.
             </p>
           </div>
 

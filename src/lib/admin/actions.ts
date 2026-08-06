@@ -33,7 +33,20 @@ async function requireAdmin() {
   if (!user) {
     throw new Error("Unauthorized");
   }
-  return { supabase, user };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // If profiles table is missing, allow authenticated users (dev / pre-migration).
+  // Once profiles exist, require role = admin.
+  if (profile && profile.role !== "admin") {
+    throw new Error("Forbidden");
+  }
+
+  return { supabase, user, profile };
 }
 
 function asString(value: FormDataEntryValue | null, fallback = "") {
@@ -142,11 +155,19 @@ function placePayloadFromForm(formData: FormData) {
     distance_km: distanceRaw ? Number(distanceRaw) : null,
     verified: asBool(formData.get("verified")),
     published: asBool(formData.get("published")),
+    featured: asBool(formData.get("featured")),
+    archived: asBool(formData.get("archived")),
+    paid_tier: (asString(formData.get("paidTier"), "basic") || "basic") as
+      | "basic"
+      | "silver"
+      | "gold"
+      | "platinum",
     hero_image: asString(formData.get("heroImage")),
     gallery,
     meta_title: asString(formData.get("metaTitle")) || null,
     meta_description: asString(formData.get("metaDescription")) || null,
     homepage_sections: homepageSections,
+    video_url: asString(formData.get("videoUrl")) || null,
     updated_at: new Date().toISOString(),
   };
 }

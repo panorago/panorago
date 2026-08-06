@@ -15,7 +15,15 @@ export default async function PlaceSlugLayout({
   return (
     <>
       {children}
-      <EnquireFab placeName={place?.name} />
+      <EnquireFab
+        placeName={place?.name}
+        placeId={place?.id}
+        venueAddress={
+          place
+            ? `${place.location}, ${place.city}, ${place.country}`
+            : undefined
+        }
+      />
     </>
   );
 }

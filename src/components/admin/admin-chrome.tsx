@@ -7,6 +7,7 @@ import { logoutAdmin } from "@/lib/admin/actions";
 
 const links = [
   { href: "/admin", label: "Dashboard" },
+  { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/places", label: "Places" },
   { href: "/admin/places/new", label: "Add place" },
   { href: "/admin/stories", label: "Stories" },

@@ -4,8 +4,9 @@ import { EnquiryPanel } from "@/components/place/enquiry-panel";
 import { ExperienceStories } from "@/components/place/experience-stories";
 import { GalleryLightbox } from "@/components/place/gallery-lightbox";
 import { HighlightsPanel } from "@/components/place/highlights-panel";
-import { InterestedIn } from "@/components/place/interested-in";
+import { NearbyDiscoveries } from "@/components/place/interested-in";
 import { PlaceDirectionsMapDynamic } from "@/components/place/place-directions-map-dynamic";
+import { PlaceVideo } from "@/components/place/place-video";
 import { PricingSneakPeek } from "@/components/place/pricing-sneak-peek";
 import { VerificationBadges } from "@/components/place/verification-badges";
 import { SEED_PLACES } from "@/data/seed-places";
@@ -84,6 +85,7 @@ export default async function PlacePage({
   const gallery =
     place.gallery.length > 0 ? place.gallery : [place.heroImage];
   const hasCoords = place.latitude != null && place.longitude != null;
+  const venueAddress = `${place.location}, ${place.city}, ${place.country}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -125,6 +127,7 @@ export default async function PlacePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
+      {/* 1. Hero */}
       <section className="relative min-h-[70vh] overflow-hidden pt-[var(--nav-height)]">
         <ProgressiveImage
           src={place.heroImage}
@@ -192,10 +195,19 @@ export default async function PlacePage({
               </Reveal>
             )}
 
+            {/* 2. Video (if URL) */}
+            {place.videoUrl ? (
+              <Reveal>
+                <PlaceVideo src={place.videoUrl} title={place.name} />
+              </Reveal>
+            ) : null}
+
+            {/* 3. Gallery */}
             <Reveal>
               <GalleryLightbox images={gallery} placeName={place.name} />
             </Reveal>
 
+            {/* 4. Story */}
             <Reveal>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                 The story
@@ -208,6 +220,24 @@ export default async function PlacePage({
               </div>
             </Reveal>
 
+            {/* 5. Pricing sneak peek */}
+            <Reveal>
+              <PricingSneakPeek place={place} />
+            </Reveal>
+
+            {/* 6. Google Map */}
+            {hasCoords ? (
+              <Reveal>
+                <PlaceDirectionsMapDynamic
+                  name={place.name}
+                  lat={place.latitude!}
+                  lng={place.longitude!}
+                  googleMapsUrl={place.contact.googleMapsUrl}
+                />
+              </Reveal>
+            ) : null}
+
+            {/* 7. Panora Notes */}
             <Reveal>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                 Panora notes
@@ -218,10 +248,7 @@ export default async function PlacePage({
               </p>
             </Reveal>
 
-            <Reveal>
-              <PricingSneakPeek place={place} />
-            </Reveal>
-
+            {/* Know before you go (highlights, without amenities) */}
             <Reveal>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                 Highlights
@@ -232,6 +259,22 @@ export default async function PlacePage({
               <HighlightsPanel
                 highlights={place.highlights}
                 amenities={place.amenities}
+                mode="highlights"
+              />
+            </Reveal>
+
+            {/* 8. Amenities */}
+            <Reveal>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                Amenities
+              </p>
+              <h2 className="mt-2 mb-6 font-display text-3xl">
+                On-site comforts
+              </h2>
+              <HighlightsPanel
+                highlights={place.highlights}
+                amenities={place.amenities}
+                mode="amenities"
               />
             </Reveal>
 
@@ -303,17 +346,7 @@ export default async function PlacePage({
               </Reveal>
             )}
 
-            {hasCoords ? (
-              <Reveal>
-                <PlaceDirectionsMapDynamic
-                  name={place.name}
-                  lat={place.latitude!}
-                  lng={place.longitude!}
-                  googleMapsUrl={place.contact.googleMapsUrl}
-                />
-              </Reveal>
-            ) : null}
-
+            {/* 9. The Story Continues */}
             <Reveal>
               <ExperienceStories
                 placeId={place.id}
@@ -322,11 +355,17 @@ export default async function PlacePage({
               />
             </Reveal>
 
-            <InterestedIn places={recommendations} />
+            {/* 10. Nearby Discoveries */}
+            <NearbyDiscoveries places={recommendations} />
           </div>
 
           <div className="lg:pt-2">
-            <EnquiryPanel placeName={place.name} placeSlug={place.slug} />
+            <EnquiryPanel
+              placeName={place.name}
+              placeSlug={place.slug}
+              placeId={place.id}
+              venueAddress={venueAddress}
+            />
           </div>
         </div>
       </div>

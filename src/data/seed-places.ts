@@ -64,6 +64,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: 8.5,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1600&q=80",
     gallery: [
@@ -134,6 +137,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: 0.6,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80",
     gallery: [
@@ -208,6 +214,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: null,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1600&q=80",
     gallery: [
@@ -283,6 +292,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: 0.4,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1600&q=80",
     gallery: [
@@ -355,6 +367,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: 12.0,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80",
     gallery: [
@@ -424,6 +439,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: 8.2,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1600&q=80",
     gallery: [
@@ -494,6 +512,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: 2.1,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1600&q=80",
     gallery: [
@@ -565,6 +586,9 @@ export const SEED_PLACES: Place[] = [
     distanceKm: null,
     verified: true,
     published: true,
+    featured: false,
+    archived: false,
+    paidTier: "basic" as const,
     heroImage:
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80",
     gallery: [
@@ -844,6 +868,8 @@ export const SEED_SECRET_COLLECTIONS: SecretCollection[] = [
     key: "hidden-chinhoyi",
     title: "Hidden Chinhoyi",
     subtitle: "Quiet tables, soft light, and town secrets locals guard",
+    sortOrder: 0,
+    enabled: true,
     placeIds: [
       "11111111-1111-4111-8111-111111111102",
       "11111111-1111-4111-8111-111111111104",
@@ -856,6 +882,8 @@ export const SEED_SECRET_COLLECTIONS: SecretCollection[] = [
     key: "caves-golden-hour",
     title: "Caves & Golden Hour",
     subtitle: "Limestone blue, ridge light, and evenings worth the drive",
+    sortOrder: 1,
+    enabled: true,
     placeIds: [
       "11111111-1111-4111-8111-111111111101",
       "11111111-1111-4111-8111-111111111106",
@@ -867,6 +895,8 @@ export const SEED_SECRET_COLLECTIONS: SecretCollection[] = [
     key: "first-date-approved",
     title: "First Date Approved",
     subtitle: "Places that make a first impression feel effortless",
+    sortOrder: 2,
+    enabled: true,
     placeIds: [
       "11111111-1111-4111-8111-111111111102",
       "11111111-1111-4111-8111-111111111104",
@@ -878,6 +908,8 @@ export const SEED_SECRET_COLLECTIONS: SecretCollection[] = [
     key: "weekend-roads",
     title: "Weekend Roads",
     subtitle: "Caves, farms, Kariba water, and Vic Falls when the calendar allows",
+    sortOrder: 3,
+    enabled: true,
     placeIds: [
       "11111111-1111-4111-8111-111111111101",
       "11111111-1111-4111-8111-111111111105",

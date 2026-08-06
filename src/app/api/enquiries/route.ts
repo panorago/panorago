@@ -1,44 +1,57 @@
+import { createBooking } from "@/lib/bookings/create-booking";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+const OCCASIONS = [
+  "Birthday",
+  "Anniversary",
+  "Business",
+  "Family",
+  "Holiday",
+  "Weekend Escape",
+  "Other",
+] as const;
+
 const enquirySchema = z.object({
   place_id: z.string().uuid().optional().nullable(),
-  place_name: z.string().trim().max(160).optional().nullable(),
+  place_name: z.string().trim().min(1).max(160),
+  venue_address: z.string().trim().max(240).optional().nullable(),
+  first_name: z.string().trim().min(1).max(80),
+  surname: z.string().trim().min(1).max(80),
   preferred_date: z.string().trim().max(80).optional().nullable(),
-  guests: z.string().trim().max(80).optional().nullable(),
-  adults: z.number().int().min(0).max(99).optional().nullable(),
-  children: z.number().int().min(0).max(99).optional().nullable(),
-  phone: z.string().trim().max(40).optional().nullable(),
-  email: z.string().trim().email().optional().nullable().or(z.literal("")),
+  adults: z.number().int().min(0).max(99).default(2),
+  children: z.number().int().min(0).max(99).default(0),
+  phone: z.string().trim().min(6).max(40),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   budget: z.string().trim().max(80).optional().nullable(),
   special_request: z.string().trim().max(2000).optional().nullable(),
+  occasion: z.enum(OCCASIONS).optional().nullable(),
   channel: z
     .enum(["whatsapp", "email", "call", "web"])
     .optional()
     .default("web"),
+  /** Idempotency / anti-double-submit token from client */
+  client_token: z.string().trim().max(64).optional().nullable(),
 });
 
-function generateEnquiryCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let suffix = "";
-  for (let i = 0; i < 4; i += 1) {
-    suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return `PGO-${suffix}`;
-}
+const recentTokens = new Map<string, number>();
 
-function formatGuestsLabel(
-  adults: number | null | undefined,
-  children: number | null | undefined,
-  guests: string | null | undefined,
-) {
-  if (adults != null || children != null) {
-    const a = adults ?? 0;
-    const c = children ?? 0;
-    return `${a} adult${a === 1 ? "" : "s"}, ${c} child${c === 1 ? "" : "ren"}`;
+function isDuplicateSubmission(token: string | null | undefined) {
+  if (!token) return false;
+  const now = Date.now();
+  for (const [key, ts] of recentTokens) {
+    if (now - ts > 60_000) recentTokens.delete(key);
   }
-  return guests ?? null;
+  if (recentTokens.has(token)) return true;
+  recentTokens.set(token, now);
+  return false;
 }
 
 export async function POST(request: Request) {
@@ -57,68 +70,67 @@ export async function POST(request: Request) {
     );
   }
 
-  const code = generateEnquiryCode();
-  const guests = formatGuestsLabel(
-    parsed.data.adults,
-    parsed.data.children,
-    parsed.data.guests,
-  );
+  if (isDuplicateSubmission(parsed.data.client_token)) {
+    return NextResponse.json(
+      { error: "Duplicate submission — please wait a moment." },
+      { status: 429 },
+    );
+  }
 
-  const payload = {
-    code,
-    place_id: parsed.data.place_id ?? null,
-    place_name: parsed.data.place_name ?? null,
-    preferred_date: parsed.data.preferred_date ?? null,
-    guests,
-    phone: parsed.data.phone ?? null,
+  const booking = await createBooking({
+    firstName: parsed.data.first_name,
+    surname: parsed.data.surname,
     email: parsed.data.email || null,
+    phone: parsed.data.phone,
+    venueId: parsed.data.place_id ?? null,
+    venueName: parsed.data.place_name,
+    venueAddress: parsed.data.venue_address ?? null,
+    preferredDate: parsed.data.preferred_date ?? null,
+    adults: parsed.data.adults,
+    children: parsed.data.children,
+    occasion: parsed.data.occasion ?? null,
     budget: parsed.data.budget ?? null,
-    special_request: parsed.data.special_request ?? null,
-    channel: parsed.data.channel,
-    status: "new",
-    payload: {
-      ...parsed.data,
-      adults: parsed.data.adults ?? null,
-      children: parsed.data.children ?? null,
-      guests,
-    },
-  };
+    specialRequest: parsed.data.special_request ?? null,
+  });
 
+  // Mirror into legacy enquiries table when available
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("enquiries")
-      .insert(payload)
-      .select("id, code, created_at")
-      .maybeSingle();
-
-    if (!error && data) {
-      return NextResponse.json(
-        {
-          ok: true,
-          code: data.code as string,
-          id: data.id as string,
-          stored: true,
-        },
-        { status: 201 },
-      );
-    }
-
-    console.info("[enquiries] Supabase insert skipped/failed:", error?.message);
+    await supabase.from("enquiries").insert({
+      code: booking.bookingReference,
+      place_id: parsed.data.place_id ?? null,
+      place_name: parsed.data.place_name,
+      preferred_date: parsed.data.preferred_date ?? null,
+      guests: `${parsed.data.adults} adults, ${parsed.data.children} children`,
+      phone: parsed.data.phone,
+      email: parsed.data.email || null,
+      budget: parsed.data.budget ?? null,
+      special_request: parsed.data.special_request ?? null,
+      channel: parsed.data.channel,
+      status: "new",
+      payload: {
+        ...parsed.data,
+        customer_number: booking.customerNumber,
+        booking_reference: booking.bookingReference,
+      },
+    });
   } catch (err) {
     console.info(
-      "[enquiries] Supabase unavailable, returning local code:",
+      "[enquiries] legacy mirror skipped:",
       err instanceof Error ? err.message : err,
     );
   }
 
-  console.info("[enquiries] Generated enquiry", code, payload);
-
   return NextResponse.json(
     {
       ok: true,
-      code,
-      stored: false,
+      code: booking.bookingReference,
+      booking_reference: booking.bookingReference,
+      customer_number: booking.customerNumber,
+      id: booking.id,
+      stored: booking.stored,
+      qr_data_url: booking.qrDataUrl,
+      ticket_pdf_base64: booking.ticketPdfBase64,
     },
     { status: 201 },
   );

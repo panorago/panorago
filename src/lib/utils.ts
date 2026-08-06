@@ -32,6 +32,10 @@ export function buildEnquiryMessage(params: {
   phone?: string;
   budget?: string;
   specialRequest?: string;
+  firstName?: string;
+  surname?: string;
+  occasion?: string;
+  customerNumber?: string;
 }) {
   const adults =
     params.adults === "" || params.adults == null
@@ -45,6 +49,9 @@ export function buildEnquiryMessage(params: {
     params.adults != null || params.children != null
       ? [`Adults: ${adults}`, `Children: ${children}`]
       : [`Guests: ${params.guests || "—"}`];
+  const name =
+    [params.firstName, params.surname].filter(Boolean).join(" ").trim() ||
+    null;
 
   const lines = [
     "Hello Panora Go.",
@@ -52,8 +59,13 @@ export function buildEnquiryMessage(params: {
     "I'd like to enquire about",
     params.placeName,
     "",
+    ...(name ? [`Name: ${name}`] : []),
+    ...(params.customerNumber
+      ? [`Customer Number: ${params.customerNumber}`]
+      : []),
     `Date: ${params.date || "—"}`,
     ...guestLine,
+    `Occasion: ${params.occasion || "—"}`,
     `Phone: ${params.phone || "—"}`,
     `Budget: ${params.budget || "—"}`,
     `Special Request: ${params.specialRequest || "—"}`,
@@ -70,6 +82,10 @@ export function ticketDownloadUrl(
     children?: number | string;
     phone?: string;
     specialRequest?: string;
+    name?: string;
+    customerNumber?: string;
+    occasion?: string;
+    address?: string;
   },
 ) {
   const qs = new URLSearchParams();
@@ -81,6 +97,10 @@ export function ticketDownloadUrl(
     qs.set("children", String(params.children));
   if (params.phone) qs.set("phone", params.phone);
   if (params.specialRequest) qs.set("special_request", params.specialRequest);
+  if (params.name) qs.set("name", params.name);
+  if (params.customerNumber) qs.set("customer_number", params.customerNumber);
+  if (params.occasion) qs.set("occasion", params.occasion);
+  if (params.address) qs.set("address", params.address);
   const query = qs.toString();
   return `/api/enquiries/${encodeURIComponent(code)}/ticket${query ? `?${query}` : ""}`;
 }

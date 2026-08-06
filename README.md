@@ -42,18 +42,23 @@ Update the Panora contact numbers/email before launch so enquiries reach you.
 ## Supabase setup
 
 1. Open the Supabase SQL editor for project `pxgdoevtrqvkbwftnsaa`.
-2. Run `supabase/migrations/001_panora_go.sql` (schema + seed places).
+2. Run migrations **in order**:
+   1. `001_panora_go.sql` — schema + seed places
+   2. `002_mvp_gaps.sql`
+   3. `003_bookings.sql`
+   4. `004_concierge.sql` — concierge booking refinements + `booking-assets`
+   5. `005_command_center.sql` — Command Center admin schema + `media` bucket
 3. Create an Auth user for yourself (Email/Password).
 4. Insert an admin profile:
 
 ```sql
-insert into public.profiles (id, role, display_name)
-values ('YOUR_AUTH_USER_UUID', 'admin', 'Panora Admin');
+insert into public.profiles (id, role, email, display_name)
+values ('YOUR_AUTH_USER_UUID', 'admin', 'you@example.com', 'Panora Admin');
 ```
 
-5. Create a public storage bucket named `place-images` (see comments in the migration).
+5. Confirm public storage buckets exist: `place-images`, `booking-assets`, `media` (SQL migrations create the latter two when permitted; otherwise create in Dashboard → Storage).
 
-Until the migration is applied, the app serves curated seed data so every screen works.
+Until the migrations are applied, the app serves curated seed data so every screen works. See `docs/COMMAND_CENTER.md` for Command Center env vars and first-admin details.
 
 ## Product surfaces
 

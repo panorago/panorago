@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { PanoraLogo } from "@/components/brand/panora-logo";
 import { loginAdmin, type ActionResult } from "@/lib/admin/actions";
 import { useActionState } from "react";
 
@@ -10,14 +11,20 @@ export default function AdminLoginPage() {
   const [state, formAction, pending] = useActionState(loginAdmin, initial);
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-sm rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background-elevated)] p-8 shadow-[var(--shadow)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-          Restricted
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_55%),linear-gradient(180deg,var(--background),var(--background-elevated))]"
+      />
+      <div className="relative w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--shadow)] backdrop-blur-2xl">
+        <PanoraLogo variant="full" href={null} imageClassName="h-9 w-auto" />
+        <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+          Command Center
         </p>
         <h1 className="mt-2 font-display text-3xl">Admin sign in</h1>
         <p className="mt-2 text-sm text-muted">
-          Panora Go editorial access only.
+          Restricted editorial access. Requires{" "}
+          <code className="text-[var(--accent)]">profiles.role = admin</code>.
         </p>
 
         <form action={formAction} className="mt-8 space-y-4">

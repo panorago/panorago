@@ -27,6 +27,8 @@ interface HighlightsPanelProps {
   highlights: PlaceHighlights;
   amenities: PlaceAmenityFlags;
   className?: string;
+  /** Default all. Use to split Amenities into its own venue section. */
+  mode?: "all" | "highlights" | "amenities";
 }
 
 const highlightItems: {
@@ -69,7 +71,11 @@ export function HighlightsPanel({
   highlights,
   amenities,
   className,
+  mode = "all",
 }: HighlightsPanelProps) {
+  const showHighlights = mode === "all" || mode === "highlights";
+  const showAmenities = mode === "all" || mode === "amenities";
+
   const activeHighlights = highlightItems.filter((item) => {
     const value = highlights[item.key];
     return typeof value === "string" && value.length > 0;
@@ -84,7 +90,7 @@ export function HighlightsPanel({
 
   return (
     <div className={cn("space-y-8", className)}>
-      {activeHighlights.length > 0 && (
+      {showHighlights && activeHighlights.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {activeHighlights.map(({ key, label, icon: Icon }) => (
             <div
@@ -105,7 +111,7 @@ export function HighlightsPanel({
         </div>
       )}
 
-      {perfectFor.length > 0 && (
+      {showHighlights && perfectFor.length > 0 && (
         <div>
           <div className="mb-3 flex items-center gap-2 text-[var(--accent)]">
             <Sparkles className="h-4 w-4" />
@@ -126,7 +132,7 @@ export function HighlightsPanel({
         </div>
       )}
 
-      {paymentMethods.length > 0 && (
+      {showHighlights && paymentMethods.length > 0 && (
         <div>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
             Payment
@@ -144,11 +150,14 @@ export function HighlightsPanel({
         </div>
       )}
 
-      {(activeAmenities.length > 0 || phoneSignal || roadCondition) && (
+      {showAmenities &&
+        (activeAmenities.length > 0 || phoneSignal || roadCondition) && (
         <div>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-            Amenities & conditions
-          </h3>
+          {mode === "all" ? (
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+              Amenities & conditions
+            </h3>
+          ) : null}
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {activeAmenities.map(({ key, label, icon: Icon }) => (
               <li

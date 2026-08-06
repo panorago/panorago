@@ -1,6 +1,6 @@
-import { AdminChrome } from "@/components/admin/admin-chrome";
+import { CommandCenterShell } from "@/components/admin/command-center-shell";
 import type { ReactNode } from "react";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <AdminChrome>{children}</AdminChrome>;
+  return <CommandCenterShell>{children}</CommandCenterShell>;
 }

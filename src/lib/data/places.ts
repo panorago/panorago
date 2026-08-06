@@ -8,6 +8,7 @@ import type {
   ExperienceStory,
   HomepageSectionKey,
   MoodTag,
+  PaidTier,
   Place,
   PlaceAmenityFlags,
   PlaceContact,
@@ -35,6 +36,9 @@ export interface PlaceRow {
   distance_km: number | null;
   verified: boolean;
   published: boolean;
+  featured?: boolean | null;
+  archived?: boolean | null;
+  paid_tier?: PaidTier | null;
   hero_image: string;
   gallery: string[] | null;
   meta_title: string | null;
@@ -42,6 +46,7 @@ export interface PlaceRow {
   homepage_sections: HomepageSectionKey[] | null;
   verifications?: string[] | null;
   pricing_items?: PricingItem[] | null;
+  video_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +58,8 @@ export interface StoryRow {
   body: string;
   likes_count: number;
   published: boolean;
+  pinned?: boolean | null;
+  reported?: boolean | null;
   created_at: string;
   feeling?: string | null;
 }
@@ -121,6 +128,9 @@ export function mapPlaceRow(row: PlaceRow): Place {
     distanceKm: row.distance_km,
     verified: row.verified,
     published: row.published,
+    featured: Boolean(row.featured),
+    archived: Boolean(row.archived),
+    paidTier: (row.paid_tier ?? "basic") as PaidTier,
     heroImage: row.hero_image,
     gallery: asStringArray(row.gallery),
     metaTitle: row.meta_title,
@@ -128,6 +138,7 @@ export function mapPlaceRow(row: PlaceRow): Place {
     homepageSections: asSectionKeys(row.homepage_sections),
     verifications: asStringArray(row.verifications),
     pricingItems,
+    videoUrl: row.video_url ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -141,13 +152,15 @@ export function mapStoryRow(row: StoryRow): ExperienceStory {
     body: row.body,
     likesCount: row.likes_count,
     published: row.published,
+    pinned: Boolean(row.pinned),
+    reported: Boolean(row.reported),
     createdAt: row.created_at,
     feeling: row.feeling ?? null,
   };
 }
 
 function seedPublishedPlaces(): Place[] {
-  return SEED_PLACES.filter((place) => place.published);
+  return SEED_PLACES.filter((place) => place.published && !place.archived);
 }
 
 function seedPlaceBySlug(slug: string): Place | null {
@@ -186,6 +199,7 @@ export async function getPublishedPlaces(): Promise<Place[]> {
       .from("places")
       .select("*")
       .eq("published", true)
+      .or("archived.is.null,archived.eq.false")
       .order("updated_at", { ascending: false });
 
     if (error || !data || data.length === 0) {
@@ -208,6 +222,7 @@ export async function getPlaceBySlug(slug: string): Promise<Place | null> {
       .select("*")
       .eq("slug", slug)
       .eq("published", true)
+      .or("archived.is.null,archived.eq.false")
       .maybeSingle();
 
     if (error || !data) {
@@ -231,6 +246,7 @@ export async function getPlacesBySection(
       .from("places")
       .select("*")
       .eq("published", true)
+      .or("archived.is.null,archived.eq.false")
       .contains("homepage_sections", [key])
       .order("updated_at", { ascending: false });
 
