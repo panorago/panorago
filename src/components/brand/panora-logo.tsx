@@ -3,30 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { motionTokens } from "@/lib/motion/variants";
 
 type LogoVariant = "full" | "icon";
 
 type PanoraLogoProps = {
   variant?: LogoVariant;
-  width?: number;
-  height?: number;
   className?: string;
+  imageClassName?: string;
   priority?: boolean;
   href?: string | null;
   alt?: string;
-  /** Extra visual scale for accessibility without changing layout box much */
-  zoom?: number;
 };
 
-const LOGO_SRC: Record<
-  LogoVariant,
-  Record<"light" | "dark", string>
-> = {
+const LOGO_SRC: Record<LogoVariant, Record<"light" | "dark", string>> = {
   full: {
     light: "/logos/panora-light.web.png",
     dark: "/logos/panora-dark.web.png",
@@ -37,108 +29,83 @@ const LOGO_SRC: Record<
   },
 };
 
-/** Larger defaults for readability (including low vision). */
-const DEFAULT_SIZE: Record<LogoVariant, { width: number; height: number }> = {
-  full: { width: 188, height: 52 },
-  icon: { width: 48, height: 48 },
+const INTRINSIC: Record<LogoVariant, { width: number; height: number }> = {
+  full: { width: 960, height: 266 },
+  icon: { width: 960, height: 982 },
 };
 
+/**
+ * Theme-aware logo without forced square boxes.
+ * - Header: variant="full" → h-10 w-auto object-contain
+ * - Footer: variant="icon" → h-12 w-auto object-contain mix-blend-screen
+ * Both light/dark assets stay mounted; opacity swaps to avoid layout shift.
+ */
 export function PanoraLogo({
   variant = "full",
-  width,
-  height,
   className,
+  imageClassName,
   priority = false,
   href = "/",
-  alt = "Panora Go",
-  zoom = 1.08,
+  alt = variant === "icon" ? "PGO" : "Panora Go",
 }: PanoraLogoProps) {
   const { resolvedTheme } = useTheme();
-  const reduceMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const mode: "light" | "dark" =
-    mounted && resolvedTheme === "dark" ? "dark" : "light";
+  const isDark = mounted && resolvedTheme === "dark";
+  const intrinsic = INTRINSIC[variant];
+  const sizeClass =
+    variant === "full"
+      ? "h-10 w-auto object-contain"
+      : "h-12 w-auto object-contain mix-blend-screen";
 
-  const w = width ?? DEFAULT_SIZE[variant].width;
-  const h = height ?? DEFAULT_SIZE[variant].height;
-  const src = LOGO_SRC[variant][mode];
-
-  const image = (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.span
-        key={src}
-        className={cn(
-          "relative inline-flex items-center justify-center overflow-hidden rounded-[var(--radius-sm)]",
-          className,
-        )}
-        style={{ width: w, height: h }}
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={reduceMotion ? undefined : { opacity: 0 }}
-        transition={{
-          duration: motionTokens.duration.base,
-          ease: motionTokens.ease.out,
-        }}
-      >
-        <Image
-          src={src}
-          alt={alt}
-          width={Math.round(w * 1.35)}
-          height={Math.round(h * 1.35)}
-          priority={priority}
-          className="h-full w-full object-contain"
-          style={{ transform: `scale(${zoom})` }}
-          sizes={`${Math.round(w * 2)}px`}
-        />
-      </motion.span>
-    </AnimatePresence>
-  );
-
-  if (href === null) return image;
-
-  return (
-    <Link
-      href={href}
-      className="focus-ring inline-flex rounded-[var(--radius-sm)]"
-      aria-label={alt}
+  const mark = (
+    <span
+      className={cn(
+        "relative inline-grid items-center justify-items-start [&>img]:col-start-1 [&>img]:row-start-1",
+        className,
+      )}
     >
-      {image}
-    </Link>
+      <Image
+        src={LOGO_SRC[variant].light}
+        alt={alt}
+        width={intrinsic.width}
+        height={intrinsic.height}
+        priority={priority}
+        className={cn(
+          sizeClass,
+          "transition-opacity duration-300",
+          isDark ? "opacity-0" : "opacity-100",
+          imageClassName,
+        )}
+        sizes={variant === "full" ? "180px" : "64px"}
+      />
+      <Image
+        src={LOGO_SRC[variant].dark}
+        alt=""
+        aria-hidden
+        width={intrinsic.width}
+        height={intrinsic.height}
+        priority={priority}
+        className={cn(
+          sizeClass,
+          "transition-opacity duration-300",
+          isDark ? "opacity-100" : "opacity-0",
+          imageClassName,
+        )}
+        sizes={variant === "full" ? "180px" : "64px"}
+      />
+    </span>
   );
-}
 
-/** Brand lockup: PGO mark + full wordmark for maximum recognition. */
-export function PanoraBrandLockup({
-  className,
-  scrolled = false,
-}: {
-  className?: string;
-  scrolled?: boolean;
-}) {
+  if (href === null) return mark;
+
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <PanoraLogo
-        variant="icon"
-        width={scrolled ? 44 : 52}
-        height={scrolled ? 44 : 52}
-        zoom={1.12}
-        priority
-        alt="PGO"
-        className="bg-[var(--brand-navy)] ring-1 ring-[var(--border)]"
-      />
-      <PanoraLogo
-        variant="full"
-        width={scrolled ? 168 : 196}
-        height={scrolled ? 46 : 54}
-        zoom={1.14}
-        priority
-        className="bg-[var(--brand-navy)] ring-1 ring-[var(--border)]"
-      />
-    </div>
+    <Link href={href} className="focus-ring inline-flex items-center" aria-label={alt}>
+      {mark}
+    </Link>
   );
 }
