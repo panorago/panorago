@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion, useScroll } from "framer-mot
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { PanoraLogo } from "@/components/brand/panora-logo";
+import { PanoraBrandLockup } from "@/components/brand/panora-logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import { motionTokens } from "@/lib/motion/variants";
 
 const NAV_LINKS = [
   { href: "/discover", label: "Discover" },
+  { href: "/map", label: "Map" },
   { href: "/discover?vibe=Weekend%20Away", label: "Weekend" },
   { href: "/the-panora-way", label: "The Panora Way" },
 ] as const;
@@ -73,17 +74,12 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       <div className="container-panora flex h-[var(--nav-height)] items-center justify-between gap-4">
         <motion.div
           animate={{
-            scale: scrolled && !reduceMotion ? 0.92 : 1,
+            scale: scrolled && !reduceMotion ? 0.94 : 1,
           }}
           transition={motionTokens.spring.soft}
           className="origin-left"
         >
-          <PanoraLogo
-            variant="full"
-            priority
-            width={scrolled ? 132 : 148}
-            height={scrolled ? 36 : 40}
-          />
+          <PanoraBrandLockup scrolled={scrolled} />
         </motion.div>
 
         <nav

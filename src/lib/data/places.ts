@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { SEED_PLACES, SEED_STORIES } from "@/data/seed-places";
+import {
+  aiSearchPlaces,
+  getDiverseRecommendations,
+} from "@/lib/search/ai-search";
 import type {
   ExperienceStory,
   HomepageSectionKey,
@@ -35,6 +39,7 @@ export interface PlaceRow {
   meta_title: string | null;
   meta_description: string | null;
   homepage_sections: HomepageSectionKey[] | null;
+  verifications?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +52,7 @@ export interface StoryRow {
   likes_count: number;
   published: boolean;
   created_at: string;
+  feeling?: string | null;
 }
 
 function asMoodTags(value: unknown): MoodTag[] {
@@ -99,6 +105,7 @@ export function mapPlaceRow(row: PlaceRow): Place {
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
     homepageSections: asSectionKeys(row.homepage_sections),
+    verifications: asStringArray(row.verifications),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -113,6 +120,7 @@ export function mapStoryRow(row: StoryRow): ExperienceStory {
     likesCount: row.likes_count,
     published: row.published,
     createdAt: row.created_at,
+    feeling: row.feeling ?? null,
   };
 }
 
@@ -128,23 +136,6 @@ function seedPlacesBySection(key: HomepageSectionKey): Place[] {
   return seedPublishedPlaces().filter((place) =>
     place.homepageSections.includes(key),
   );
-}
-
-function seedSearchPlaces(query: string, vibe?: MoodTag): Place[] {
-  const normalized = query.trim().toLowerCase();
-  return seedPublishedPlaces().filter((place) => {
-    const matchesQuery =
-      !normalized ||
-      place.name.toLowerCase().includes(normalized) ||
-      place.city.toLowerCase().includes(normalized) ||
-      place.location.toLowerCase().includes(normalized) ||
-      place.story.toLowerCase().includes(normalized) ||
-      place.category.toLowerCase().includes(normalized) ||
-      place.mood.some((tag) => tag.toLowerCase().includes(normalized));
-
-    const matchesVibe = !vibe || place.mood.includes(vibe);
-    return matchesQuery && matchesVibe;
-  });
 }
 
 function seedStoriesForPlace(placeId: string): ExperienceStory[] {
@@ -235,38 +226,32 @@ export async function searchPlaces(
   query: string,
   vibe?: MoodTag,
 ): Promise<Place[]> {
-  const supabase = await trySupabase();
-  if (!supabase) return seedSearchPlaces(query, vibe);
+  const places = await getPublishedPlaces();
+  return aiSearchPlaces(places, query, vibe);
+}
 
-  try {
-    let request = supabase
-      .from("places")
-      .select("*")
-      .eq("published", true);
+export async function getRecommendationsForPlace(
+  slugOrId: string,
+): Promise<Place[]> {
+  const places = await getPublishedPlaces();
+  let current =
+    places.find(
+      (place) => place.slug === slugOrId || place.id === slugOrId,
+    ) ?? null;
 
-    const normalized = query.trim();
-    if (normalized) {
-      request = request.or(
-        `name.ilike.%${normalized}%,city.ilike.%${normalized}%,location.ilike.%${normalized}%,story.ilike.%${normalized}%,category.ilike.%${normalized}%`,
-      );
-    }
-
-    if (vibe) {
-      request = request.contains("mood", [vibe]);
-    }
-
-    const { data, error } = await request.order("updated_at", {
-      ascending: false,
-    });
-
-    if (error || !data || data.length === 0) {
-      return seedSearchPlaces(query, vibe);
-    }
-
-    return (data as PlaceRow[]).map(mapPlaceRow);
-  } catch {
-    return seedSearchPlaces(query, vibe);
+  if (!current) {
+    current = await getPlaceBySlug(slugOrId);
   }
+
+  if (!current) {
+    const seed = SEED_PLACES.find(
+      (place) => place.slug === slugOrId || place.id === slugOrId,
+    );
+    if (!seed) return [];
+    return getDiverseRecommendations(seed, places);
+  }
+
+  return getDiverseRecommendations(current, places);
 }
 
 export async function getStoriesForPlace(

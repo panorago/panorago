@@ -27,6 +27,14 @@ export type HomepageSectionKey =
   | "weekend_escape"
   | "editors_choice";
 
+export type VerificationKey =
+  | "photos_verified"
+  | "accurate_pricing"
+  | "family_friendly"
+  | "solar_power"
+  | "borehole_water"
+  | "starlink";
+
 export interface PlaceAmenityFlags {
   power?: boolean;
   solar?: boolean;
@@ -78,6 +86,13 @@ export interface PlaceImage {
   isHero?: boolean;
 }
 
+export interface VerificationBadge {
+  id: string;
+  key: string;
+  label: string;
+  icon?: string;
+}
+
 export interface Place {
   id: string;
   slug: string;
@@ -103,6 +118,7 @@ export interface Place {
   metaTitle: string | null;
   metaDescription: string | null;
   homepageSections: HomepageSectionKey[];
+  verifications: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +131,7 @@ export interface ExperienceStory {
   likesCount: number;
   published: boolean;
   createdAt: string;
+  feeling?: string | null;
   likedByMe?: boolean;
 }
 
@@ -125,6 +142,14 @@ export interface HomepageSection {
   subtitle: string;
   sortOrder: number;
   enabled: boolean;
+  placeIds: string[];
+}
+
+export interface SecretCollection {
+  id: string;
+  key: string;
+  title: string;
+  subtitle: string;
   placeIds: string[];
 }
 

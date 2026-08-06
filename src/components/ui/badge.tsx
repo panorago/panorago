@@ -13,7 +13,7 @@ const badgeVariants = {
   gold:
     "bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)] border border-[color-mix(in_srgb,var(--accent)_40%,transparent)]",
   verified:
-    "bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] text-[var(--accent)] border border-[color-mix(in_srgb,var(--accent)_45%,transparent)] shadow-[var(--shadow-gold)]",
+    "bg-[var(--accent)] text-[var(--brand-navy)] border border-[var(--accent)] shadow-[var(--shadow-gold)] font-semibold",
 } as const;
 
 type BadgeVariant = keyof typeof badgeVariants;
@@ -52,8 +52,11 @@ export function VerifiedBadge({
   label = "Panora Verified",
 }: VerifiedBadgeProps) {
   return (
-    <Badge variant="verified" className={cn("font-semibold", className)}>
-      <BadgeCheck className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+    <Badge
+      variant="verified"
+      className={cn("px-3 py-1.5 text-sm font-semibold", className)}
+    >
+      <BadgeCheck className="h-4 w-4" strokeWidth={2.25} aria-hidden />
       {label}
     </Badge>
   );

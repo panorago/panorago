@@ -1,7 +1,7 @@
 import { HomeHero } from "@/components/home/home-hero";
 import { Reveal } from "@/components/motion/reveal";
 import { PlaceGrid } from "@/components/place/place-grid";
-import { SEED_SECTIONS } from "@/data/seed-places";
+import { SEED_SECRET_COLLECTIONS, SEED_SECTIONS } from "@/data/seed-places";
 import { getPlacesBySection, getPublishedPlaces } from "@/lib/data/places";
 import type { HomepageSectionKey } from "@/types";
 import type { Metadata } from "next";
@@ -54,7 +54,8 @@ export default async function HomePage() {
           <Reveal
             key={section.key}
             as="section"
-            className="container-panora py-[var(--space-section)]"
+            id={section.key === "trending" ? "trending" : undefined}
+            className="container-panora py-[var(--space-section)] scroll-mt-[calc(var(--nav-height)+1rem)]"
             delay={index * 0.04}
           >
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -79,6 +80,47 @@ export default async function HomePage() {
             <PlaceGrid places={section.places} />
           </Reveal>
         ))}
+
+        <Reveal
+          as="section"
+          className="container-panora py-[var(--space-section)]"
+          delay={0.08}
+        >
+          <div className="mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              Insider lists
+            </p>
+            <h2 className="mt-2 font-display text-3xl md:text-4xl">
+              Secret Collections
+            </h2>
+            <p className="mt-2 max-w-xl text-sm text-muted">
+              Curated moods for how you actually want the weekend to feel.
+            </p>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {SEED_SECRET_COLLECTIONS.map((collection) => (
+              <li key={collection.key}>
+                <Link
+                  href={`/discover?collection=${encodeURIComponent(collection.key)}`}
+                  className="group block rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 transition hover:border-[var(--accent)] hover:shadow-[var(--shadow-gold)]"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                    Secret
+                  </p>
+                  <h3 className="mt-2 font-display text-2xl leading-tight group-hover:text-[var(--accent)]">
+                    {collection.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-muted">
+                    {collection.subtitle}
+                  </p>
+                  <p className="mt-4 text-xs font-medium text-[var(--accent)]">
+                    {collection.placeIds.length} places →
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </div>
     </>
   );

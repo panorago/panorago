@@ -24,6 +24,9 @@ const SUGGESTIONS = [
   "Date night tonight",
   "Quiet luxury spa",
   "Hidden pool escape",
+  "Pet friendly escape",
+  "Starlink wifi lodge",
+  "Swimming pool weekend",
 ] as const;
 
 type SearchBarProps = {

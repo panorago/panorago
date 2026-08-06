@@ -4,10 +4,13 @@ import { EnquiryPanel } from "@/components/place/enquiry-panel";
 import { ExperienceStories } from "@/components/place/experience-stories";
 import { GalleryLightbox } from "@/components/place/gallery-lightbox";
 import { HighlightsPanel } from "@/components/place/highlights-panel";
+import { InterestedIn } from "@/components/place/interested-in";
+import { VerificationBadges } from "@/components/place/verification-badges";
 import { SEED_PLACES } from "@/data/seed-places";
 import {
   getPlaceBySlug,
   getPublishedPlaces,
+  getRecommendationsForPlace,
   getStoriesForPlace,
 } from "@/lib/data/places";
 import { absoluteUrl, formatDistance, formatPriceGuide } from "@/lib/utils";
@@ -88,7 +91,10 @@ export default async function PlacePage({
   const place = await getPlaceBySlug(slug);
   if (!place) notFound();
 
-  const stories = await getStoriesForPlace(place.id);
+  const [stories, recommendations] = await Promise.all([
+    getStoriesForPlace(place.id),
+    getRecommendationsForPlace(place.slug),
+  ]);
   const mapUrl = mapEmbedUrl(place);
   const gallery =
     place.gallery.length > 0 ? place.gallery : [place.heroImage];
@@ -173,9 +179,9 @@ export default async function PlacePage({
             )}
             <span>· {formatPriceGuide(place.priceGuide)}</span>
             {place.verified && (
-              <span className="inline-flex items-center gap-1 text-[var(--accent)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1 text-sm font-semibold text-[var(--brand-navy)]">
                 <BadgeCheck className="h-4 w-4" />
-                Verified
+                Panora Verified
               </span>
             )}
           </p>
@@ -185,6 +191,21 @@ export default async function PlacePage({
       <div className="gradient-mesh">
         <div className="container-panora grid gap-10 py-[var(--space-section)] lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-14 min-w-0">
+            {(place.verified || place.verifications.length > 0) && (
+              <Reveal>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  Panora Verified
+                </p>
+                <h2 className="mt-2 mb-4 font-display text-2xl">
+                  What we checked
+                </h2>
+                <VerificationBadges
+                  keys={place.verifications}
+                  showPanoraVerified={place.verified}
+                />
+              </Reveal>
+            )}
+
             <Reveal>
               <GalleryLightbox images={gallery} placeName={place.name} />
             </Reveal>
@@ -314,6 +335,8 @@ export default async function PlacePage({
                 initialStories={stories}
               />
             </Reveal>
+
+            <InterestedIn places={recommendations} />
           </div>
 
           <div className="lg:pt-2">

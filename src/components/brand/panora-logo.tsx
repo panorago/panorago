@@ -19,6 +19,8 @@ type PanoraLogoProps = {
   priority?: boolean;
   href?: string | null;
   alt?: string;
+  /** Extra visual scale for accessibility without changing layout box much */
+  zoom?: number;
 };
 
 const LOGO_SRC: Record<
@@ -35,9 +37,10 @@ const LOGO_SRC: Record<
   },
 };
 
+/** Larger defaults for readability (including low vision). */
 const DEFAULT_SIZE: Record<LogoVariant, { width: number; height: number }> = {
-  full: { width: 148, height: 40 },
-  icon: { width: 40, height: 40 },
+  full: { width: 188, height: 52 },
+  icon: { width: 48, height: 48 },
 };
 
 export function PanoraLogo({
@@ -48,6 +51,7 @@ export function PanoraLogo({
   priority = false,
   href = "/",
   alt = "Panora Go",
+  zoom = 1.08,
 }: PanoraLogoProps) {
   const { resolvedTheme } = useTheme();
   const reduceMotion = useReducedMotion();
@@ -68,7 +72,10 @@ export function PanoraLogo({
     <AnimatePresence mode="wait" initial={false}>
       <motion.span
         key={src}
-        className={cn("relative inline-flex items-center", className)}
+        className={cn(
+          "relative inline-flex items-center justify-center overflow-hidden rounded-[var(--radius-sm)]",
+          className,
+        )}
         style={{ width: w, height: h }}
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -81,10 +88,12 @@ export function PanoraLogo({
         <Image
           src={src}
           alt={alt}
-          width={w}
-          height={h}
+          width={Math.round(w * 1.35)}
+          height={Math.round(h * 1.35)}
           priority={priority}
           className="h-full w-full object-contain"
+          style={{ transform: `scale(${zoom})` }}
+          sizes={`${Math.round(w * 2)}px`}
         />
       </motion.span>
     </AnimatePresence>
@@ -100,5 +109,36 @@ export function PanoraLogo({
     >
       {image}
     </Link>
+  );
+}
+
+/** Brand lockup: PGO mark + full wordmark for maximum recognition. */
+export function PanoraBrandLockup({
+  className,
+  scrolled = false,
+}: {
+  className?: string;
+  scrolled?: boolean;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3", className)}>
+      <PanoraLogo
+        variant="icon"
+        width={scrolled ? 44 : 52}
+        height={scrolled ? 44 : 52}
+        zoom={1.12}
+        priority
+        alt="PGO"
+        className="bg-[var(--brand-navy)] ring-1 ring-[var(--border)]"
+      />
+      <PanoraLogo
+        variant="full"
+        width={scrolled ? 168 : 196}
+        height={scrolled ? 46 : 54}
+        zoom={1.14}
+        priority
+        className="bg-[var(--brand-navy)] ring-1 ring-[var(--border)]"
+      />
+    </div>
   );
 }

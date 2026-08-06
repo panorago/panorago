@@ -23,6 +23,7 @@ export function SiteShell({
     <div className={cn("relative flex min-h-dvh flex-col", className)}>
       <SiteHeader />
       <main
+        id="main-content"
         className={cn(
           "flex-1 pt-[var(--nav-height)]",
           "pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))] md:pb-0",

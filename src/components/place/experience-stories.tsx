@@ -61,6 +61,7 @@ export function ExperienceStories({
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [authorName, setAuthorName] = useState("");
   const [body, setBody] = useState("");
+  const [feeling, setFeeling] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -111,6 +112,8 @@ export function ExperienceStories({
     event.preventDefault();
     setStatus(null);
 
+    const feelingWord = feeling.trim().split(/\s+/)[0]?.slice(0, 40) || null;
+
     const optimistic: ExperienceStory = {
       id: `opt-${Date.now()}`,
       placeId,
@@ -119,6 +122,7 @@ export function ExperienceStories({
       likesCount: 0,
       published: true,
       createdAt: new Date().toISOString(),
+      feeling: feelingWord,
     };
 
     startTransition(async () => {
@@ -127,6 +131,7 @@ export function ExperienceStories({
         placeId,
         authorName: optimistic.authorName,
         body: optimistic.body,
+        feeling: feelingWord,
       });
 
       if (!result.ok) {
@@ -143,6 +148,7 @@ export function ExperienceStories({
       ]);
       setAuthorName("");
       setBody("");
+      setFeeling("");
       setStatus(
         result.pending
           ? "Thank you — your story is with us and will appear once reviewed."
@@ -189,7 +195,14 @@ export function ExperienceStories({
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-medium">{story.authorName}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{story.authorName}</p>
+                  {story.feeling ? (
+                    <span className="rounded-full border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-2.5 py-0.5 text-[11px] font-medium capitalize text-[var(--accent)]">
+                      {story.feeling}
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-0.5 text-xs text-muted">
                   {formatDistanceToNow(new Date(story.createdAt), {
                     addSuffix: true,
@@ -234,6 +247,19 @@ export function ExperienceStories({
             required
             maxLength={60}
             placeholder="First name or initials"
+            className={fieldClass}
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-xs font-medium text-muted">
+            One word feeling{" "}
+            <span className="font-normal opacity-70">(optional)</span>
+          </span>
+          <input
+            value={feeling}
+            onChange={(e) => setFeeling(e.target.value)}
+            maxLength={40}
+            placeholder="peaceful, joyful, awestruck…"
             className={fieldClass}
           />
         </label>

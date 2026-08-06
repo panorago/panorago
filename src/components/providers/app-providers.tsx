@@ -88,7 +88,7 @@ export function AppProviders({ children, themeProps }: AppProvidersProps) {
       attribute="class"
       defaultTheme="system"
       enableSystem
-      disableTransitionOnChange={false}
+      disableTransitionOnChange={true}
       {...themeProps}
     >
       {children}

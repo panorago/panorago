@@ -1,40 +1,83 @@
 "use client";
 
-import { ProgressiveImage } from "@/components/media/progressive-image";
 import { QuickVibes } from "@/components/search/quick-vibes";
 import { SearchBar } from "@/components/search/search-bar";
 import { Button } from "@/components/ui/button";
 import { fadeUp, motionTokens, staggerContainer } from "@/lib/motion/variants";
 import { motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 interface HomeHeroProps {
   heroImage: string;
+  /** Optional MP4/WebM URL. Falls back to poster image when reduced motion or load failure. */
+  heroVideoSrc?: string;
 }
 
-export function HomeHero({ heroImage }: HomeHeroProps) {
+const DEFAULT_HERO_VIDEO =
+  process.env.NEXT_PUBLIC_HERO_VIDEO ?? "/videos/hero.mp4";
+
+export function HomeHero({
+  heroImage,
+  heroVideoSrc = DEFAULT_HERO_VIDEO,
+}: HomeHeroProps) {
   const prefersReduced = useReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const showVideo = Boolean(heroVideoSrc) && !prefersReduced && !videoFailed;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !showVideo) return;
+    const play = async () => {
+      try {
+        await video.play();
+      } catch {
+        setVideoFailed(true);
+      }
+    };
+    void play();
+  }, [showVideo, heroVideoSrc]);
 
   return (
-    <section className="relative min-h-dvh overflow-hidden">
+    <section className="relative min-h-dvh overflow-hidden bg-[var(--brand-navy)]">
       <motion.div
         className="absolute inset-0"
         initial={{ scale: 1 }}
-        animate={prefersReduced ? { scale: 1 } : { scale: 1.08 }}
+        animate={prefersReduced ? { scale: 1 } : { scale: 1.05 }}
         transition={{
-          duration: prefersReduced ? 0 : motionTokens.duration.hero,
+          duration: prefersReduced ? 0 : 10,
           ease: "linear",
+          repeat: prefersReduced ? 0 : Infinity,
+          repeatType: "reverse",
         }}
       >
-        <ProgressiveImage
-          src={heroImage}
-          alt="Zimbabwe landscape at golden hour"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          containerClassName="absolute inset-0"
-        />
+        {showVideo ? (
+          <video
+            ref={videoRef}
+            className="absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={heroImage}
+            onError={() => setVideoFailed(true)}
+            aria-hidden
+          >
+            <source src={heroVideoSrc} type="video/mp4" />
+          </video>
+        ) : (
+          <Image
+            src={heroImage}
+            alt="Zimbabwe landscape at golden hour"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        )}
       </motion.div>
 
       <div
@@ -92,13 +135,13 @@ export function HomeHero({ heroImage }: HomeHeroProps) {
                 Start discovering
               </Button>
             </Link>
-            <Link href="/the-panora-way">
+            <Link href="/map">
               <Button
                 variant="outline"
                 size="lg"
                 className="rounded-full border-white/35 text-white hover:bg-white/10 hover:text-white"
               >
-                The Panora Way
+                Explore the map
               </Button>
             </Link>
           </motion.div>

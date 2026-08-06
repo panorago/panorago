@@ -2,6 +2,7 @@ import type {
   ExperienceStory,
   HomepageSection,
   Place,
+  SecretCollection,
 } from "@/types";
 
 export const SEED_PLACES: Place[] = [
@@ -71,6 +72,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Discover Amanzi in Belgravia, Harare — garden dining under jacarandas with seasonal plates, soft light, and date-night atmosphere. Insider tips from Panora Go.",
     homepageSections: ["trending", "panora_picks", "editors_choice"],
+    verifications: ["photos_verified", "accurate_pricing"],
     createdAt: "2025-11-12T08:00:00.000Z",
     updatedAt: "2026-07-18T14:30:00.000Z",
   },
@@ -140,6 +142,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Find Ginkgo Coffee House in Borrowdale Brooke — pour-overs, quiet tables, and the morning light Harare regulars protect. Panora Go insider notes included.",
     homepageSections: ["new_discoveries", "panora_picks"],
+    verifications: ["photos_verified", "accurate_pricing", "family_friendly"],
     createdAt: "2025-12-03T09:15:00.000Z",
     updatedAt: "2026-06-22T11:00:00.000Z",
   },
@@ -214,6 +217,12 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Stay on the Zambezi at Victoria Falls River Lodge — river suites, golden hour decks, and quiet luxury minutes from the Falls. Curated by Panora Go.",
     homepageSections: ["weekend_escape", "editors_choice", "trending"],
+    verifications: [
+      "photos_verified",
+      "solar_power",
+      "borehole_water",
+      "starlink",
+    ],
     createdAt: "2025-10-01T10:00:00.000Z",
     updatedAt: "2026-07-01T16:45:00.000Z",
   },
@@ -286,6 +295,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Escape to Nyanga Pine Cottage in Troutbeck Valley — misty pines, fireplace nights, and quiet highland air. Panora Go weekend guide and booking notes.",
     homepageSections: ["weekend_escape", "new_discoveries"],
+    verifications: ["photos_verified", "solar_power", "borehole_water"],
     createdAt: "2026-01-08T12:00:00.000Z",
     updatedAt: "2026-07-10T09:20:00.000Z",
   },
@@ -356,6 +366,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Charter Houseboat Serenity on Lake Kariba — copper sunsets, cove swimming, and celebration weekends on the water. Insider tips from Panora Go.",
     homepageSections: ["weekend_escape", "trending"],
+    verifications: ["photos_verified", "accurate_pricing", "solar_power"],
     createdAt: "2025-09-20T07:30:00.000Z",
     updatedAt: "2026-05-14T13:10:00.000Z",
   },
@@ -427,6 +438,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Experience Matobo Hills Lodge near Bulawayo — balancing rocks, rhino walks, and fire-pit evenings in ancient granite country. Curated by Panora Go.",
     homepageSections: ["editors_choice", "panora_picks"],
+    verifications: ["photos_verified", "solar_power", "borehole_water"],
     createdAt: "2025-08-15T11:00:00.000Z",
     updatedAt: "2026-06-01T10:00:00.000Z",
   },
@@ -497,6 +509,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Tonight at The Basement in Avondale — cocktails, amber light, and Harare nightlife with intention. Dress codes, timing, and tips from Panora Go.",
     homepageSections: ["trending", "new_discoveries"],
+    verifications: ["photos_verified", "accurate_pricing"],
     createdAt: "2026-02-14T16:00:00.000Z",
     updatedAt: "2026-07-25T18:00:00.000Z",
   },
@@ -565,6 +578,7 @@ export const SEED_PLACES: Place[] = [
     metaDescription:
       "Reset at Meikles Spa Sanctuary in central Harare — quiet treatments, steam, and soft light away from the CBD rush. Book tips from Panora Go.",
     homepageSections: ["panora_picks", "editors_choice"],
+    verifications: ["photos_verified", "accurate_pricing", "family_friendly"],
     createdAt: "2025-11-28T08:45:00.000Z",
     updatedAt: "2026-07-05T12:30:00.000Z",
   },
@@ -574,6 +588,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222201",
     placeId: "11111111-1111-4111-8111-111111111101",
     authorName: "Tendai M.",
+    feeling: "romantic",
     body: "We sat under the jacarandas as the sky went lavender and nobody checked the time. My partner ordered the bream; I barely remember my own plate because the evening felt like it belonged only to us. The waiters never hovered. When we finally left, the garden still smelled like rain even though it had not rained.",
     likesCount: 47,
     published: true,
@@ -583,6 +598,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222202",
     placeId: "11111111-1111-4111-8111-111111111101",
     authorName: "Rudo K.",
+    feeling: "peaceful",
     body: "I brought my parents for their anniversary. Soft light on white linen, a bottle of something Cape, and my mother laughing in a way I had not heard in months. Amanzi made the city feel gentle again. I still think about the dessert — dark chocolate, a little salt, the kind of ending you do not rush.",
     likesCount: 31,
     published: true,
@@ -601,6 +617,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222204",
     placeId: "11111111-1111-4111-8111-111111111102",
     authorName: "Chipo N.",
+    feeling: "grounded",
     body: "My ritual now: flat white, corner window, twenty minutes before emails. The pour-over tastes like someone measured the water with care. On hard weeks, Ginkgo is the only place that asks nothing of me except to sit still.",
     likesCount: 58,
     published: true,
@@ -619,6 +636,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222206",
     placeId: "11111111-1111-4111-8111-111111111103",
     authorName: "Aisha B.",
+    feeling: "awestruck",
     body: "I watched elephants cross the Zambezi from our deck and cried without knowing why. Soft light on the water, hippos arguing somewhere in the reeds, and the first silence I had felt in years. We almost skipped the Falls themselves. The river was enough.",
     likesCount: 86,
     published: true,
@@ -646,6 +664,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222209",
     placeId: "11111111-1111-4111-8111-111111111104",
     authorName: "Tariro H.",
+    feeling: "restored",
     body: "Mist in the pines at 6am, coffee on the verandah, and a book I finally finished. We walked until our legs ached and still did not want to leave. Nyanga feels like Zimbabwe remembering itself.",
     likesCount: 43,
     published: true,
@@ -664,6 +683,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222211",
     placeId: "11111111-1111-4111-8111-111111111105",
     authorName: "Blessing C.",
+    feeling: "joyful",
     body: "Ten of us for my fortieth. Soft light on the lake at sunset and someone put on old Chimurenga soft enough to talk over. We swam in a cove so quiet I forgot birthdays were supposed to be loud.",
     likesCount: 72,
     published: true,
@@ -682,6 +702,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222213",
     placeId: "11111111-1111-4111-8111-111111111106",
     authorName: "Thandiwe R.",
+    feeling: "humbled",
     body: "Standing among the balancing rocks at dusk rearranged something in me. Soft light on granite, a guide who spoke of ancestors without performance, and a silence that felt earned. I keep the photo on my phone but the feeling does not fit in a frame.",
     likesCount: 91,
     published: true,
@@ -709,6 +730,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222216",
     placeId: "11111111-1111-4111-8111-111111111107",
     authorName: "Nyasha V.",
+    feeling: "alive",
     body: "One drink became three. Soft amber light, a DJ who knew when to push and when to hold, and a night that reminded me Harare still has pulse. Walked out into Avondale air laughing with people I had just met.",
     likesCount: 61,
     published: true,
@@ -727,6 +749,7 @@ export const SEED_STORIES: ExperienceStory[] = [
     id: "22222222-2222-4222-8222-222222222218",
     placeId: "11111111-1111-4111-8111-111111111108",
     authorName: "Lindiwe A.",
+    feeling: "calm",
     body: "Booked a midweek massage after a brutal quarter. Soft light, eucalyptus steam, and a therapist who found every knot I had been pretending not to have. Walked back into the CBD feeling like I had borrowed someone else's calm.",
     likesCount: 52,
     published: true,
@@ -810,6 +833,55 @@ export const SEED_SECTIONS: HomepageSection[] = [
       "11111111-1111-4111-8111-111111111103",
       "11111111-1111-4111-8111-111111111106",
       "11111111-1111-4111-8111-111111111108",
+    ],
+  },
+];
+
+export const SEED_SECRET_COLLECTIONS: SecretCollection[] = [
+  {
+    id: "44444444-4444-4444-8444-444444444401",
+    key: "hidden-harare",
+    title: "Hidden Harare",
+    subtitle: "Quiet tables, soft light, and city secrets locals guard",
+    placeIds: [
+      "11111111-1111-4111-8111-111111111101",
+      "11111111-1111-4111-8111-111111111102",
+      "11111111-1111-4111-8111-111111111107",
+      "11111111-1111-4111-8111-111111111108",
+    ],
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444402",
+    key: "sunrise-chasers",
+    title: "Sunrise Chasers",
+    subtitle: "Wake for mist, river light, and highland mornings",
+    placeIds: [
+      "11111111-1111-4111-8111-111111111103",
+      "11111111-1111-4111-8111-111111111104",
+      "11111111-1111-4111-8111-111111111105",
+    ],
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444403",
+    key: "first-date-approved",
+    title: "First Date Approved",
+    subtitle: "Places that make a first impression feel effortless",
+    placeIds: [
+      "11111111-1111-4111-8111-111111111101",
+      "11111111-1111-4111-8111-111111111102",
+      "11111111-1111-4111-8111-111111111108",
+    ],
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444404",
+    key: "girls-weekend",
+    title: "Girls Weekend",
+    subtitle: "Celebrate, unwind, and claim the trip for yourselves",
+    placeIds: [
+      "11111111-1111-4111-8111-111111111105",
+      "11111111-1111-4111-8111-111111111107",
+      "11111111-1111-4111-8111-111111111108",
+      "11111111-1111-4111-8111-111111111104",
     ],
   },
 ];

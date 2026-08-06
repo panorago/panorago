@@ -1,46 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  /* Shared brand */
-  --brand-gold: #c8a46a;
-  --brand-navy: #0d1b34;
-  --brand-white: #f8f8f8;
+  /* Brand tokens — Panora Go */
+  --brand-gold: #c29b62;
+  --brand-navy: #0a192f;
+  --brand-white: #ffffff;
   --brand-black: #050505;
 
+  /* Spacing scale */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+
   /* Light — elegant morning luxury */
-  --background: #f7f3ec;
-  --background-elevated: #fffdf8;
-  --foreground: #0d1b34;
-  --foreground-muted: rgba(13, 27, 52, 0.62);
-  --primary: #0d1b34;
-  --primary-foreground: #f8f8f8;
-  --accent: #c8a46a;
-  --accent-foreground: #0d1b34;
-  --secondary: #efe7d8;
-  --secondary-foreground: #0d1b34;
-  --glass: rgba(255, 255, 255, 0.62);
-  --glass-strong: rgba(255, 255, 255, 0.82);
-  --border: rgba(13, 27, 52, 0.1);
-  --border-strong: rgba(13, 27, 52, 0.16);
-  --ring: rgba(200, 164, 106, 0.55);
-  --shadow: 0 18px 50px rgba(13, 27, 52, 0.1);
-  --shadow-gold: 0 20px 48px rgba(200, 164, 106, 0.22);
-  --overlay: rgba(13, 27, 52, 0.28);
+  --background: #f8f8f8;
+  --background-elevated: #ffffff;
+  --foreground: #0a192f;
+  --foreground-muted: rgba(10, 25, 47, 0.62);
+  --primary: #0a192f;
+  --primary-foreground: #ffffff;
+  --accent: #c29b62;
+  --accent-foreground: #0a192f;
+  --secondary: #ebe6dc;
+  --secondary-foreground: #0a192f;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --border: rgba(10, 25, 47, 0.1);
+  --border-strong: rgba(10, 25, 47, 0.16);
+  --ring: rgba(194, 155, 98, 0.55);
+  --shadow: 0 4px 16px rgba(10, 25, 47, 0.12);
+  --shadow-gold: 0 20px 48px rgba(194, 155, 98, 0.22);
+  --overlay: rgba(10, 25, 47, 0.28);
   --hero-overlay: linear-gradient(
     180deg,
-    rgba(247, 243, 236, 0.15) 0%,
-    rgba(13, 27, 52, 0.55) 55%,
-    rgba(13, 27, 52, 0.82) 100%
+    rgba(10, 25, 47, 0.15) 0%,
+    rgba(10, 25, 47, 0.55) 55%,
+    rgba(10, 25, 47, 0.88) 100%
   );
-  --surface-card: rgba(255, 253, 248, 0.78);
+  --surface-card: rgba(255, 255, 255, 0.82);
   --success: #3d7a5a;
   --danger: #a63d3d;
   --radius-sm: 0.75rem;
-  --radius-md: 1.25rem;
-  --radius-lg: 1.75rem;
-  --radius-xl: 2.25rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
   --radius-full: 9999px;
-  --nav-height: 4.5rem;
+  --nav-height: 5rem;
   --bottom-nav-height: 4.75rem;
   --space-section: clamp(4rem, 8vw, 7.5rem);
   --font-display: var(--font-display);
@@ -48,32 +56,32 @@
 }
 
 .dark {
-  /* Dark — premium evening luxury */
-  --background: #050505;
-  --background-elevated: #0b0f16;
-  --foreground: #f8f8f8;
+  /* Dark — premium evening luxury rooted in navy */
+  --background: #0a192f;
+  --background-elevated: #0d2137;
+  --foreground: #ffffff;
   --foreground-muted: rgba(248, 248, 248, 0.64);
-  --primary: #0d1b34;
-  --primary-foreground: #f8f8f8;
-  --accent: #c8a46a;
-  --accent-foreground: #050505;
-  --secondary: #121826;
-  --secondary-foreground: #f8f8f8;
+  --primary: #0a192f;
+  --primary-foreground: #ffffff;
+  --accent: #c29b62;
+  --accent-foreground: #0a192f;
+  --secondary: #12253d;
+  --secondary-foreground: #ffffff;
   --glass: rgba(255, 255, 255, 0.08);
   --glass-strong: rgba(255, 255, 255, 0.12);
   --border: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.16);
-  --ring: rgba(200, 164, 106, 0.5);
-  --shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
-  --shadow-gold: 0 24px 60px rgba(200, 164, 106, 0.18);
-  --overlay: rgba(5, 5, 5, 0.45);
+  --ring: rgba(194, 155, 98, 0.5);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-gold: 0 24px 60px rgba(194, 155, 98, 0.18);
+  --overlay: rgba(10, 25, 47, 0.55);
   --hero-overlay: linear-gradient(
     180deg,
-    rgba(5, 5, 5, 0.2) 0%,
-    rgba(5, 5, 5, 0.55) 45%,
-    rgba(5, 5, 5, 0.92) 100%
+    rgba(10, 25, 47, 0.25) 0%,
+    rgba(10, 25, 47, 0.62) 45%,
+    rgba(10, 25, 47, 0.94) 100%
   );
-  --surface-card: rgba(13, 27, 52, 0.42);
+  --surface-card: rgba(10, 25, 47, 0.55);
   --success: #6fbf93;
   --danger: #e07575;
 }
@@ -136,7 +144,8 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), system-ui, sans-serif;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -210,14 +219,30 @@ h4 {
 
 .gradient-mesh {
   background:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(200, 164, 106, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(13, 27, 52, 0.16), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(194, 155, 98, 0.16), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(10, 25, 47, 0.12), transparent 50%),
     var(--background);
 }
 
 .dark .gradient-mesh {
   background:
-    radial-gradient(ellipse 70% 45% at 15% -5%, rgba(200, 164, 106, 0.14), transparent 50%),
-    radial-gradient(ellipse 55% 40% at 95% 0%, rgba(13, 27, 52, 0.65), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 15% -5%, rgba(194, 155, 98, 0.14), transparent 50%),
+    radial-gradient(ellipse 55% 40% at 95% 0%, rgba(10, 25, 47, 0.85), transparent 55%),
     var(--background);
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100%;
+  z-index: 100;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 1rem;
 }

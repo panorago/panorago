@@ -26,6 +26,7 @@ type QuickVibesProps = {
   /** Light-on-dark styling for hero overlays */
   onLight?: boolean;
   onSelect?: (vibe: MoodTag) => void;
+  showTrending?: boolean;
 };
 
 export function QuickVibes({
@@ -33,6 +34,7 @@ export function QuickVibes({
   activeVibe,
   onLight = false,
   onSelect,
+  showTrending = true,
 }: QuickVibesProps) {
   const reduceMotion = useReducedMotion();
 
@@ -43,6 +45,31 @@ export function QuickVibes({
       initial="hidden"
       animate="visible"
     >
+      {showTrending && !onSelect ? (
+        <motion.li variants={reduceMotion ? undefined : fadeUp}>
+          <motion.div
+            whileHover={reduceMotion ? undefined : { y: -2 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+            transition={motionTokens.spring.soft}
+          >
+            <Link
+              href="/#trending"
+              className={cn(
+                "focus-ring inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium",
+                "border backdrop-blur-md transition-[border-color,box-shadow,transform,background-color] duration-300",
+                onLight
+                  ? "border-white/25 bg-white/12 text-white shadow-[0_8px_28px_rgba(0,0,0,0.25)] hover:border-[var(--accent)] hover:bg-white/18"
+                  : "border-[var(--border)] bg-[var(--glass)] text-[var(--foreground)] shadow-[var(--shadow)] hover:border-[color-mix(in_srgb,var(--accent)_55%,transparent)] hover:shadow-[var(--shadow-gold)]",
+              )}
+            >
+              <span aria-hidden className="text-base leading-none">
+                🔥
+              </span>
+              <span>Trending</span>
+            </Link>
+          </motion.div>
+        </motion.li>
+      ) : null}
       {QUICK_VIBES.map((item) => {
         const href = `/discover?vibe=${encodeURIComponent(item.vibe)}`;
         const active = activeVibe === item.vibe;
