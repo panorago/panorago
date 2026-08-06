@@ -11,6 +11,8 @@ Run in order (do not skip):
 3. `supabase/migrations/003_bookings.sql` — bookings / enquiries base
 4. `supabase/migrations/004_concierge.sql` — concierge name split, REF sequence, verify RPCs, `places.video_url`, `booking-assets` bucket
 5. `supabase/migrations/005_command_center.sql` — Command Center tables/columns (`secret_collections`, submissions, settings, media, audit, analytics, paid/featured flags)
+6. `supabase/migrations/006_security_guards.sql` — durable `submission_tokens` + `rate_limit_hits`
+7. `supabase/migrations/007_realtime_publications.sql` — Realtime for bookings + place_submissions (Command Center toasts)
 
 ## Storage buckets (Dashboard → Storage)
 

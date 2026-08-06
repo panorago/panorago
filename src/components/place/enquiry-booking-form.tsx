@@ -14,7 +14,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useId, useMemo, useRef, useState } from "react";
+import { FormEvent, useId, useRef, useState } from "react";
 
 const OCCASIONS = [
   "Birthday",
@@ -56,12 +56,10 @@ export function EnquiryBookingForm({
   const formId = useId();
   const reduceMotion = useReducedMotion();
   const submittingLock = useRef(false);
-  const clientToken = useMemo(
-    () =>
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `tok-${Date.now()}`,
-    [],
+  const clientTokenRef = useRef(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `tok-${Math.random().toString(36).slice(2)}`,
   );
 
   const [firstName, setFirstName] = useState("");
@@ -135,7 +133,7 @@ export function EnquiryBookingForm({
           special_request: specialRequest || null,
           occasion: occasion || null,
           channel: "web",
-          client_token: clientToken,
+          client_token: clientTokenRef.current,
         }),
       });
 

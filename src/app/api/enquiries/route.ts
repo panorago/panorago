@@ -1,5 +1,10 @@
 import { createBooking } from "@/lib/bookings/create-booking";
 import { createClient } from "@/lib/supabase/server";
+import {
+  assertSameOrigin,
+  isDuplicateClientToken,
+  isRateLimited,
+} from "@/lib/security/request-guards";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -41,20 +46,18 @@ const enquirySchema = z.object({
   client_token: z.string().trim().max(64).optional().nullable(),
 });
 
-const recentTokens = new Map<string, number>();
-
-function isDuplicateSubmission(token: string | null | undefined) {
-  if (!token) return false;
-  const now = Date.now();
-  for (const [key, ts] of recentTokens) {
-    if (now - ts > 60_000) recentTokens.delete(key);
-  }
-  if (recentTokens.has(token)) return true;
-  recentTokens.set(token, now);
-  return false;
-}
-
 export async function POST(request: Request) {
+  if (!assertSameOrigin(request)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  }
+
+  if (await isRateLimited(request, "enquiries", 15, 60_000)) {
+    return NextResponse.json(
+      { error: "Too many requests — please wait a minute." },
+      { status: 429 },
+    );
+  }
+
   let json: unknown;
   try {
     json = await request.json();
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (isDuplicateSubmission(parsed.data.client_token)) {
+  if (await isDuplicateClientToken(parsed.data.client_token)) {
     return NextResponse.json(
       { error: "Duplicate submission — please wait a moment." },
       { status: 429 },

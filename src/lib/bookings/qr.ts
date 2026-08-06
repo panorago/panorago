@@ -10,11 +10,8 @@ export type QrPayload = {
   children: number;
   timestamp: string;
   verificationUrl: string;
-  /** @deprecated prefer venue */
   venueId?: string | null;
-  /** @deprecated prefer customer name on ticket only */
   customerName?: string;
-  /** @deprecated prefer visitDate */
   date?: string | null;
 };
 
@@ -25,7 +22,6 @@ export function buildQrPayload(input: {
   venueId?: string | null;
   customerName?: string;
   visitDate?: string | null;
-  /** @deprecated use visitDate */
   date?: string | null;
   adults: number;
   children: number;
@@ -48,11 +44,15 @@ export function buildQrPayload(input: {
   };
 }
 
+/**
+ * Encode the bare verification URL so phone cameras open /verify/…
+ * Metadata remains in qr_payload / DB for tickets and admin.
+ */
 export async function generateQrDataUrl(
   payload: QrPayload,
   retries = 2,
 ): Promise<string> {
-  const text = JSON.stringify(payload);
+  const text = payload.verificationUrl;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {

@@ -66,12 +66,26 @@ export default async function AdminPlacesPage({ searchParams }: PageProps) {
             Search, filter, publish, feature, archive, and duplicate listings.
           </p>
         </div>
-        <Link
-          href="/admin/places/new"
-          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]"
-        >
-          Add place
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/api/admin/places/export?format=csv"
+            className="rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm hover:bg-[var(--glass)]"
+          >
+            Export CSV
+          </a>
+          <a
+            href="/api/admin/places/export?format=xlsx"
+            className="rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm hover:bg-[var(--glass)]"
+          >
+            Export Excel
+          </a>
+          <Link
+            href="/admin/places/new"
+            className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]"
+          >
+            Add place
+          </Link>
+        </div>
       </div>
 
       {fetched.length === 0 && (

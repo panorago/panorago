@@ -1,11 +1,5 @@
 "use server";
 
-import {
-  buildQrPayload,
-  generateQrDataUrl,
-  dataUrlToBuffer,
-} from "@/lib/bookings/qr";
-import { buildLuxuryTicketPdf } from "@/lib/bookings/ticket-pdf";
 import type { BookingStatus } from "@/lib/bookings/codes";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -35,13 +29,14 @@ async function requireAdmin() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("id, role")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile && profile.role !== "admin") {
+  if (error) throw new Error("Forbidden");
+  if (!profile || profile.role !== "admin") {
     throw new Error("Forbidden");
   }
 
@@ -153,21 +148,6 @@ export async function getAdminBooking(id: string): Promise<Booking | null> {
   }
 }
 
-async function uploadAsset(
-  path: string,
-  bytes: Buffer,
-  contentType: string,
-): Promise<string | null> {
-  const service = createServiceClient();
-  if (!service) return null;
-  const { error } = await service.storage
-    .from("booking-assets")
-    .upload(path, bytes, { contentType, upsert: true });
-  if (error) return null;
-  const { data } = service.storage.from("booking-assets").getPublicUrl(path);
-  return data.publicUrl;
-}
-
 export async function updateBookingStatus(
   id: string,
   status: BookingStatus,
@@ -193,60 +173,42 @@ export async function updateBookingStatus(
     let qrCodeUrl = existing.qrCodeUrl;
     let ticketPdfUrl = existing.ticketPdfUrl;
 
-    // On confirm: regenerate QR + PDF when possible
     if (status === "confirmed") {
-      try {
-        const qrDataUrl = await generateQrDataUrl(
-          buildQrPayload({
-            bookingReference: existing.bookingReference,
-            venueId: existing.venueId,
-            customerNumber: existing.customerNumber,
-            customerName: existing.customerName,
-            venueName: existing.venueName,
-            visitDate: existing.preferredDate,
-            adults: existing.adults,
-            children: existing.children,
-            timestamp: at,
-          }),
-        );
-        const ticketBytes = await buildLuxuryTicketPdf({
-          statusLabel: "CONFIRMED",
-          customerName: existing.customerName,
-          customerNumber: existing.customerNumber,
-          bookingReference: existing.bookingReference,
-          venueName: existing.venueName,
-          venueAddress: existing.venueAddress ?? "",
-          enquiryDate: new Date(existing.createdAt).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-          preferredDate: existing.preferredDate ?? "",
-          adults: String(existing.adults),
-          children: String(existing.children),
-          occasion: existing.occasion ?? "",
-          specialRequest: existing.specialRequest ?? "",
-          qrDataUrl,
-        });
-
-        const uploadedQr = await uploadAsset(
-          `qr/${existing.bookingReference}.png`,
-          dataUrlToBuffer(qrDataUrl),
-          "image/png",
-        );
-        const uploadedPdf = await uploadAsset(
-          `tickets/${existing.bookingReference}.pdf`,
-          Buffer.from(ticketBytes),
-          "application/pdf",
-        );
-        if (uploadedQr) qrCodeUrl = uploadedQr;
-        if (uploadedPdf) ticketPdfUrl = uploadedPdf;
-      } catch (err) {
-        console.info(
-          "[bookings] regenerate on confirm failed:",
-          err instanceof Error ? err.message : err,
-        );
-      }
+      const { regenerateConfirmedTicketAssets } = await import(
+        "@/lib/bookings/regenerate-assets"
+      );
+      const { notifyBookingConfirmed } = await import(
+        "@/lib/bookings/notifications"
+      );
+      const assets = await regenerateConfirmedTicketAssets({
+        bookingReference: existing.bookingReference,
+        customerNumber: existing.customerNumber,
+        customerName: existing.customerName,
+        venueName: existing.venueName,
+        venueAddress: existing.venueAddress,
+        venueId: existing.venueId,
+        preferredDate: existing.preferredDate,
+        adults: existing.adults,
+        children: existing.children,
+        occasion: existing.occasion,
+        specialRequest: existing.specialRequest,
+        createdAt: existing.createdAt,
+      });
+      if (assets.qrCodeUrl) qrCodeUrl = assets.qrCodeUrl;
+      if (assets.ticketPdfUrl) ticketPdfUrl = assets.ticketPdfUrl;
+      await notifyBookingConfirmed({
+        bookingReference: existing.bookingReference,
+        customerNumber: existing.customerNumber,
+        customerName: existing.customerName,
+        email: existing.email,
+        phone: existing.phone,
+        venueName: existing.venueName,
+        preferredDate: existing.preferredDate,
+        adults: existing.adults,
+        children: existing.children,
+        occasion: existing.occasion,
+        status: "confirmed",
+      });
     }
 
     const { error } = await supabase
@@ -934,5 +896,123 @@ export async function getRecentAuditLog(): Promise<AuditLogEntry[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+export async function uploadMediaAsset(formData: FormData): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireAdmin();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { ok: false, error: "Choose a file to upload." };
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      return { ok: false, error: "File must be under 12MB." };
+    }
+
+    const alt = String(formData.get("alt") ?? "").trim();
+    const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+    const path = `library/${Date.now()}-${safeName}`;
+    const service = createServiceClient();
+    const client = service ?? supabase;
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const { error: upError } = await client.storage
+      .from("media")
+      .upload(path, bytes, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+    if (upError) return { ok: false, error: upError.message };
+
+    const publicUrl = client.storage.from("media").getPublicUrl(path).data
+      .publicUrl;
+
+    const { data, error } = await supabase
+      .from("media_assets")
+      .insert({
+        bucket: "media",
+        path,
+        public_url: publicUrl,
+        filename: file.name,
+        content_type: file.type || null,
+        size_bytes: file.size,
+        alt,
+        tags: [],
+        uploaded_by: user.id,
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (error) return { ok: false, error: error.message };
+
+    await writeAudit("media_upload", "media", data?.id as string | undefined, {
+      path,
+    });
+    revalidatePath("/admin/media");
+    return { ok: true, message: "Uploaded.", id: data?.id as string };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Upload failed.",
+    };
+  }
+}
+
+export async function deleteMediaAsset(id: string): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    const { data: row } = await supabase
+      .from("media_assets")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!row) return { ok: false, error: "Not found." };
+
+    const service = createServiceClient();
+    if (service) {
+      await service.storage
+        .from(String(row.bucket))
+        .remove([String(row.path)]);
+    }
+
+    const { error } = await supabase.from("media_assets").delete().eq("id", id);
+    if (error) return { ok: false, error: error.message };
+
+    await writeAudit("media_delete", "media", id, {});
+    revalidatePath("/admin/media");
+    return { ok: true, message: "Deleted." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Delete failed.",
+    };
+  }
+}
+
+export async function reorderHomepageSections(
+  orderedIds: string[],
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    for (let i = 0; i < orderedIds.length; i += 1) {
+      const id = orderedIds[i]!;
+      const { error } = await supabase
+        .from("homepage_sections")
+        .update({ sort_order: i })
+        .eq("id", id);
+      if (error) return { ok: false, error: error.message };
+    }
+    await writeAudit("homepage_reorder", "homepage_sections", null, {
+      orderedIds,
+    });
+    revalidatePath("/admin/homepage");
+    revalidatePath("/");
+    return { ok: true, message: "Order saved." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Reorder failed.",
+    };
   }
 }

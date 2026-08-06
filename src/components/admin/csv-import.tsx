@@ -240,7 +240,7 @@ export function CsvImport() {
         </span>
         <input
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,.xls,text/csv,application/vnd.ms-excel"
           className="block w-full max-w-md text-sm text-muted file:mr-3 file:rounded-full file:border file:border-[var(--border)] file:bg-[var(--secondary)] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[var(--foreground)] hover:file:bg-[var(--glass)]"
           onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
         />

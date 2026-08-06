@@ -47,18 +47,18 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAdminRoute && !isLoginRoute && user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
 
-    // When a profile row exists, enforce admin. Missing profile table/row
-    // allows authenticated access so local setup is not bricked.
-    if (profile && profile.role !== "admin") {
+    // Require an explicit admin profile row (no soft-allow for missing profiles).
+    if (profileError || !profile || profile.role !== "admin") {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/admin/login";
       redirectUrl.searchParams.set("error", "forbidden");
+      await supabase.auth.signOut();
       return NextResponse.redirect(redirectUrl);
     }
   }

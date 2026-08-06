@@ -154,7 +154,6 @@ export function SearchBar({
             autoComplete="off"
             aria-autocomplete="list"
             aria-controls={listId}
-            aria-expanded={showSuggestions || filtered.length > 0}
             className={cn(
               "w-full bg-transparent text-[var(--foreground)] outline-none",
               "placeholder:text-[var(--foreground-muted)]",
@@ -209,7 +208,7 @@ export function SearchBar({
               className="border-t border-[var(--border)]"
             >
               {(filtered.length > 0 ? filtered : SUGGESTIONS).map((item) => (
-                <li key={item} role="option">
+                <li key={item} role="option" aria-selected={query === item}>
                   <button
                     type="button"
                     className="flex w-full px-4 py-3 text-left text-sm text-[var(--foreground-muted)] transition-colors hover:bg-[var(--glass)] hover:text-[var(--foreground)]"

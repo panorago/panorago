@@ -1,4 +1,5 @@
-import { getMediaAssets } from "@/lib/admin/command";
+import { MediaUploadForm } from "@/components/admin/media-upload-form";
+import { deleteMediaAsset, getMediaAssets } from "@/lib/admin/command";
 import { formatDistanceToNow } from "date-fns";
 
 export const metadata = {
@@ -38,29 +39,36 @@ export default async function AdminMediaPage({
         </p>
         <h1 className="mt-1 font-display text-4xl">Media Library</h1>
         <p className="mt-2 text-sm text-muted">
-          Metadata for Supabase Storage buckets{" "}
-          <code>media</code> / <code>booking-assets</code>.
+          Upload and manage files in the Supabase <code>media</code> bucket.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-5">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted">Files</p>
-          <p className="mt-2 font-display text-3xl">{assets.length}</p>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-5">
+            <p className="text-xs uppercase tracking-[0.14em] text-muted">
+              Files
+            </p>
+            <p className="mt-2 font-display text-3xl">{assets.length}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-5">
+            <p className="text-xs uppercase tracking-[0.14em] text-muted">
+              Estimated usage
+            </p>
+            <p className="mt-2 font-display text-3xl">
+              {formatBytes(totalBytes)}
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-5">
+            <p className="text-xs uppercase tracking-[0.14em] text-muted">
+              Bucket
+            </p>
+            <p className="mt-2 text-sm text-muted">
+              Public <code>media</code> (migration 005 / dashboard).
+            </p>
+          </div>
         </div>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-5">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted">
-            Estimated usage
-          </p>
-          <p className="mt-2 font-display text-3xl">{formatBytes(totalBytes)}</p>
-        </div>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-5">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted">Buckets</p>
-          <p className="mt-2 text-sm text-muted">
-            Create <code>media</code> and <code>booking-assets</code> as public
-            buckets in Supabase Storage.
-          </p>
-        </div>
+        <MediaUploadForm />
       </div>
 
       <form>
@@ -76,9 +84,8 @@ export default async function AdminMediaPage({
         <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--glass)] px-6 py-16 text-center">
           <p className="font-display text-2xl">No media records</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Ticket QR/PDF uploads write to storage; register rows in{" "}
-            <code>media_assets</code> after migration 004, or upload via the
-            Supabase dashboard.
+            Upload above, or ensure migration 005 created{" "}
+            <code>media_assets</code>.
           </p>
         </div>
       ) : (
@@ -100,7 +107,7 @@ export default async function AdminMediaPage({
                   {asset.contentType || "file"}
                 </div>
               )}
-              <div className="space-y-1 p-4">
+              <div className="space-y-2 p-4">
                 <p className="truncate text-sm font-medium">{asset.filename}</p>
                 <p className="truncate text-xs text-muted">
                   {asset.bucket}/{asset.path}
@@ -111,16 +118,31 @@ export default async function AdminMediaPage({
                     addSuffix: true,
                   })}
                 </p>
-                {asset.publicUrl && (
-                  <a
-                    href={asset.publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block text-xs text-[var(--accent)]"
+                <div className="flex flex-wrap gap-3">
+                  {asset.publicUrl ? (
+                    <a
+                      href={asset.publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[var(--accent)]"
+                    >
+                      Open →
+                    </a>
+                  ) : null}
+                  <form
+                    action={async () => {
+                      "use server";
+                      await deleteMediaAsset(asset.id);
+                    }}
                   >
-                    Open →
-                  </a>
-                )}
+                    <button
+                      type="submit"
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </form>
+                </div>
               </div>
             </li>
           ))}

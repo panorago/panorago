@@ -49,6 +49,8 @@ export function PlacesMap({ places }: PlacesMapProps) {
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapFailed, setMapFailed] = useState(false);
+  const [routeHint, setRouteHint] = useState<string | null>(null);
+  const userPos = useRef<{ lat: number; lng: number } | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -134,6 +136,69 @@ export function PlacesMap({ places }: PlacesMapProps) {
       cancelled = true;
     };
   }, [apiKey, mapFailed, filtered]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userPos.current = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+      },
+      () => {
+        userPos.current = null;
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 },
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!selected || !apiKey || mapFailed) {
+      setRouteHint(null);
+      return;
+    }
+    const origin = userPos.current;
+    if (!origin || selected.latitude == null || selected.longitude == null) {
+      setRouteHint(null);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const g = await loadGoogleMaps(apiKey);
+        const service = new g.DirectionsService();
+        service.route(
+          {
+            origin,
+            destination: {
+              lat: selected.latitude as number,
+              lng: selected.longitude as number,
+            },
+            travelMode: g.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (cancelled) return;
+            if (status === "OK" && result?.routes[0]?.legs[0]) {
+              const leg = result.routes[0].legs[0];
+              setRouteHint(
+                `${leg.distance?.text ?? "—"} · ${leg.duration?.text ?? "—"} drive`,
+              );
+            } else {
+              setRouteHint(null);
+            }
+          },
+        );
+      } catch {
+        if (!cancelled) setRouteHint(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, apiKey, mapFailed]);
 
   return (
     <div className="relative flex h-[calc(100dvh-var(--nav-height)-var(--bottom-nav-height)-env(safe-area-inset-bottom))] min-h-[28rem] flex-col bg-[var(--brand-navy)] text-white md:h-[calc(100dvh-var(--nav-height))]">
@@ -228,16 +293,55 @@ export function PlacesMap({ places }: PlacesMapProps) {
                 <p className="line-clamp-2 text-sm text-white/75">
                   {selected.story.slice(0, 120)}…
                 </p>
-                <div className="flex items-center justify-between gap-3 pt-1">
+                {routeHint ? (
+                  <p className="text-xs font-medium text-[var(--accent)]">
+                    {routeHint}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                   <span className="text-xs font-medium text-[var(--accent)]">
                     {formatPriceGuide(selected.priceGuide)}
                   </span>
-                  <Link
-                    href={`/panoras/${selected.slug}`}
-                    className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--brand-navy)] transition hover:opacity-90"
-                  >
-                    View place →
-                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={
+                        selected.latitude != null && selected.longitude != null
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${selected.latitude},${selected.longitude}&travelmode=driving`
+                          : selected.contact.googleMapsUrl ||
+                            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.name)}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-white/25 px-3 py-2 text-xs font-medium text-white/90 hover:bg-white/10"
+                    >
+                      Directions
+                    </a>
+                    <button
+                      type="button"
+                      className="rounded-full border border-white/25 px-3 py-2 text-xs font-medium text-white/90 hover:bg-white/10"
+                      onClick={() => {
+                        const url =
+                          typeof window !== "undefined"
+                            ? `${window.location.origin}/panoras/${selected.slug}`
+                            : `/panoras/${selected.slug}`;
+                        void navigator.clipboard?.writeText(url);
+                        if (navigator.share) {
+                          void navigator.share({
+                            title: selected.name,
+                            url,
+                          });
+                        }
+                      }}
+                    >
+                      Share
+                    </button>
+                    <Link
+                      href={`/panoras/${selected.slug}`}
+                      className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--brand-navy)] transition hover:opacity-90"
+                    >
+                      View place →
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

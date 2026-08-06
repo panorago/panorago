@@ -10,10 +10,11 @@ import {
   confirmationWhatsAppDeepLink,
   notifyBookingConfirmed,
 } from "@/lib/bookings/notifications";
-import { buildQrPayload, generateQrDataUrl } from "@/lib/bookings/qr";
-import { buildLuxuryTicketPdf } from "@/lib/bookings/ticket-pdf";
+import {
+  bookingRowToRegenInput,
+  regenerateConfirmedTicketAssets,
+} from "@/lib/bookings/regenerate-assets";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
 import { absoluteUrl, mailtoUrl, ticketDownloadUrl } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
@@ -35,28 +36,18 @@ async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
-  return { supabase, user };
-}
 
-async function uploadTicket(
-  bookingReference: string,
-  bytes: Uint8Array,
-): Promise<string | null> {
-  const service = createServiceClient();
-  if (!service) return null;
-  const path = `tickets/${bookingReference}.pdf`;
-  const { error } = await service.storage
-    .from("booking-assets")
-    .upload(path, Buffer.from(bytes), {
-      contentType: "application/pdf",
-      upsert: true,
-    });
-  if (error) {
-    console.info("[bookings] admin ticket upload:", error.message);
-    return null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Forbidden");
   }
-  return service.storage.from("booking-assets").getPublicUrl(path).data
-    .publicUrl;
+
+  return { supabase, user };
 }
 
 /** Prefer (id, status). Also accepts FormData for form actions. */
@@ -104,62 +95,20 @@ export async function updateBookingStatusAction(
     });
 
     let ticketPdfUrl = booking.ticket_pdf_url;
-    let qrDataUrl: string | null = null;
+    let qrCodeUrl = booking.qr_code_url;
 
     if (status === "confirmed") {
-      const qrPayload = buildQrPayload({
-        bookingReference: booking.booking_reference,
-        customerNumber: booking.customer_number,
-        venueName: booking.venue_name,
-        venueId: booking.venue_id,
-        customerName: booking.customer_name,
-        visitDate: booking.preferred_date,
-        adults: booking.adults,
-        children: booking.children,
+      const assets = await regenerateConfirmedTicketAssets(
+        bookingRowToRegenInput(booking),
+      );
+      if (assets.ticketPdfUrl) ticketPdfUrl = assets.ticketPdfUrl;
+      if (assets.qrCodeUrl) qrCodeUrl = assets.qrCodeUrl;
+      history.push({
+        at: new Date().toISOString(),
+        event: "ticket_regenerated",
+        status,
+        by: user.email ?? user.id,
       });
-      try {
-        qrDataUrl = await generateQrDataUrl(qrPayload);
-      } catch {
-        qrDataUrl = null;
-      }
-      try {
-        const ticketBytes = await buildLuxuryTicketPdf({
-          statusLabel: "CONFIRMED",
-          confirmed: true,
-          customerName: booking.customer_name,
-          customerNumber: booking.customer_number,
-          bookingReference: booking.booking_reference,
-          venueName: booking.venue_name,
-          venueAddress: booking.venue_address ?? "",
-          enquiryDate: new Date(booking.created_at).toLocaleDateString(
-            "en-GB",
-            { day: "numeric", month: "short", year: "numeric" },
-          ),
-          preferredDate: booking.preferred_date ?? "",
-          adults: String(booking.adults),
-          children: String(booking.children),
-          occasion: booking.occasion ?? "",
-          specialRequest: booking.special_request ?? "",
-          qrDataUrl,
-          verificationUrl: absoluteUrl(`/verify/${booking.customer_number}`),
-        });
-        const uploaded = await uploadTicket(
-          booking.booking_reference,
-          ticketBytes,
-        );
-        if (uploaded) ticketPdfUrl = uploaded;
-        history.push({
-          at: new Date().toISOString(),
-          event: "ticket_regenerated",
-          status,
-          by: user.email ?? user.id,
-        });
-      } catch (err) {
-        console.info(
-          "[bookings] confirm PDF failed:",
-          err instanceof Error ? err.message : err,
-        );
-      }
 
       await notifyBookingConfirmed({
         bookingReference: booking.booking_reference,
@@ -182,6 +131,7 @@ export async function updateBookingStatusAction(
         status,
         history,
         ticket_pdf_url: ticketPdfUrl,
+        qr_code_url: qrCodeUrl,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -191,6 +141,8 @@ export async function updateBookingStatusAction(
     }
 
     revalidatePath("/admin/bookings");
+    revalidatePath("/admin/enquiries");
+    revalidatePath("/admin/tickets");
     revalidatePath("/admin");
 
     const ticketUrl =

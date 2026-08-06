@@ -180,21 +180,6 @@ export default async function PlacePage({
       <div className="gradient-mesh">
         <div className="container-panora grid gap-10 py-[var(--space-section)] lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-14 min-w-0">
-            {(place.verified || place.verifications.length > 0) && (
-              <Reveal>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                  Panora Verified
-                </p>
-                <h2 className="mt-2 mb-4 font-display text-2xl">
-                  What we checked
-                </h2>
-                <VerificationBadges
-                  keys={place.verifications}
-                  showPanoraVerified={place.verified}
-                />
-              </Reveal>
-            )}
-
             {/* 2. Video (if URL) */}
             {place.videoUrl ? (
               <Reveal>
@@ -248,10 +233,10 @@ export default async function PlacePage({
               </p>
             </Reveal>
 
-            {/* Know before you go (highlights, without amenities) */}
+            {/* 8. Amenities (+ highlights) */}
             <Reveal>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                Highlights
+                Amenities
               </p>
               <h2 className="mt-2 mb-6 font-display text-3xl">
                 Know before you go
@@ -259,31 +244,42 @@ export default async function PlacePage({
               <HighlightsPanel
                 highlights={place.highlights}
                 amenities={place.amenities}
-                mode="highlights"
               />
             </Reveal>
 
-            {/* 8. Amenities */}
+            {/* 9. The Story Continues */}
             <Reveal>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                Amenities
-              </p>
-              <h2 className="mt-2 mb-6 font-display text-3xl">
-                On-site comforts
-              </h2>
-              <HighlightsPanel
-                highlights={place.highlights}
-                amenities={place.amenities}
-                mode="amenities"
+              <ExperienceStories
+                placeId={place.id}
+                placeName={place.name}
+                initialStories={stories}
               />
             </Reveal>
+
+            {/* 10. Nearby Discoveries */}
+            <NearbyDiscoveries places={recommendations} />
+
+            {(place.verified || place.verifications.length > 0) && (
+              <Reveal>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  Panora Verified
+                </p>
+                <h2 className="mt-2 mb-4 font-display text-2xl">
+                  What we checked
+                </h2>
+                <VerificationBadges
+                  keys={place.verifications}
+                  showPanoraVerified={place.verified}
+                />
+              </Reveal>
+            )}
 
             {(place.contact.website ||
               place.contact.instagram ||
               place.contact.facebook ||
               place.contact.googleMapsUrl) && (
               <Reveal>
-                <h2 className="font-display text-2xl">Links & maps</h2>
+                <h2 className="font-display text-2xl">Links</h2>
                 <ul className="mt-4 flex flex-wrap gap-3">
                   {place.contact.website && (
                     <li>
@@ -345,18 +341,6 @@ export default async function PlacePage({
                 </ul>
               </Reveal>
             )}
-
-            {/* 9. The Story Continues */}
-            <Reveal>
-              <ExperienceStories
-                placeId={place.id}
-                placeName={place.name}
-                initialStories={stories}
-              />
-            </Reveal>
-
-            {/* 10. Nearby Discoveries */}
-            <NearbyDiscoveries places={recommendations} />
           </div>
 
           <div className="lg:pt-2">

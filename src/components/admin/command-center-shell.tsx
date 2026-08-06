@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminRealtimeToasts } from "@/components/admin/admin-realtime-toasts";
 import { PanoraLogo } from "@/components/brand/panora-logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { logoutAdmin } from "@/lib/admin/actions";
@@ -420,6 +421,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <AdminRealtimeToasts />
     </div>
   );
 }

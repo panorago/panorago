@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  assertSameOrigin,
+  isRateLimited,
+} from "@/lib/security/request-guards";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -19,6 +23,17 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!assertSameOrigin(request)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  }
+
+  if (await isRateLimited(request, "place-submissions", 8, 60_000)) {
+    return NextResponse.json(
+      { error: "Too many requests — please wait a minute." },
+      { status: 429 },
+    );
+  }
+
   let json: unknown;
   try {
     json = await request.json();
