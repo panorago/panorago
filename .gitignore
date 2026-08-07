@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Google Places photo fetch output (may contain API-derived refs)
+/scripts/out/
+/public/images/places/google/
+/public/images/places/ATTRIBUTION.generated.md
+
 # vercel
 .vercel
 

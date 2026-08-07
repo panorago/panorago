@@ -8,30 +8,68 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     SEED_PLACES.filter((p) => p.published),
   );
 
+  const now = new Date();
+
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: absoluteUrl("/"),
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 1,
     },
     {
       url: absoluteUrl("/discover"),
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
-      priority: 0.9,
+      priority: 0.95,
+    },
+    {
+      url: absoluteUrl("/map"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
     },
     {
       url: absoluteUrl("/the-panora-way"),
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "monthly",
-      priority: 0.6,
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl("/about"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: absoluteUrl("/enquiry"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.65,
+    },
+    {
+      url: absoluteUrl("/add-your-place"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.55,
     },
     {
       url: absoluteUrl("/saved"),
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
-      priority: 0.4,
+      priority: 0.35,
+    },
+    {
+      url: absoluteUrl("/privacy"),
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: absoluteUrl("/terms"),
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
     },
   ];
 

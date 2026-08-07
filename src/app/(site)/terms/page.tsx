@@ -6,6 +6,9 @@ import { Reveal } from "@/components/motion/reveal";
 export const metadata: Metadata = {
   title: "Terms",
   description: "Terms of use for Panora Go lifestyle discovery.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

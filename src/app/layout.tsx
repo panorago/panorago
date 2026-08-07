@@ -2,6 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Outfit } from "next/font/google";
 import Script from "next/script";
 import { AppProviders } from "@/components/providers/app-providers";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_TITLE,
+  SITE_TITLE_TEMPLATE,
+  rootJsonLd,
+} from "@/lib/seo";
 import { absoluteUrl } from "@/lib/utils";
 import "./globals.css";
 
@@ -24,45 +32,62 @@ const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
 export const metadata: Metadata = {
   metadataBase: new URL(absoluteUrl("/")),
   title: {
-    default: "Panora Go — Unforgettable Places in Zimbabwe",
-    template: "%s | Panora Go",
+    default: SITE_TITLE,
+    template: SITE_TITLE_TEMPLATE,
   },
-  description:
-    "Discover Zimbabwe's most unforgettable places — curated weekends, hidden escapes, and insider notes from Panora Go.",
+  description: SITE_DESCRIPTION,
   applicationName: "Panora Go",
-  keywords: [
-    "Panora Go",
-    "Zimbabwe",
-    "Harare",
-    "Victoria Falls",
-    "weekend escapes",
-    "restaurants",
-    "lodges",
-  ],
-  authors: [{ name: "Panora Go" }],
+  keywords: [...SITE_KEYWORDS],
+  authors: [{ name: "Panora Go", url: absoluteUrl("/") }],
+  creator: "Panora Go",
+  publisher: "Panora Go",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     type: "website",
     locale: "en_ZW",
     url: absoluteUrl("/"),
     siteName: "Panora Go",
-    title: "Panora Go — Unforgettable Places in Zimbabwe",
-    description:
-      "Discover Zimbabwe's most unforgettable places — curated weekends, hidden escapes, and insider notes.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Panora Go — Unforgettable Places in Zimbabwe",
-    description:
-      "Discover Zimbabwe's most unforgettable places — curated weekends, hidden escapes, and insider notes.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
+  appleWebApp: {
+    title: "Panora Go",
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
+  // File conventions: app/icon.svg + app/apple-icon.tsx. Theme PNGs reinforce PGO on all chrome.
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/png" },
-      { url: "/logos/pgo-dark-icon.png", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      {
+        url: "/logos/pgo-light-icon.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/logos/pgo-dark-icon.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: dark)",
+      },
     ],
-    apple: [{ url: "/apple-icon.png" }],
-    shortcut: ["/icon.png"],
+    apple: [{ url: "/apple-icon" }],
   },
+  category: "travel",
 };
 
 export const viewport: Viewport = {
@@ -86,6 +111,7 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <JsonLd data={rootJsonLd()} />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[var(--brand-navy)]"

@@ -1,0 +1,28 @@
+# Panora Go
+
+> Panora Go is Zimbabwe's premium tourism and lifestyle discovery platform.
+> Tagline: Discover. Connect. Belong.
+
+Panora Go (also PGO) helps travellers and locals find curated places across Zimbabwe — restaurants, weekend escapes, rituals, and experiences with insider notes. There is no inventory booking engine; guests enquire with a concierge team.
+
+## Key pages
+
+- Home: /
+- Discover (search): /discover
+- Map: /map
+- The Panora Way: /the-panora-way
+- About: /about
+- Enquire: /enquiry
+- Smart share places: /p/{slug}
+- Place detail: /panoras/{slug}
+
+## Brand phrases
+
+- Panora Go
+- Discover Connect Belong
+- Panora Zimbabwe
+- tourism Panora
+
+## Contact
+
+- Email: info@panora.co.zw (or NEXT_PUBLIC_PANORA_EMAIL)

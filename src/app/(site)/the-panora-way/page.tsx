@@ -1,12 +1,16 @@
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
+import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "The Panora Way",
+  title: "The Panora Way — Discover Connect Belong",
   description:
-    "Discover. Connect. Belong. How Panora Go curates Zimbabwe through stories, atmosphere, and honest local insight.",
+    "Discover. Connect. Belong. How Panora Go curates tourism in Panora Zimbabwe through stories, atmosphere, and honest local insight.",
+  alternates: {
+    canonical: absoluteUrl("/the-panora-way"),
+  },
 };
 
 const PRINCIPLES = [

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "place-images:download": "node scripts/download-place-images.mjs",
+    "place-images:google": "node scripts/fetch-google-place-photos.mjs"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.1.1",

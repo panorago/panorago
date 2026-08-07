@@ -4,6 +4,7 @@ import { GalleryLightbox } from "@/components/place/gallery-lightbox";
 import { PlaceVideo } from "@/components/place/place-video";
 import { PricingSneakPeek } from "@/components/place/pricing-sneak-peek";
 import { SaveButton } from "@/components/place/save-button";
+import { JsonLd } from "@/components/seo/json-ld";
 import { AtmosphereBadges } from "@/components/smart-share/atmosphere-badges";
 import { MapsFinale } from "@/components/smart-share/maps-finale";
 import { NearbyGems } from "@/components/smart-share/nearby-gems";
@@ -58,8 +59,7 @@ export async function generateMetadata({
     .map((a) => a.label)
     .join(" · ");
   const title =
-    place.metaTitle ??
-    `${place.name} — ${atmospheres || place.city} | Panora Go`;
+    place.metaTitle ?? `${place.name} — ${atmospheres || place.city}`;
   const description = ogDescriptionForPlace(place);
   const url = smartShareUrl(place.slug);
 
@@ -162,9 +162,11 @@ export default async function SmartShareLandingPage({
     value: string;
   }[];
 
+  const shareUrl = smartShareUrl(place.slug);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": ["Place", "TouristAttraction"],
+    "@id": `${shareUrl}#place`,
     name: place.name,
     description: place.story.slice(0, 300),
     image: gallery,
@@ -182,15 +184,18 @@ export default async function SmartShareLandingPage({
             longitude: place.longitude,
           }
         : undefined,
-    url: smartShareUrl(place.slug),
+    url: shareUrl,
+    mainEntityOfPage: shareUrl,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Panora Go",
+      url: absoluteUrl("/"),
+    },
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       {/* Hero — full-bleed under fixed nav */}
       <section className="relative -mt-[var(--nav-height)] min-h-[100svh] overflow-hidden">

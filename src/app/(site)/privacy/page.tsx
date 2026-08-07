@@ -6,6 +6,9 @@ import { Reveal } from "@/components/motion/reveal";
 export const metadata: Metadata = {
   title: "Privacy",
   description: "How Panora Go handles your information with care.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {

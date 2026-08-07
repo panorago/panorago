@@ -5,12 +5,16 @@ import { SearchBar } from "@/components/search/search-bar";
 import { SEED_SECRET_COLLECTIONS } from "@/data/seed-places";
 import { getPublishedPlaces, searchPlaces } from "@/lib/data/places";
 import type { MoodTag } from "@/types";
+import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Discover",
+  title: "Discover Zimbabwe places",
   description:
-    "Search Zimbabwe's curated places by name, city, or vibe — restaurants, escapes, coffee rituals, and more.",
+    "Search Panora Go for Zimbabwe tourism — curated places by name, city, or vibe. Discover Connect Belong across Panora Zimbabwe.",
+  alternates: {
+    canonical: absoluteUrl("/discover"),
+  },
 };
 
 const MOODS: MoodTag[] = [

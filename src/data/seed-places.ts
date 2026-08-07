@@ -5,6 +5,14 @@ import type {
   SecretCollection,
 } from "@/types";
 
+/**
+ * Hero/gallery paths under /images/places/ are openly licensed landmark photos
+ * (Wikimedia Commons). See public/images/places/ATTRIBUTION.md.
+ * Venues without free venue-owned photos use Chinhoyi Caves / area context only —
+ * replace via Admin Media Library when owners supply photos.
+ */
+const img = (file: string) => `/images/places/${file}`;
+
 export const SEED_PLACES: Place[] = [
   {
     id: "11111111-1111-4111-8111-111111111101",
@@ -67,13 +75,13 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1600&q=80",
+    // Area context: Chinhoyi Caves Recreation Park (lodge building photos not freely licensed)
+    heroImage: img("chinhoyi-caves-interior.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1600&q=80",
-      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1600&q=80",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
-      "https://images.unsplash.com/photo-1510798831973-525272f3b6d4?w=1600&q=80",
+      img("chinhoyi-caves-interior.jpg"),
+      img("chinhoyi-sleeping-pool-01.jpg"),
+      img("chinhoyi-caves-admin.jpg"),
+      img("chinhoyi-sleeping-pool-02.jpg"),
     ],
     metaTitle: "Caves Edge Lodge Chinhoyi — Ridge Escape | Panora Go",
     metaDescription:
@@ -140,13 +148,13 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80",
+    // Area context only — upload venue-owned courtyard/kitchen photos in Admin
+    heroImage: img("chinhoyi-caves-admin.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80",
-      "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1600&q=80",
-      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80",
-      "https://images.unsplash.com/photo-1550963211-0bc0c1297e1a?w=1600&q=80",
+      img("chinhoyi-caves-admin.jpg"),
+      img("chinhoyi-caves-wla2019.jpg"),
+      img("chinhoyi-caves-interior.jpg"),
+      img("chinhoyi-sleeping-pool-02.jpg"),
     ],
     metaTitle: "Mandara Kitchen Chinhoyi — Courtyard Dining | Panora Go",
     metaDescription:
@@ -217,13 +225,10 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1600&q=80",
+    heroImage: img("victoria-falls-main.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1600&q=80",
-      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1600&q=80",
-      "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1600&q=80",
-      "https://images.unsplash.com/photo-1523805005900-627683ed6cd3?w=1600&q=80",
+      img("victoria-falls-main.jpg"),
+      img("victoria-falls-zambezi.jpg"),
     ],
     metaTitle:
       "Victoria Falls River Lodge — Zambezi Escape | Panora Go",
@@ -295,13 +300,13 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1600&q=80",
+    // Area context only — no free venue café photos; upload via Admin Media Library
+    heroImage: img("chinhoyi-caves-wla2019.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1600&q=80",
-      "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1600&q=80",
-      "https://images.unsplash.com/photo-1442512595331-e89e73839982?w=1600&q=80",
-      "https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=1600&q=80",
+      img("chinhoyi-caves-wla2019.jpg"),
+      img("chinhoyi-caves-admin.jpg"),
+      img("chinhoyi-sleeping-pool-02.jpg"),
+      img("chinhoyi-caves-interior.jpg"),
     ],
     metaTitle: "Copper Bean Coffee Chinhoyi — Morning Ritual | Panora Go",
     metaDescription:
@@ -370,13 +375,13 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80",
+    // Area context (Mashonaland West / Caves park countryside) — farm photos via Admin
+    heroImage: img("chinhoyi-caves-admin.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
-      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&q=80",
-      "https://images.unsplash.com/photo-1510798831973-525272f3b6d4?w=1600&q=80",
+      img("chinhoyi-caves-admin.jpg"),
+      img("chinhoyi-caves-interior.jpg"),
+      img("chinhoyi-sleeping-pool-01.jpg"),
+      img("chinhoyi-caves-wla2019.jpg"),
     ],
     metaTitle: "Mlichi Farm Stay Chinhoyi — Weekend Escape | Panora Go",
     metaDescription:
@@ -442,13 +447,12 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1600&q=80",
+    heroImage: img("chinhoyi-sleeping-pool-01.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1600&q=80",
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80",
-      "https://images.unsplash.com/photo-1489392191049-fc10c97e64b6?w=1600&q=80",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
+      img("chinhoyi-sleeping-pool-01.jpg"),
+      img("chinhoyi-sleeping-pool-02.jpg"),
+      img("chinhoyi-caves-interior.jpg"),
+      img("chinhoyi-caves-wla2019.jpg"),
     ],
     metaTitle: "Sleeping Pool Lookout Chinhoyi Caves | Panora Go",
     metaDescription:
@@ -515,13 +519,13 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1600&q=80",
+    // Area context only — braai garden venue photos via Admin Media Library
+    heroImage: img("chinhoyi-caves-interior.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1600&q=80",
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1600&q=80",
-      "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1600&q=80",
-      "https://images.unsplash.com/photo-1529042410759-befb1204b73a?w=1600&q=80",
+      img("chinhoyi-caves-interior.jpg"),
+      img("chinhoyi-sleeping-pool-01.jpg"),
+      img("chinhoyi-caves-admin.jpg"),
+      img("chinhoyi-caves-wla2019.jpg"),
     ],
     metaTitle: "Baobab Braai Garden Chinhoyi — Night Out | Panora Go",
     metaDescription:
@@ -589,13 +593,12 @@ export const SEED_PLACES: Place[] = [
     featured: false,
     archived: false,
     paidTier: "basic" as const,
-    heroImage:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80",
+    heroImage: img("lake-kariba-shore.jpg"),
     gallery: [
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80",
-      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1600&q=80",
-      "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1600&q=80",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
+      img("lake-kariba-shore.jpg"),
+      img("lake-kariba-lodge-view.jpg"),
+      img("lake-kariba-kapenta.jpg"),
+      img("lake-kariba-iss.jpg"),
     ],
     metaTitle: "Houseboat Serenity Kariba — Lake Charter Escape | Panora Go",
     metaDescription:

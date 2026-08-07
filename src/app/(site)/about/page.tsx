@@ -3,11 +3,15 @@ import Link from "next/link";
 
 import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
+import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "About Panora Go",
   description:
-    "Panora Go is Zimbabwe's premium lifestyle discovery platform — curated places, insider notes, and concierge enquiries.",
+    "About Panora Go — Zimbabwe tourism and lifestyle discovery. Discover Connect Belong with curated places, insider notes, and concierge enquiries.",
+  alternates: {
+    canonical: absoluteUrl("/about"),
+  },
 };
 
 export default function AboutPage() {

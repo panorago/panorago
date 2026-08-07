@@ -1,11 +1,15 @@
 import { PlacesMap } from "@/components/map/places-map";
 import { getPublishedPlaces } from "@/lib/data/places";
+import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Map · Panora Go",
+  title: "Map",
   description:
-    "Explore curated Zimbabwe places on an interactive map — Chinhoyi, Mashonaland West, Kariba, Victoria Falls, and beyond.",
+    "Explore Panora Go places on an interactive map — Zimbabwe tourism across Chinhoyi, Mashonaland West, Kariba, Victoria Falls, and beyond.",
+  alternates: {
+    canonical: absoluteUrl("/map"),
+  },
 };
 
 export default async function MapPage() {

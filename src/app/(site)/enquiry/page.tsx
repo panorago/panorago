@@ -1,11 +1,15 @@
 import { EnquiryForm } from "@/components/place/enquiry-form";
 import { Reveal } from "@/components/motion/reveal";
+import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Enquiry",
   description:
     "Enquire with Panora Go — WhatsApp, email, or call to plan your next unforgettable place in Zimbabwe.",
+  alternates: {
+    canonical: absoluteUrl("/enquiry"),
+  },
 };
 
 export default async function EnquiryPage({

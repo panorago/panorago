@@ -185,7 +185,7 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
 
       <Section
         title="Hero"
-        subtitle="Full-bleed image at the top of the public place page."
+        subtitle="Full-bleed image at the top of the public place page. Prefer venue-owned photos — seed listings may use area/landmark context until you upload the real venue."
       >
         <MediaDropzone
           label="Hero image"

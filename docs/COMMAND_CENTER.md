@@ -17,6 +17,14 @@ Run in order (do not skip):
 9. `supabase/migrations/009_verify_lookup.sql` — verify lookup helpers (if not already applied)
 10. `supabase/migrations/010_realtime_places_replica.sql` — places realtime replica identity (if not already applied)
 11. `supabase/migrations/011_place_menu_media.sql` — `menu_image_urls` + `pricing_items` on places
+12. `supabase/migrations/012_story_likes_unlike.sql` — story unlike / likes helpers (if present)
+13. `supabase/migrations/013_chinhoyi_place_images.sql` — Chinhoyi/Kariba/Vic Falls hero+gallery → `/images/places/*`
+
+### Place hero images (legal)
+
+Seed heroes live in `public/images/places/` (Wikimedia Commons, attributed in `ATTRIBUTION.md`).
+Cafés/lodges without free venue photos use **area context** only — upload owner photos via the place form / Media Library.
+Optional ongoing path: `npm run place-images:google` (Places Photo API; show Google attributions in UI). Never scrape Maps tiles.
 
 ## Storage buckets (Dashboard → Storage)
 

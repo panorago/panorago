@@ -3,14 +3,25 @@ import { Reveal } from "@/components/motion/reveal";
 import { PlaceGrid } from "@/components/place/place-grid";
 import { SEED_SECRET_COLLECTIONS, SEED_SECTIONS } from "@/data/seed-places";
 import { getPlacesBySection } from "@/lib/data/places";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/utils";
 import type { HomepageSectionKey } from "@/types";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Panora Go — Unforgettable Places in Zimbabwe",
-  description:
-    "Where will your next unforgettable weekend begin? Discover Zimbabwe's most unforgettable places with Panora Go.",
+  title: {
+    absolute: SITE_TITLE,
+  },
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: absoluteUrl("/"),
+  },
 };
 
 const SECTION_ORDER: HomepageSectionKey[] = [
@@ -48,6 +59,27 @@ export default async function HomePage() {
       <HomeHero heroImage={heroImage} />
 
       <div className="gradient-mesh">
+        <Reveal
+          as="section"
+          className="container-panora pt-[var(--space-section)] pb-4"
+          aria-labelledby="panora-go-intro"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Panora Go · Panora Zimbabwe
+          </p>
+          <h2
+            id="panora-go-intro"
+            className="mt-2 max-w-2xl font-display text-3xl md:text-4xl"
+          >
+            Tourism discovery built to Discover, Connect, and Belong
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+            Panora Go curates Zimbabwe&apos;s most unforgettable places —
+            weekends, dining, and escapes with insider notes so your next trip
+            feels planned, not guessed.
+          </p>
+        </Reveal>
+
         {sections.map((section, index) => (
           <Reveal
             key={section.key}

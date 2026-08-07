@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Panora Go — Unforgettable Places in Zimbabwe";
+export const alt = "Panora Go - Discover Connect Belong";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -41,7 +41,7 @@ export default function OpenGraphImage() {
             fontWeight: 600,
           }}
         >
-          Unforgettable places in Zimbabwe
+          Discover Connect Belong
         </div>
         <div
           style={{
@@ -51,7 +51,7 @@ export default function OpenGraphImage() {
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          Curated weekends · Insider notes · Enquire with confidence
+          Zimbabwe tourism · Curated places · Insider notes
         </div>
       </div>
     ),

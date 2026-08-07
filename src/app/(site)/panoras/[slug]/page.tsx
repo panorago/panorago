@@ -17,6 +17,7 @@ import {
   getRecommendationsForPlace,
   getStoriesForPlace,
 } from "@/lib/data/places";
+import { JsonLd } from "@/components/seo/json-ld";
 import { smartShareUrl } from "@/lib/panora/smart-share";
 import { absoluteUrl, formatDistance, formatPriceGuide } from "@/lib/utils";
 import {
@@ -51,24 +52,27 @@ export async function generateMetadata({
   const description =
     place.metaDescription ??
     (place.panoraNotes.slice(0, 155) || place.story.slice(0, 155));
+  const canonical = absoluteUrl(`/panoras/${place.slug}`);
 
   return {
     title,
     description,
     alternates: {
-      canonical: absoluteUrl(`/panoras/${place.slug}`),
+      canonical,
     },
     openGraph: {
       title,
       description,
-      url: smartShareUrl(place.slug),
+      url: canonical,
       type: "article",
+      siteName: "Panora Go",
+      locale: "en_ZW",
       images: [
         {
           url: absoluteUrl(`/p/${place.slug}/opengraph-image`),
           width: 1200,
           height: 630,
-          alt: place.name,
+          alt: `${place.name} — ${place.city} | Panora Go`,
         },
       ],
     },
@@ -99,9 +103,11 @@ export default async function PlacePage({
   const hasCoords = place.latitude != null && place.longitude != null;
   const venueAddress = `${place.location}, ${place.city}, ${place.country}`;
 
+  const placeUrl = absoluteUrl(`/panoras/${place.slug}`);
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": ["Place", "LocalBusiness"],
+    "@type": ["Place", "LocalBusiness", "TouristAttraction"],
+    "@id": `${placeUrl}#place`,
     name: place.name,
     description: place.story.slice(0, 300),
     image: gallery,
@@ -119,7 +125,8 @@ export default async function PlacePage({
             longitude: place.longitude,
           }
         : undefined,
-    url: absoluteUrl(`/panoras/${place.slug}`),
+    url: placeUrl,
+    mainEntityOfPage: placeUrl,
     telephone: place.contact.phone ?? undefined,
     email: place.contact.email ?? undefined,
     sameAs: [
@@ -128,16 +135,14 @@ export default async function PlacePage({
         ? `https://instagram.com/${place.contact.instagram.replace("@", "")}`
         : null,
       place.contact.facebook,
+      smartShareUrl(place.slug),
     ].filter(Boolean),
-    priceRange: place.priceGuide,
+    priceRange: place.priceGuide || undefined,
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       {/* 1. Hero — full-bleed under fixed nav */}
       <section className="relative -mt-[var(--nav-height)] min-h-[70vh] overflow-hidden pt-[var(--nav-height)]">

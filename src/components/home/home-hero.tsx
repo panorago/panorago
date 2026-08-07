@@ -111,7 +111,8 @@ export function HomeHero({
             variants={prefersReduced ? undefined : fadeUp}
             className="mt-5 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg"
           >
-            Discover Zimbabwe&apos;s most unforgettable places.
+            Panora Go — curated tourism across Panora Zimbabwe. Discover
+            places worth the weekend.
           </motion.p>
 
           <motion.div
