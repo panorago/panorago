@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion, useScroll } from "framer-mot
 import { Heart, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { PanoraLogo } from "@/components/brand/panora-logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   const pathname = usePathname();
   const { scrollY } = useScroll();
   const reduceMotion = useReducedMotion();
+  const auth = useOptionalAuth();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -174,6 +176,41 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               >
                 Add your place
               </Button>
+              {auth?.user ? (
+                <Button
+                  href="/explorer"
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "hidden sm:inline-flex",
+                    !glassActive && overDarkHero
+                      ? "border-white/25 text-white hover:bg-white/10"
+                      : null,
+                  )}
+                >
+                  Explorer
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "hidden sm:inline-flex",
+                    !glassActive && overDarkHero
+                      ? "border-white/25 text-white hover:bg-white/10"
+                      : null,
+                  )}
+                  onClick={() =>
+                    auth?.openAuth({
+                      kind: "generic",
+                      headline: "Join Panora",
+                    })
+                  }
+                >
+                  Join Panora
+                </Button>
+              )}
               <Button
                 href="/enquiry"
                 variant="gold"
@@ -257,6 +294,33 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   >
                     Add your place
                   </Button>
+                  {auth?.user ? (
+                    <Button
+                      href="/explorer"
+                      variant="outline"
+                      size="md"
+                      className="w-full justify-center"
+                      onClick={() => setOpen(false)}
+                    >
+                      Explorer Profile
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="md"
+                      className="w-full justify-center"
+                      onClick={() => {
+                        setOpen(false);
+                        auth?.openAuth({
+                          kind: "generic",
+                          headline: "Join Panora",
+                        });
+                      }}
+                    >
+                      Join Panora
+                    </Button>
+                  )}
                 </div>
               </nav>
             </motion.div>

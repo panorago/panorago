@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { AuthProvider } from "@/components/auth/auth-provider";
 import { motionTokens } from "@/lib/motion/variants";
 
 function ThemeTransitionOverlay() {
@@ -92,8 +93,10 @@ export function AppProviders({ children, themeProps }: AppProvidersProps) {
       disableTransitionOnChange={false}
       {...themeProps}
     >
-      {children}
-      <ThemeTransitionOverlay />
+      <AuthProvider>
+        {children}
+        <ThemeTransitionOverlay />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

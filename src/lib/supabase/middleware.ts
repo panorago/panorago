@@ -31,16 +31,31 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginRoute = request.nextUrl.pathname.startsWith("/admin/login");
-  const isChangePasswordRoute = request.nextUrl.pathname.startsWith(
+  const pathname = request.nextUrl.pathname;
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isLoginRoute = pathname.startsWith("/admin/login");
+  const isChangePasswordRoute = pathname.startsWith(
     "/admin/change-password",
   );
+  const isExplorerRoute =
+    pathname === "/explorer" ||
+    pathname.startsWith("/explorer/") ||
+    pathname === "/me" ||
+    pathname.startsWith("/me/");
+
+  // Public site stays open. Soft-gate explorer profile pages only.
+  if (isExplorerRoute && !user) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    redirectUrl.searchParams.set("join", "1");
+    redirectUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
 
   if (isAdminRoute && !isLoginRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin/login";
-    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
+    redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 

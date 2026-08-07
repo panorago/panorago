@@ -63,6 +63,9 @@ export function PlaceCard({
             <SaveButton
               placeId={place.id}
               placeName={place.name}
+              imageUrl={place.heroImage}
+              atmospheres={place.mood}
+              slug={place.slug}
               size="sm"
             />
           </span>

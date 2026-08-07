@@ -52,12 +52,24 @@ export async function createStoryAction(input: {
 
   try {
     const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        ok: false as const,
+        error: "Join Panora to share your experience.",
+        needsAuth: true as const,
+      };
+    }
+
     const payload: Record<string, unknown> = {
       place_id: input.placeId,
       author_name: authorName,
       body,
       likes_count: 0,
       published: false,
+      author_user_id: user.id,
     };
     if (feeling) payload.feeling = feeling;
 

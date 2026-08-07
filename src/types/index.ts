@@ -37,7 +37,12 @@ export type VerificationKey =
 
 export type PaidTier = "basic" | "silver" | "gold" | "platinum";
 
-export type ProfileRole = "admin" | "editor" | "viewer" | "suspended";
+export type ProfileRole =
+  | "admin"
+  | "editor"
+  | "viewer"
+  | "suspended"
+  | "user";
 
 export type PlaceSubmissionStatus = "pending" | "approved" | "rejected";
 

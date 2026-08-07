@@ -245,6 +245,9 @@ export default async function SmartShareLandingPage({
                   <SaveButton
                     placeId={place.id}
                     placeName={place.name}
+                    imageUrl={place.heroImage}
+                    atmospheres={place.mood}
+                    slug={place.slug}
                     size="sm"
                   />
                   <SmartShareButton
@@ -375,12 +378,18 @@ export default async function SmartShareLandingPage({
           {/* Wishlist = saved places */}
           <Reveal>
             <div className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 backdrop-blur-md">
-              <SaveButton placeId={place.id} placeName={place.name} />
+              <SaveButton
+                placeId={place.id}
+                placeName={place.name}
+                imageUrl={place.heroImage}
+                atmospheres={place.mood}
+                slug={place.slug}
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Wishlist</p>
                 <p className="mt-1 text-sm text-muted">
-                  Heart this place to add it to your wishlist — the same saved
-                  list on this device. Open it anytime from the header heart.
+                  Heart this place to save your journey — synced to your Panora
+                  account when you join. Open it anytime from the header heart.
                 </p>
                 <Link
                   href="/saved"

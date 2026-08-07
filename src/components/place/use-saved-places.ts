@@ -123,6 +123,12 @@ export function getSavedPlaceIds(): string[] {
   return getSnapshot();
 }
 
+/** Replace the full wishlist (e.g. after server sync). */
+export function replaceSavedPlaceIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  writeSaved([...new Set(ids.filter((id) => typeof id === "string"))]);
+}
+
 /** Hydration-safe saved check for first paint */
 export function useIsSaved(placeId: string) {
   const { isSaved, toggle } = useSavedPlaces();

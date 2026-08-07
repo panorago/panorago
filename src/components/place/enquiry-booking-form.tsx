@@ -1,5 +1,6 @@
 "use client";
 
+import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   buildEnquiryMessage,
@@ -56,6 +57,7 @@ export function EnquiryBookingForm({
 }: EnquiryBookingFormProps) {
   const formId = useId();
   const reduceMotion = useReducedMotion();
+  const auth = useOptionalAuth();
   const submittingLock = useRef(false);
   const clientTokenRef = useRef(
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -109,6 +111,22 @@ export function EnquiryBookingForm({
     if (submittingLock.current) return;
     setError(null);
     if (!validate()) return;
+
+    if (auth && !auth.loading && !auth.user) {
+      auth.openAuth({
+        kind: "enquiry",
+        place: placeId
+          ? {
+              placeId,
+              placeName,
+            }
+          : undefined,
+        headline: "Save Your Journey",
+        subtitle:
+          "Join Panora to send enquiries and keep tickets with your explorer profile.",
+      });
+      return;
+    }
 
     submittingLock.current = true;
     setSubmitting(true);

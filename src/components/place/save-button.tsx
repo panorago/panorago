@@ -3,13 +3,21 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Heart } from "lucide-react";
 
+import { useOptionalAuth } from "@/components/auth/auth-provider";
+import { useIsSaved } from "@/components/place/use-saved-places";
+import {
+  savePlaceAction,
+  unsavePlaceAction,
+} from "@/lib/auth/wishlist";
 import { cn } from "@/lib/utils";
 import { motionTokens } from "@/lib/motion/variants";
-import { useIsSaved } from "@/components/place/use-saved-places";
 
 type SaveButtonProps = {
   placeId: string;
   placeName?: string;
+  imageUrl?: string | null;
+  atmospheres?: string[];
+  slug?: string;
   className?: string;
   size?: "sm" | "md";
 };
@@ -17,24 +25,63 @@ type SaveButtonProps = {
 export function SaveButton({
   placeId,
   placeName,
+  imageUrl,
+  atmospheres,
+  slug,
   className,
   size = "md",
 }: SaveButtonProps) {
-  const { saved, toggle } = useIsSaved(placeId);
+  const { saved, toggle, mounted } = useIsSaved(placeId);
+  const auth = useOptionalAuth();
   const reduceMotion = useReducedMotion();
 
   const dim = size === "sm" ? "h-9 w-9" : "h-11 w-11";
   const icon = size === "sm" ? "h-4 w-4" : "h-5 w-5";
 
+  async function handleClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Signed-out: open Join Panora — do not toggle yet
+    if (auth && !auth.loading && !auth.user) {
+      if (!saved) {
+        auth.openAuth({
+          kind: "save",
+          place: {
+            placeId,
+            placeName,
+            imageUrl: imageUrl ?? undefined,
+            atmospheres,
+            slug,
+          },
+          headline: "Save this experience forever.",
+          subtitle:
+            "Create a free Panora account to keep this place on your wishlist across devices.",
+        });
+        return;
+      }
+      // Allow unsave of locally saved items without auth
+      toggle();
+      return;
+    }
+
+    const wasSaved = saved;
+    toggle();
+
+    if (auth?.user) {
+      if (wasSaved) {
+        void unsavePlaceAction(placeId);
+      } else {
+        void savePlaceAction(placeId);
+      }
+    }
+  }
+
   return (
     <motion.button
       type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggle();
-      }}
-      aria-pressed={saved}
+      onClick={(e) => void handleClick(e)}
+      aria-pressed={mounted ? saved : false}
       aria-label={
         saved
           ? `Remove ${placeName ?? "place"} from wishlist`

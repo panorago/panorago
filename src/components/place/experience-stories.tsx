@@ -1,5 +1,6 @@
 "use client";
 
+import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   createStoryAction,
@@ -62,6 +63,7 @@ export function ExperienceStories({
   initialStories,
 }: ExperienceStoriesProps) {
   const prefersReduced = useReducedMotion();
+  const auth = useOptionalAuth();
   const [stories, setStories] = useState(initialStories);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [authorName, setAuthorName] = useState("");
@@ -69,6 +71,12 @@ export function ExperienceStories({
   const [feeling, setFeeling] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (auth?.profile?.displayName && !authorName) {
+      setAuthorName(auth.profile.displayName);
+    }
+  }, [auth?.profile?.displayName, authorName]);
 
   const [optimisticStories, addOptimisticStory] = useOptimistic(
     stories,
@@ -143,6 +151,17 @@ export function ExperienceStories({
     event.preventDefault();
     setStatus(null);
 
+    if (auth && !auth.loading && !auth.user) {
+      auth.openAuth({
+        kind: "circle_post",
+        place: { placeId, placeName },
+        headline: "Join Panora to share.",
+        subtitle:
+          "Reading the Circle is free. Posting a moment needs a Panora account.",
+      });
+      return;
+    }
+
     const feelingWord = feeling.trim().split(/\s+/)[0]?.slice(0, 40) || null;
 
     const optimistic: ExperienceStory = {
@@ -166,6 +185,12 @@ export function ExperienceStories({
       });
 
       if (!result.ok) {
+        if ("needsAuth" in result && result.needsAuth && auth) {
+          auth.openAuth({
+            kind: "circle_post",
+            place: { placeId, placeName },
+          });
+        }
         setStatus(result.error);
         return;
       }
@@ -268,52 +293,81 @@ export function ExperienceStories({
         ))}
       </motion.ul>
 
-      <form
-        onSubmit={handleSubmit}
-        className="surface-card space-y-3 rounded-[var(--radius-lg)] p-5"
-      >
-        <h3 className="font-display text-xl">Share your experience</h3>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-medium text-muted">Your name</span>
-          <input
-            value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
-            required
-            maxLength={60}
-            placeholder="First name or initials"
-            className={fieldClass}
-          />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-medium text-muted">
-            One word feeling{" "}
-            <span className="font-normal opacity-70">(optional)</span>
-          </span>
-          <input
-            value={feeling}
-            onChange={(e) => setFeeling(e.target.value)}
-            maxLength={40}
-            placeholder="peaceful, joyful, awestruck…"
-            className={fieldClass}
-          />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-medium text-muted">Your story</span>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            required
-            rows={4}
-            maxLength={1200}
-            placeholder="What made this place unforgettable?"
-            className={`${fieldClass} resize-y`}
-          />
-        </label>
-        {status && <p className="text-sm text-muted">{status}</p>}
-        <Button type="submit" variant="accent" disabled={pending} className="rounded-full">
-          {pending ? "Sending…" : "Add your story"}
-        </Button>
-      </form>
+      {auth && !auth.loading && !auth.user ? (
+        <div className="surface-card space-y-3 rounded-[var(--radius-lg)] p-5">
+          <h3 className="font-display text-xl">Share your experience</h3>
+          <p className="text-sm text-muted">
+            Reading stays open to everyone. Join Panora to leave a moment in the
+            Circle.
+          </p>
+          <Button
+            type="button"
+            variant="accent"
+            className="rounded-full"
+            onClick={() =>
+              auth.openAuth({
+                kind: "circle_post",
+                place: { placeId, placeName },
+                headline: "Join Panora to share.",
+              })
+            }
+          >
+            Join Panora
+          </Button>
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          className="surface-card space-y-3 rounded-[var(--radius-lg)] p-5"
+        >
+          <h3 className="font-display text-xl">Share your experience</h3>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted">Your name</span>
+            <input
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              required
+              maxLength={60}
+              placeholder="First name or initials"
+              className={fieldClass}
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              One word feeling{" "}
+              <span className="font-normal opacity-70">(optional)</span>
+            </span>
+            <input
+              value={feeling}
+              onChange={(e) => setFeeling(e.target.value)}
+              maxLength={40}
+              placeholder="peaceful, joyful, awestruck…"
+              className={fieldClass}
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted">Your story</span>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              required
+              rows={4}
+              maxLength={1200}
+              placeholder="What made this place unforgettable?"
+              className={`${fieldClass} resize-y`}
+            />
+          </label>
+          {status && <p className="text-sm text-muted">{status}</p>}
+          <Button
+            type="submit"
+            variant="accent"
+            disabled={pending}
+            className="rounded-full"
+          >
+            {pending ? "Sending…" : "Add your story"}
+          </Button>
+        </form>
+      )}
     </section>
   );
 }
