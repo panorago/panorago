@@ -17,7 +17,12 @@ export default function AdminLoginPage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_55%),linear-gradient(180deg,var(--background),var(--background-elevated))]"
       />
       <div className="relative w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--shadow)] backdrop-blur-2xl">
-        <PanoraLogo variant="full" href={null} imageClassName="h-9 w-auto" />
+        <PanoraLogo
+          variant="full"
+          href={null}
+          priority
+          imageClassName="h-9 w-auto"
+        />
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
           Command Center
         </p>

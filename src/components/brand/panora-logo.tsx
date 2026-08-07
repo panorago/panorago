@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 
 type LogoVariant = "full" | "icon";
 
+/** Which surface the logo sits on — picks the high-contrast asset. */
+type LogoTone = "auto" | "on-light" | "on-dark";
+
 type PanoraLogoProps = {
   variant?: LogoVariant;
   className?: string;
@@ -16,6 +19,12 @@ type PanoraLogoProps = {
   priority?: boolean;
   href?: string | null;
   alt?: string;
+  /**
+   * `on-dark` → white/gold wordmark (navy Command Center, dark UI).
+   * `on-light` → navy wordmark (light surfaces).
+   * `auto` → follow resolved theme (with DOM class fallback before mount).
+   */
+  tone?: LogoTone;
 };
 
 const LOGO_SRC: Record<LogoVariant, Record<"light" | "dark", string>> = {
@@ -34,6 +43,11 @@ const INTRINSIC: Record<LogoVariant, { width: number; height: number }> = {
   icon: { width: 960, height: 982 },
 };
 
+function readDomIsDark() {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.classList.contains("dark");
+}
+
 /**
  * Theme-aware logo without forced square boxes.
  * - Header: variant="full" → h-10 w-auto object-contain
@@ -47,15 +61,26 @@ export function PanoraLogo({
   priority = false,
   href = "/",
   alt = variant === "icon" ? "PGO" : "Panora Go",
+  tone = "auto",
 }: PanoraLogoProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [domDark, setDomDark] = useState(readDomIsDark);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    setDomDark(readDomIsDark());
+  }, [resolvedTheme]);
 
-  const isDark = mounted && resolvedTheme === "dark";
+  const preferDarkSurface =
+    tone === "on-dark"
+      ? true
+      : tone === "on-light"
+        ? false
+        : mounted
+          ? resolvedTheme === "dark"
+          : domDark;
+
   const intrinsic = INTRINSIC[variant];
   const sizeClass =
     variant === "full"
@@ -78,7 +103,7 @@ export function PanoraLogo({
         className={cn(
           sizeClass,
           "transition-opacity duration-300",
-          isDark ? "opacity-0" : "opacity-100",
+          preferDarkSurface ? "opacity-0" : "opacity-100",
           imageClassName,
         )}
         sizes={variant === "full" ? "180px" : "64px"}
@@ -93,7 +118,7 @@ export function PanoraLogo({
         className={cn(
           sizeClass,
           "transition-opacity duration-300",
-          isDark ? "opacity-100" : "opacity-0",
+          preferDarkSurface ? "opacity-100" : "opacity-0",
           imageClassName,
         )}
         sizes={variant === "full" ? "180px" : "64px"}

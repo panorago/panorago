@@ -143,7 +143,9 @@ export async function updateBookingStatusAction(
 
     revalidatePath("/admin/bookings");
     revalidatePath("/admin/enquiries");
+    revalidatePath(`/admin/enquiries/${id}`);
     revalidatePath("/admin/tickets");
+    revalidatePath("/admin/analytics");
     revalidatePath("/admin");
 
     const ticketUrl =

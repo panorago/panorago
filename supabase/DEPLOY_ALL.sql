@@ -4,7 +4,7 @@
 -- Paste this entire script into the Supabase Dashboard → SQL Editor and run it
 -- on a fresh project database (requires Supabase Auth / auth.users).
 --
--- Contents are migrations 001 → 009 concatenated in order:
+-- Contents are migrations 001 → 010 concatenated in order:
 --   001_panora_go.sql
 --   002_mvp_gaps.sql
 --   003_bookings.sql
@@ -14,6 +14,7 @@
 --   007_realtime_publications.sql
 --   008_admin_credentials.sql
 --   009_verify_lookup.sql
+--   010_realtime_places_replica.sql
 --
 -- Safe for a fresh DB: uses IF NOT EXISTS / CREATE OR REPLACE / ON CONFLICT /
 -- DROP … IF EXISTS patterns from the source migrations (plus DROP POLICY IF EXISTS
@@ -26,7 +27,7 @@
 -- (noted below / near those statements) may still need care on re-run.
 --
 -- Do not treat this file as an ordered Supabase CLI migration; keep running
--- 001–008 individually for incremental environments.
+-- individual files under supabase/migrations/ for incremental environments.
 -- =============================================================================
 
 
@@ -1469,7 +1470,7 @@ alter table public.rate_limit_hits enable row level security;
 -- Source: supabase/migrations/007_realtime_publications.sql
 -- #############################################################################
 
--- Realtime publications for Command Center live toasts
+-- Realtime publications for Command Center live sync (toasts + refreshes)
 -- Safe after 006_security_guards.sql
 
 do $$
@@ -1485,6 +1486,27 @@ begin
   exception
     when duplicate_object then null;
     when undefined_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.places;
+  exception
+    when duplicate_object then null;
+    when undefined_object then null;
+  end;
+end $$;
+
+-- Full row images on UPDATE so status diffs are available to Realtime subscribers
+do $$
+begin
+  begin
+    alter table public.bookings replica identity full;
+  exception
+    when undefined_table then null;
+  end;
+  begin
+    alter table public.place_submissions replica identity full;
+  exception
+    when undefined_table then null;
   end;
 end $$;
 
@@ -1640,4 +1662,38 @@ end;
 $$;
 
 grant execute on function public.mark_booking_verified(text) to anon, authenticated, service_role;
+
+
+-- #############################################################################
+-- SECTION: 010_realtime_places_replica.sql
+-- Source: supabase/migrations/010_realtime_places_replica.sql
+-- #############################################################################
+
+-- Extend Command Center realtime: places publication + full replica identity
+-- Safe after 007_realtime_publications.sql / 009_verify_lookup.sql
+-- Run this if 007 was already applied without places / replica identity.
+
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.places;
+  exception
+    when duplicate_object then null;
+    when undefined_object then null;
+  end;
+end $$;
+
+do $$
+begin
+  begin
+    alter table public.bookings replica identity full;
+  exception
+    when undefined_table then null;
+  end;
+  begin
+    alter table public.place_submissions replica identity full;
+  exception
+    when undefined_table then null;
+  end;
+end $$;
 

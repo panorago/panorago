@@ -225,8 +225,11 @@ export async function updateBookingStatus(
     if (error) return { ok: false, error: error.message };
 
     await writeAudit("booking_status", "booking", id, { status, note });
+    revalidatePath("/admin");
     revalidatePath("/admin/enquiries");
     revalidatePath("/admin/tickets");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/analytics");
     revalidatePath(`/admin/enquiries/${id}`);
     return { ok: true, message: `Booking marked ${status}.` };
   } catch (error) {

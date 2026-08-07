@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminRealtimeToasts } from "@/components/admin/admin-realtime-toasts";
+import { AdminRealtimeProvider } from "@/components/admin/admin-realtime-provider";
 import { PanoraLogo } from "@/components/brand/panora-logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { logoutAdmin } from "@/lib/admin/actions";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   useCallback,
   useEffect,
@@ -83,7 +84,15 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
+  const { resolvedTheme } = useTheme();
   const isLogin = pathname.startsWith("/admin/login");
+  /** White/gold on navy Command Center; navy mark in light admin; auto before theme resolves. */
+  const logoTone =
+    resolvedTheme === "light"
+      ? ("on-light" as const)
+      : resolvedTheme === "dark"
+        ? ("on-dark" as const)
+        : ("auto" as const);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -185,6 +194,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
   );
 
   return (
+    <AdminRealtimeProvider>
     <div className="min-h-dvh bg-[var(--background)] text-[var(--foreground)]">
       <motion.aside
         className="fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[var(--border)] bg-[var(--glass-strong)] backdrop-blur-2xl lg:flex"
@@ -204,6 +214,8 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
           <PanoraLogo
             variant={collapsed ? "icon" : "full"}
             href="/admin"
+            tone={logoTone}
+            priority
             imageClassName={collapsed ? "h-9 w-auto" : "h-8 w-auto"}
           />
           {!collapsed && (
@@ -256,6 +268,8 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
                 <PanoraLogo
                   variant="full"
                   href="/admin"
+                  tone={logoTone}
+                  priority
                   imageClassName="h-8 w-auto"
                 />
                 <button
@@ -421,7 +435,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
-      <AdminRealtimeToasts />
     </div>
+    </AdminRealtimeProvider>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminRealtime } from "@/components/admin/admin-realtime-provider";
 import {
   BOOKING_STATUS_COLORS,
   type BookingRow,
@@ -9,7 +10,7 @@ import { updateBookingStatusAction } from "@/lib/bookings/admin-actions";
 import { mailtoUrl, ticketDownloadUrl, whatsappUrl } from "@/lib/utils";
 import { Download, Mail, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 const STATUSES: BookingStatus[] = [
   "pending",
@@ -40,25 +41,61 @@ function confirmationWhatsApp(booking: BookingRow) {
 
 export function BookingsTable({ bookings }: { bookings: BookingRow[] }) {
   const router = useRouter();
+  const { lastBookingChange, revision } = useAdminRealtime();
+  const [rows, setRows] = useState(bookings);
   const [pending, startTransition] = useTransition();
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const panoraWhatsapp =
     process.env.NEXT_PUBLIC_PANORA_WHATSAPP ?? "263715708327";
 
+  useEffect(() => {
+    setRows(bookings);
+  }, [bookings]);
+
+  useEffect(() => {
+    if (!lastBookingChange?.id || !lastBookingChange.status) return;
+    const status = lastBookingChange.status as BookingStatus;
+    if (!STATUSES.includes(status)) return;
+    setRows((prev) =>
+      prev.map((row) =>
+        row.id === lastBookingChange.id
+          ? {
+              ...row,
+              status,
+              qr_code_url:
+                lastBookingChange.qr_code_url ?? row.qr_code_url,
+              ticket_pdf_url:
+                lastBookingChange.ticket_pdf_url ?? row.ticket_pdf_url,
+            }
+          : row,
+      ),
+    );
+  }, [lastBookingChange, revision]);
+
   function onStatusChange(id: string, status: BookingStatus) {
     setError(null);
+    setPendingId(id);
+    setRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, status } : row)),
+    );
     startTransition(async () => {
       const formData = new FormData();
       formData.set("id", id);
       formData.set("status", status);
       const result = await updateBookingStatusAction(formData);
-      if (!result.ok) setError(result.error);
-      else router.refresh();
+      if (!result.ok) {
+        setError(result.error);
+        setRows(bookings);
+      } else {
+        router.refresh();
+      }
+      setPendingId(null);
     });
   }
 
-  if (bookings.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)] p-8 text-center text-sm text-muted">
         No bookings yet. New enquiries appear here after guests submit the
@@ -91,7 +128,7 @@ export function BookingsTable({ bookings }: { bookings: BookingRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
-            {bookings.map((booking) => {
+            {rows.map((booking) => {
               const colors = BOOKING_STATUS_COLORS[booking.status];
               const ticketHref = ticketDownloadUrl(booking.booking_reference, {
                 placeName: booking.venue_name,
@@ -127,7 +164,7 @@ export function BookingsTable({ bookings }: { bookings: BookingRow[] }) {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <select
-                      disabled={pending}
+                      disabled={pending && pendingId === booking.id}
                       value={booking.status}
                       onChange={(e) =>
                         onStatusChange(
