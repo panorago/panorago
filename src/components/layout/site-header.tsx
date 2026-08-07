@@ -99,7 +99,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           )}
         >
           <div className="flex h-[var(--nav-bar-height)] min-w-0 items-center justify-between gap-3 px-3.5 sm:gap-4 sm:px-5">
-            <div className="origin-left min-w-0 shrink-0">
+            <div className="flex min-w-0 shrink-0 items-center">
               <PanoraLogo variant="full" tone={logoTone} priority />
             </div>
 
