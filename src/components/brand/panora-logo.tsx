@@ -18,15 +18,15 @@ type PanoraLogoProps = {
   href?: string | null;
   alt?: string;
   /**
-   * `on-dark` → white/gold wordmark (navy Command Center, dark heroes).
+   * `on-dark` → white/gold wordmark (over dark heroes / navy surfaces).
    * `on-light` → navy wordmark (light surfaces; force even in dark theme).
-   * `auto` → follow `html.dark` via CSS (navy when light, white/gold when dark).
+   * `auto` → navy when light, white/gold when `html.dark` (Tailwind `dark:`).
    */
   tone?: LogoTone;
 };
 
 /**
- * Asset naming:
+ * Asset naming (verified visually):
  * - `*-light` = navy mark for light surfaces
  * - `*-dark` = white/gold mark for dark surfaces
  */
@@ -47,9 +47,9 @@ const INTRINSIC: Record<LogoVariant, { width: number; height: number }> = {
 };
 
 /**
- * Theme-aware logo without forced square boxes.
- * Visibility is driven by `html.dark` + `data-tone` in globals.css — never by
- * `prefers-color-scheme` — so light theme always shows the navy wordmark.
+ * Theme-aware logo. Avoids opacity dual-stack (easy to get white-on-white).
+ * `auto` uses `dark:` which is keyed to `.dark` via `@custom-variant` — never
+ * `prefers-color-scheme` alone.
  */
 export function PanoraLogo({
   variant = "full",
@@ -65,6 +65,9 @@ export function PanoraLogo({
     variant === "full"
       ? "h-10 w-auto object-contain"
       : "h-12 w-auto object-contain";
+  const sizes = variant === "full" ? "180px" : "64px";
+  const navySrc = LOGO_SRC[variant].navy;
+  const inverseSrc = LOGO_SRC[variant].inverse;
 
   const mark = (
     <span
@@ -74,33 +77,52 @@ export function PanoraLogo({
         className,
       )}
     >
-      <Image
-        src={LOGO_SRC[variant].navy}
-        alt={alt}
-        width={intrinsic.width}
-        height={intrinsic.height}
-        priority={priority}
-        className={cn(
-          sizeClass,
-          "panora-logo-mark panora-logo-mark--navy logo-fade",
-          imageClassName,
-        )}
-        sizes={variant === "full" ? "180px" : "64px"}
-      />
-      <Image
-        src={LOGO_SRC[variant].inverse}
-        alt=""
-        aria-hidden
-        width={intrinsic.width}
-        height={intrinsic.height}
-        priority={priority}
-        className={cn(
-          sizeClass,
-          "panora-logo-mark panora-logo-mark--inverse logo-fade",
-          imageClassName,
-        )}
-        sizes={variant === "full" ? "180px" : "64px"}
-      />
+      {tone === "on-dark" ? (
+        <Image
+          src={inverseSrc}
+          alt={alt}
+          width={intrinsic.width}
+          height={intrinsic.height}
+          priority={priority}
+          className={cn(sizeClass, imageClassName)}
+          sizes={sizes}
+        />
+      ) : null}
+
+      {tone === "on-light" ? (
+        <Image
+          src={navySrc}
+          alt={alt}
+          width={intrinsic.width}
+          height={intrinsic.height}
+          priority={priority}
+          className={cn(sizeClass, imageClassName)}
+          sizes={sizes}
+        />
+      ) : null}
+
+      {tone === "auto" ? (
+        <>
+          <Image
+            src={navySrc}
+            alt={alt}
+            width={intrinsic.width}
+            height={intrinsic.height}
+            priority={priority}
+            className={cn(sizeClass, "block dark:hidden", imageClassName)}
+            sizes={sizes}
+          />
+          <Image
+            src={inverseSrc}
+            alt={alt}
+            width={intrinsic.width}
+            height={intrinsic.height}
+            priority={priority}
+            className={cn(sizeClass, "hidden dark:block", imageClassName)}
+            sizes={sizes}
+          />
+        </>
+      ) : null}
     </span>
   );
 

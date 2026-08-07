@@ -31,6 +31,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // Sync immediately (restored scroll / mid-page nav) so glass chrome never
+    // keeps a stale on-dark wordmark over the light header.
+    setScrolled(scrollY.get() > 24);
     return scrollY.on("change", (y) => {
       setScrolled(y > 24);
     });
@@ -61,13 +64,19 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     return pathname === path || pathname.startsWith(`${path}/`);
   }
 
-  /** Transparent nav over dark hero imagery needs the inverse mark until scroll. */
+  /**
+   * Inverse mark only while the transparent bar sits on a full-bleed dark hero.
+   * Once scrolled, glass chrome follows theme (`auto`) — never keep on-dark on
+   * the light/frosted header.
+   */
   const overDarkHero =
     pathname === "/" ||
     pathname.startsWith("/panoras/") ||
     pathname.startsWith("/p/");
   const logoTone =
-    !scrolled && overDarkHero ? ("on-dark" as const) : ("auto" as const);
+    !scrolled && !open && overDarkHero
+      ? ("on-dark" as const)
+      : ("auto" as const);
 
   return (
     <header

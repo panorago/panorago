@@ -43,7 +43,7 @@ export function HomeHero({
   }, [showVideo, heroVideoSrc]);
 
   return (
-    <section className="relative min-h-dvh overflow-hidden bg-[var(--brand-navy)]">
+    <section className="relative -mt-[var(--nav-height)] min-h-dvh overflow-hidden bg-[var(--brand-navy)]">
       <motion.div
         className="absolute inset-0"
         initial={{ scale: 1 }}

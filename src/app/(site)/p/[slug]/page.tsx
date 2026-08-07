@@ -193,8 +193,8 @@ export default async function SmartShareLandingPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Hero — full-bleed */}
-      <section className="relative min-h-[100svh] overflow-hidden">
+      {/* Hero — full-bleed under fixed nav */}
+      <section className="relative -mt-[var(--nav-height)] min-h-[100svh] overflow-hidden">
         {place.videoUrl ? (
           <div className="absolute inset-0">
             <ProgressiveImage

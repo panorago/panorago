@@ -139,8 +139,8 @@ export default async function PlacePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* 1. Hero */}
-      <section className="relative min-h-[70vh] overflow-hidden pt-[var(--nav-height)]">
+      {/* 1. Hero — full-bleed under fixed nav */}
+      <section className="relative -mt-[var(--nav-height)] min-h-[70vh] overflow-hidden pt-[var(--nav-height)]">
         <ProgressiveImage
           src={place.heroImage}
           alt={place.name}

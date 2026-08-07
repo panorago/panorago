@@ -160,47 +160,13 @@ html.dark {
       box-shadow 220ms ease;
   }
 
-  .logo-fade,
-  .panora-logo-mark {
-    transition: opacity 220ms ease;
-  }
 }
 
 /*
- * Panora wordmark visibility — keyed ONLY to html.dark / data-tone.
- * *-light asset = navy/gold (light surfaces); *-dark asset = white/gold (dark surfaces).
- * Default (no .dark): navy. html.dark: white/gold. Forced tones override theme.
+ * Logo visibility is handled in PanoraLogo via a single forced asset
+ * (`on-light` / `on-dark`) or Tailwind `dark:` show/hide (`auto`), keyed to
+ * `html.dark` through `@custom-variant dark` — not prefers-color-scheme.
  */
-.panora-logo[data-tone="auto"] .panora-logo-mark--navy {
-  opacity: 1;
-}
-.panora-logo[data-tone="auto"] .panora-logo-mark--inverse {
-  opacity: 0;
-}
-html.dark .panora-logo[data-tone="auto"] .panora-logo-mark--navy {
-  opacity: 0;
-}
-html.dark .panora-logo[data-tone="auto"] .panora-logo-mark--inverse {
-  opacity: 1;
-}
-
-.panora-logo[data-tone="on-light"] .panora-logo-mark--navy,
-html.dark .panora-logo[data-tone="on-light"] .panora-logo-mark--navy {
-  opacity: 1;
-}
-.panora-logo[data-tone="on-light"] .panora-logo-mark--inverse,
-html.dark .panora-logo[data-tone="on-light"] .panora-logo-mark--inverse {
-  opacity: 0;
-}
-
-.panora-logo[data-tone="on-dark"] .panora-logo-mark--navy,
-html:not(.dark) .panora-logo[data-tone="on-dark"] .panora-logo-mark--navy {
-  opacity: 0;
-}
-.panora-logo[data-tone="on-dark"] .panora-logo-mark--inverse,
-html:not(.dark) .panora-logo[data-tone="on-dark"] .panora-logo-mark--inverse {
-  opacity: 1;
-}
 
 @media (prefers-reduced-motion: reduce) {
   html {
