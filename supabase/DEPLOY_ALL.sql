@@ -1697,3 +1697,18 @@ begin
   end;
 end $$;
 
+
+-- ---------------------------------------------------------------------------
+-- 011 place menu media + pricing items
+-- ---------------------------------------------------------------------------
+alter table public.places
+  add column if not exists menu_image_urls text[] not null default '{}';
+
+comment on column public.places.menu_image_urls is
+  'Ordered menu / item-list photo URLs for the pricing sneak peek on place pages.';
+
+alter table public.places
+  add column if not exists pricing_items jsonb not null default '[]'::jsonb;
+
+comment on column public.places.pricing_items is
+  'Optional structured pricing rows [{label, price}] for the sneak peek section.';

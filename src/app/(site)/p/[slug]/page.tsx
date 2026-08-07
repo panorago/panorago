@@ -2,6 +2,7 @@ import { ProgressiveImage } from "@/components/media/progressive-image";
 import { Reveal } from "@/components/motion/reveal";
 import { GalleryLightbox } from "@/components/place/gallery-lightbox";
 import { PlaceVideo } from "@/components/place/place-video";
+import { PricingSneakPeek } from "@/components/place/pricing-sneak-peek";
 import { SaveButton } from "@/components/place/save-button";
 import { AtmosphereBadges } from "@/components/smart-share/atmosphere-badges";
 import { MapsFinale } from "@/components/smart-share/maps-finale";
@@ -279,6 +280,14 @@ export default async function SmartShareLandingPage({
           {place.videoUrl ? (
             <Reveal>
               <PlaceVideo src={place.videoUrl} title={place.name} />
+            </Reveal>
+          ) : null}
+
+          {(place.menuImageUrls?.length ||
+            place.pricingItems?.length ||
+            place.priceGuide) ? (
+            <Reveal>
+              <PricingSneakPeek place={place} />
             </Reveal>
           ) : null}
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { importPlacesCsv } from "@/lib/admin/actions";
+import { importPlacesCsv, type CsvPlaceImportRow } from "@/lib/admin/actions";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
-const EXPECTED_COLUMNS = [
+/** Required header columns (must be present). */
+const REQUIRED_COLUMNS = [
   "name",
   "slug",
   "location",
@@ -18,19 +19,39 @@ const EXPECTED_COLUMNS = [
   "hero_image",
 ] as const;
 
-export type CsvPlaceRow = {
-  name: string;
-  slug: string;
-  location: string;
-  city: string;
-  category: string;
-  story: string;
-  panora_notes: string;
-  latitude: string;
-  longitude: string;
-  price_guide: string;
-  hero_image: string;
-};
+/** Optional columns matching public place / admin form fields. */
+const OPTIONAL_COLUMNS = [
+  "country",
+  "average_spend",
+  "gallery",
+  "menu_image_urls",
+  "video_url",
+  "pricing_items",
+  "mood",
+  "golden_hour",
+  "best_time",
+  "dress_vibe",
+  "noise_level",
+  "opening_hours",
+  "perfect_for",
+  "payment_methods",
+  "whatsapp",
+  "phone",
+  "email",
+  "website",
+  "instagram",
+  "facebook",
+  "tiktok",
+  "google_maps_url",
+  "homepage_sections",
+  "meta_title",
+  "meta_description",
+  "distance_km",
+] as const;
+
+const ALL_KNOWN = new Set<string>([...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS]);
+
+export type CsvPlaceRow = CsvPlaceImportRow;
 
 /** Minimal CSV parser: headers + rows, supports quoted fields with commas. */
 export function parseCsv(text: string): { headers: string[]; rows: string[][] } {
@@ -44,7 +65,6 @@ export function parseCsv(text: string): { headers: string[]; rows: string[][] } 
     field = "";
   };
   const pushRow = () => {
-    // Ignore trailing empty line
     if (row.length === 1 && row[0] === "" && rows.length > 0) {
       row = [];
       return;
@@ -53,7 +73,10 @@ export function parseCsv(text: string): { headers: string[]; rows: string[][] } 
     row = [];
   };
 
-  const normalized = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const normalized = text
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 
   for (let i = 0; i < normalized.length; i++) {
     const ch = normalized[i];
@@ -83,7 +106,6 @@ export function parseCsv(text: string): { headers: string[]; rows: string[][] } 
     }
   }
 
-  // Final field / row
   if (field.length > 0 || row.length > 0) {
     pushField();
     pushRow();
@@ -94,11 +116,21 @@ export function parseCsv(text: string): { headers: string[]; rows: string[][] } 
   return { headers, rows: rows.slice(1) };
 }
 
+function cell(
+  headers: string[],
+  cells: string[],
+  col: string,
+): string {
+  const idx = headers.indexOf(col);
+  if (idx < 0) return "";
+  return (cells[idx] ?? "").trim();
+}
+
 function rowsToPlaceDrafts(
   headers: string[],
   rows: string[][],
 ): { drafts: CsvPlaceRow[]; error?: string } {
-  const missing = EXPECTED_COLUMNS.filter((col) => !headers.includes(col));
+  const missing = REQUIRED_COLUMNS.filter((col) => !headers.includes(col));
   if (missing.length > 0) {
     return {
       drafts: [],
@@ -106,19 +138,12 @@ function rowsToPlaceDrafts(
     };
   }
 
-  const index = Object.fromEntries(
-    EXPECTED_COLUMNS.map((col) => [col, headers.indexOf(col)]),
-  ) as Record<(typeof EXPECTED_COLUMNS)[number], number>;
-
   const drafts: CsvPlaceRow[] = [];
   for (let i = 0; i < rows.length; i++) {
     const cells = rows[i];
     if (cells.every((c) => !c.trim())) continue;
 
-    const get = (col: (typeof EXPECTED_COLUMNS)[number]) =>
-      (cells[index[col]] ?? "").trim();
-
-    const name = get("name");
+    const name = cell(headers, cells, "name");
     if (!name) {
       return {
         drafts: [],
@@ -126,19 +151,29 @@ function rowsToPlaceDrafts(
       };
     }
 
-    drafts.push({
+    const draft: CsvPlaceRow = {
       name,
-      slug: get("slug"),
-      location: get("location"),
-      city: get("city") || "Chinhoyi",
-      category: get("category") || "dining",
-      story: get("story"),
-      panora_notes: get("panora_notes"),
-      latitude: get("latitude"),
-      longitude: get("longitude"),
-      price_guide: get("price_guide"),
-      hero_image: get("hero_image"),
-    });
+      slug: cell(headers, cells, "slug"),
+      location: cell(headers, cells, "location"),
+      city: cell(headers, cells, "city") || "Chinhoyi",
+      category: cell(headers, cells, "category") || "dining",
+      story: cell(headers, cells, "story"),
+      panora_notes: cell(headers, cells, "panora_notes"),
+      latitude: cell(headers, cells, "latitude"),
+      longitude: cell(headers, cells, "longitude"),
+      price_guide: cell(headers, cells, "price_guide"),
+      hero_image: cell(headers, cells, "hero_image"),
+    };
+
+    for (const col of OPTIONAL_COLUMNS) {
+      if (!headers.includes(col)) continue;
+      const value = cell(headers, cells, col);
+      if (value) {
+        (draft as Record<string, string>)[col] = value;
+      }
+    }
+
+    drafts.push(draft);
   }
 
   if (drafts.length === 0) {
@@ -174,6 +209,7 @@ export function CsvImport() {
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
       const { headers, rows } = parseCsv(text);
+      const unknown = headers.filter((h) => h && !ALL_KNOWN.has(h));
       const result = rowsToPlaceDrafts(headers, rows);
       if (result.error) {
         setError(result.error);
@@ -181,6 +217,11 @@ export function CsvImport() {
       }
       setFileName(file.name);
       setDrafts(result.drafts);
+      if (unknown.length > 0) {
+        setMessage(
+          `Note: ignoring unknown column(s): ${unknown.join(", ")}.`,
+        );
+      }
     };
     reader.onerror = () => setError("Could not read that file.");
     reader.readAsText(file);
@@ -189,7 +230,6 @@ export function CsvImport() {
   function onImport() {
     if (drafts.length === 0) return;
     setError(null);
-    setMessage(null);
     startTransition(async () => {
       const result = await importPlacesCsv(drafts);
       if (!result.ok) {
@@ -206,31 +246,42 @@ export function CsvImport() {
   return (
     <div className="space-y-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)] p-5">
       <div>
-        <h2 className="font-display text-xl">CSV import</h2>
+        <h2 className="font-display text-xl">CSV / Excel import</h2>
         <p className="mt-1 text-sm text-muted">
           Upload a spreadsheet of places. Rows are inserted as{" "}
           <span className="text-[var(--foreground)]">unpublished</span> drafts
-          for review.
+          for review. Export from Excel as CSV (UTF-8).
         </p>
         <p className="mt-3 text-xs leading-relaxed text-muted">
-          Required columns (header row):{" "}
+          Required columns:{" "}
           <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
-            {EXPECTED_COLUMNS.join(", ")}
+            {REQUIRED_COLUMNS.join(", ")}
           </code>
-          . Optional blanks are fine except{" "}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted">
+          Optional (match admin form / public page):{" "}
           <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
-            name
+            {OPTIONAL_COLUMNS.join(", ")}
           </code>
-          ,{" "}
+          . Use{" "}
           <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
-            story
-          </code>
-          , and{" "}
-          <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
-            hero_image
+            |
           </code>{" "}
-          (validated on import). Category must be one of: dining, escape,
-          nightlife, wellness, culture, outdoors, coffee, weekend.
+          to separate multiple URLs in{" "}
+          <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
+            gallery
+          </code>{" "}
+          and{" "}
+          <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
+            menu_image_urls
+          </code>
+          . Pricing rows:{" "}
+          <code className="rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[11px]">
+            Label|Price;Label2|Price2
+          </code>{" "}
+          (semicolon between items, or one Label|Price per line in quoted
+          cells). Category: dining, escape, nightlife, wellness, culture,
+          outdoors, coffee, weekend.
         </p>
       </div>
 

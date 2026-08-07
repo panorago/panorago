@@ -18,9 +18,9 @@ type PanoraLogoProps = {
   href?: string | null;
   alt?: string;
   /**
-   * `on-dark` → white/gold wordmark (navy Command Center, dark UI).
-   * `on-light` → navy wordmark (light surfaces).
-   * `auto` → follow `html.dark` via CSS (no hydration flash).
+   * `on-dark` → white/gold wordmark (navy Command Center, dark heroes).
+   * `on-light` → navy wordmark (light surfaces; force even in dark theme).
+   * `auto` → follow `html.dark` via CSS (navy when light, white/gold when dark).
    */
   tone?: LogoTone;
 };
@@ -30,14 +30,14 @@ type PanoraLogoProps = {
  * - `*-light` = navy mark for light surfaces
  * - `*-dark` = white/gold mark for dark surfaces
  */
-const LOGO_SRC: Record<LogoVariant, Record<"light" | "dark", string>> = {
+const LOGO_SRC: Record<LogoVariant, Record<"navy" | "inverse", string>> = {
   full: {
-    light: "/logos/panora-light.web.png",
-    dark: "/logos/panora-dark.web.png",
+    navy: "/logos/panora-light.web.png",
+    inverse: "/logos/panora-dark.web.png",
   },
   icon: {
-    light: "/logos/pgo-light.web.png",
-    dark: "/logos/pgo-dark.web.png",
+    navy: "/logos/pgo-light.web.png",
+    inverse: "/logos/pgo-dark.web.png",
   },
 };
 
@@ -48,9 +48,8 @@ const INTRINSIC: Record<LogoVariant, { width: number; height: number }> = {
 
 /**
  * Theme-aware logo without forced square boxes.
- * Both assets stay mounted; opacity crossfades. For `tone="auto"`, visibility
- * is driven by the `dark` class on `html` so the correct mark shows as soon as
- * next-themes applies the class (before React hydrates).
+ * Visibility is driven by `html.dark` + `data-tone` in globals.css — never by
+ * `prefers-color-scheme` — so light theme always shows the navy wordmark.
  */
 export function PanoraLogo({
   variant = "full",
@@ -67,43 +66,29 @@ export function PanoraLogo({
       ? "h-10 w-auto object-contain"
       : "h-12 w-auto object-contain";
 
-  const lightOpacity =
-    tone === "on-dark"
-      ? "opacity-0"
-      : tone === "on-light"
-        ? "opacity-100"
-        : "opacity-100 dark:opacity-0";
-
-  const darkOpacity =
-    tone === "on-dark"
-      ? "opacity-100"
-      : tone === "on-light"
-        ? "opacity-0"
-        : "opacity-0 dark:opacity-100";
-
   const mark = (
     <span
+      data-tone={tone}
       className={cn(
-        "relative inline-grid items-center justify-items-start [&>img]:col-start-1 [&>img]:row-start-1",
+        "panora-logo relative inline-grid items-center justify-items-start [&>img]:col-start-1 [&>img]:row-start-1",
         className,
       )}
     >
       <Image
-        src={LOGO_SRC[variant].light}
+        src={LOGO_SRC[variant].navy}
         alt={alt}
         width={intrinsic.width}
         height={intrinsic.height}
         priority={priority}
         className={cn(
           sizeClass,
-          "logo-fade",
-          lightOpacity,
+          "panora-logo-mark panora-logo-mark--navy logo-fade",
           imageClassName,
         )}
         sizes={variant === "full" ? "180px" : "64px"}
       />
       <Image
-        src={LOGO_SRC[variant].dark}
+        src={LOGO_SRC[variant].inverse}
         alt=""
         aria-hidden
         width={intrinsic.width}
@@ -111,8 +96,7 @@ export function PanoraLogo({
         priority={priority}
         className={cn(
           sizeClass,
-          "logo-fade",
-          darkOpacity,
+          "panora-logo-mark panora-logo-mark--inverse logo-fade",
           imageClassName,
         )}
         sizes={variant === "full" ? "180px" : "64px"}

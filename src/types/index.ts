@@ -138,11 +138,13 @@ export interface Place {
   paidTier: PaidTier;
   heroImage: string;
   gallery: string[];
+  /** Menu / item-list photos for the pricing sneak peek */
+  menuImageUrls?: string[];
   metaTitle: string | null;
   metaDescription: string | null;
   homepageSections: HomepageSectionKey[];
   verifications: string[];
-  /** Optional structured pricing sneak peek (admin / detail later) */
+  /** Optional structured pricing sneak peek */
   pricingItems?: PricingItem[];
   /** Optional venue video (mp4 URL or YouTube/Vimeo) shown below hero */
   videoUrl?: string | null;

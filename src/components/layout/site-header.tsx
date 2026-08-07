@@ -61,6 +61,14 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     return pathname === path || pathname.startsWith(`${path}/`);
   }
 
+  /** Transparent nav over dark hero imagery needs the inverse mark until scroll. */
+  const overDarkHero =
+    pathname === "/" ||
+    pathname.startsWith("/panoras/") ||
+    pathname.startsWith("/p/");
+  const logoTone =
+    !scrolled && overDarkHero ? ("on-dark" as const) : ("auto" as const);
+
   return (
     <header
       className={cn(
@@ -73,7 +81,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     >
       <div className="container-panora flex h-[var(--nav-height)] items-center justify-between gap-4">
         <div className="origin-left shrink-0">
-          <PanoraLogo variant="full" tone="auto" priority />
+          <PanoraLogo variant="full" tone={logoTone} priority />
         </div>
 
         <nav

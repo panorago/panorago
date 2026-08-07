@@ -72,6 +72,32 @@ function parseLines(raw: string): string[] {
     .filter(Boolean);
 }
 
+/** Label|Price per line or semicolon. Also accepts "Label: Price". */
+function parsePricingItems(raw: string): { label: string; price: string }[] {
+  return raw
+    .split(/[\n;]+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const pipe = line.indexOf("|");
+      if (pipe > 0) {
+        return {
+          label: line.slice(0, pipe).trim(),
+          price: line.slice(pipe + 1).trim(),
+        };
+      }
+      const colon = line.indexOf(":");
+      if (colon > 0) {
+        return {
+          label: line.slice(0, colon).trim(),
+          price: line.slice(colon + 1).trim(),
+        };
+      }
+      return { label: line, price: "" };
+    })
+    .filter((item) => item.label && item.price);
+}
+
 function placePayloadFromForm(formData: FormData) {
   const name = asString(formData.get("name"));
   const slugInput = asString(formData.get("slug"));
@@ -81,6 +107,10 @@ function placePayloadFromForm(formData: FormData) {
 
   const mood = parseLines(asString(formData.get("mood"))) as MoodTag[];
   const gallery = parseLines(asString(formData.get("gallery")));
+  const menuImageUrls = parseLines(asString(formData.get("menuImageUrls")));
+  const pricingItems = parsePricingItems(
+    asString(formData.get("pricingItems")),
+  );
   const homepageSections = parseLines(
     asString(formData.get("homepageSections")),
   ) as HomepageSectionKey[];
@@ -94,6 +124,7 @@ function placePayloadFromForm(formData: FormData) {
     openingHours: asString(formData.get("openingHours")) || undefined,
     perfectFor: parseLines(asString(formData.get("perfectFor"))),
     paymentMethods: parseLines(asString(formData.get("paymentMethods"))),
+    pricingItems: pricingItems.length > 0 ? pricingItems : undefined,
   };
 
   const amenities: PlaceAmenityFlags = {
@@ -164,6 +195,8 @@ function placePayloadFromForm(formData: FormData) {
       | "platinum",
     hero_image: asString(formData.get("heroImage")),
     gallery,
+    menu_image_urls: menuImageUrls,
+    pricing_items: pricingItems,
     meta_title: asString(formData.get("metaTitle")) || null,
     meta_description: asString(formData.get("metaDescription")) || null,
     homepage_sections: homepageSections,
@@ -529,14 +562,56 @@ export type CsvPlaceImportRow = {
   slug: string;
   location: string;
   city: string;
+  country?: string;
   category: string;
   story: string;
   panora_notes: string;
   latitude: string;
   longitude: string;
   price_guide: string;
+  average_spend?: string;
   hero_image: string;
+  gallery?: string;
+  menu_image_urls?: string;
+  video_url?: string;
+  pricing_items?: string;
+  mood?: string;
+  golden_hour?: string;
+  best_time?: string;
+  dress_vibe?: string;
+  noise_level?: string;
+  opening_hours?: string;
+  perfect_for?: string;
+  payment_methods?: string;
+  whatsapp?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  google_maps_url?: string;
+  homepage_sections?: string;
+  meta_title?: string;
+  meta_description?: string;
+  distance_km?: string;
 };
+
+function splitPipeUrls(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function splitCsvList(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split(/[|;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 /** Bulk-insert places from CSV as unpublished drafts (admin only). */
 export async function importPlacesCsv(
@@ -580,31 +655,62 @@ export async function importPlacesCsv(
 
       const latRaw = (row.latitude ?? "").trim();
       const lngRaw = (row.longitude ?? "").trim();
+      const distanceRaw = (row.distance_km ?? "").trim();
+      const pricingItems = parsePricingItems(row.pricing_items ?? "");
+      const averageSpend = (row.average_spend ?? "").trim();
+
+      const highlights: PlaceHighlights = {
+        goldenHour: (row.golden_hour ?? "").trim() || undefined,
+        bestTime: (row.best_time ?? "").trim() || undefined,
+        dressVibe: (row.dress_vibe ?? "").trim() || undefined,
+        noiseLevel: (row.noise_level ?? "").trim() || undefined,
+        openingHours: (row.opening_hours ?? "").trim() || undefined,
+        averageSpend: averageSpend || undefined,
+        perfectFor: splitCsvList(row.perfect_for),
+        paymentMethods: splitCsvList(row.payment_methods),
+        pricingItems: pricingItems.length > 0 ? pricingItems : undefined,
+      };
+
+      const contact: PlaceContact = {
+        whatsapp: (row.whatsapp ?? "").trim() || null,
+        phone: (row.phone ?? "").trim() || null,
+        email: (row.email ?? "").trim() || null,
+        website: (row.website ?? "").trim() || null,
+        instagram: (row.instagram ?? "").trim() || null,
+        facebook: (row.facebook ?? "").trim() || null,
+        tiktok: (row.tiktok ?? "").trim() || null,
+        googleMapsUrl: (row.google_maps_url ?? "").trim() || null,
+      };
 
       payloads.push({
         slug,
         name,
         location: (row.location ?? "").trim() || "Chinhoyi",
         city: (row.city ?? "").trim() || "Chinhoyi",
-        country: "Zimbabwe",
+        country: (row.country ?? "").trim() || "Zimbabwe",
         latitude: latRaw ? Number(latRaw) : null,
         longitude: lngRaw ? Number(lngRaw) : null,
         category: categoryRaw as PlaceCategory,
-        mood: [] as MoodTag[],
+        mood: splitCsvList(row.mood) as MoodTag[],
         story,
         panora_notes: (row.panora_notes ?? "").trim(),
-        highlights: {},
+        highlights,
         amenities: {},
-        contact: {},
+        contact,
         price_guide: (row.price_guide ?? "").trim() || "Enquire",
-        distance_km: null,
+        distance_km: distanceRaw ? Number(distanceRaw) : null,
         verified: false,
         published: false,
         hero_image: heroImage,
-        gallery: [] as string[],
-        meta_title: null,
-        meta_description: null,
-        homepage_sections: [] as HomepageSectionKey[],
+        gallery: splitPipeUrls(row.gallery),
+        menu_image_urls: splitPipeUrls(row.menu_image_urls),
+        pricing_items: pricingItems,
+        video_url: (row.video_url ?? "").trim() || null,
+        meta_title: (row.meta_title ?? "").trim() || null,
+        meta_description: (row.meta_description ?? "").trim() || null,
+        homepage_sections: splitCsvList(
+          row.homepage_sections,
+        ) as HomepageSectionKey[],
         verifications: [] as string[],
         created_at: now,
         updated_at: now,

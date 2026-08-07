@@ -13,6 +13,10 @@ Run in order (do not skip):
 5. `supabase/migrations/005_command_center.sql` — Command Center tables/columns (`secret_collections`, submissions, settings, media, audit, analytics, paid/featured flags)
 6. `supabase/migrations/006_security_guards.sql` — durable `submission_tokens` + `rate_limit_hits`
 7. `supabase/migrations/007_realtime_publications.sql` — Realtime for bookings + place_submissions (Command Center toasts)
+8. `supabase/migrations/008_admin_credentials.sql` — admin credential metadata (if not already applied)
+9. `supabase/migrations/009_verify_lookup.sql` — verify lookup helpers (if not already applied)
+10. `supabase/migrations/010_realtime_places_replica.sql` — places realtime replica identity (if not already applied)
+11. `supabase/migrations/011_place_menu_media.sql` — `menu_image_urls` + `pricing_items` on places
 
 ## Storage buckets (Dashboard → Storage)
 

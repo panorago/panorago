@@ -212,15 +212,23 @@ export default async function PlacePage({
       <div className="gradient-mesh">
         <div className="container-panora grid gap-10 py-[var(--space-section)] lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-14 min-w-0">
-            {/* 2. Video (if URL) */}
+            {/* 2. Video (if URL) — before gallery */}
             {place.videoUrl ? (
               <Reveal>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  Video
+                </p>
+                <h2 className="mt-2 mb-6 font-display text-3xl">Feel the place</h2>
                 <PlaceVideo src={place.videoUrl} title={place.name} />
               </Reveal>
             ) : null}
 
-            {/* 3. Gallery */}
+            {/* 3. Gallery — atmosphere photos (not menu) */}
             <Reveal>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                Gallery
+              </p>
+              <h2 className="mt-2 mb-6 font-display text-3xl">See the light</h2>
               <GalleryLightbox images={gallery} placeName={place.name} />
             </Reveal>
 

@@ -41,6 +41,7 @@ export interface PlaceRow {
   paid_tier?: PaidTier | null;
   hero_image: string;
   gallery: string[] | null;
+  menu_image_urls?: string[] | null;
   meta_title: string | null;
   meta_description: string | null;
   homepage_sections: HomepageSectionKey[] | null;
@@ -133,6 +134,7 @@ export function mapPlaceRow(row: PlaceRow): Place {
     paidTier: (row.paid_tier ?? "basic") as PaidTier,
     heroImage: row.hero_image,
     gallery: asStringArray(row.gallery),
+    menuImageUrls: asStringArray(row.menu_image_urls),
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
     homepageSections: asSectionKeys(row.homepage_sections),

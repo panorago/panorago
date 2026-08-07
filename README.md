@@ -48,6 +48,7 @@ Update the Panora contact numbers/email before launch so enquiries reach you.
    3. `003_bookings.sql`
    4. `004_concierge.sql` — concierge booking refinements + `booking-assets`
    5. `005_command_center.sql` — Command Center admin schema + `media` bucket
+   6. Continue through later migrations as needed; for menu photos run `011_place_menu_media.sql` (`menu_image_urls`, `pricing_items`)
 3. Create an Auth user for yourself (Email/Password).
 4. Insert an admin profile:
 

@@ -913,6 +913,8 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
           sub.hero_image ||
           "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
         gallery: [],
+        menu_image_urls: [],
+        pricing_items: [],
         homepage_sections: [],
         verifications: [],
         created_at: now,
