@@ -19,7 +19,7 @@ export function EnquiryPanel({
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <aside className="surface-card sticky top-24 w-full min-w-0 rounded-[var(--radius-lg)] p-4 sm:p-6">
+    <aside className="surface-card w-full min-w-0 rounded-[var(--radius-lg)] p-4 sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
         Enquire with Panora
       </p>
@@ -31,7 +31,7 @@ export function EnquiryPanel({
         your Panora ticket.
       </p>
 
-      {/* Desktop: open premium glass modal; form also inline for sticky sidebar UX */}
+      {/* Desktop: open premium glass modal; form also inline in the sidebar */}
       <div className="mt-5 hidden md:block">
         <EnquireModal
           placeId={placeId}
