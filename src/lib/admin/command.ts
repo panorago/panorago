@@ -1,5 +1,6 @@
 "use server";
 
+import { validateAdminPassword } from "@/lib/admin/password";
 import type { BookingStatus } from "@/lib/bookings/codes";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -690,7 +691,9 @@ export async function getAdminProfiles(): Promise<AdminProfile[]> {
 }
 
 async function upsertAdminCredentialsMeta(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: {
+    from: Awaited<ReturnType<typeof createClient>>["from"];
+  },
   opts: {
     userId: string;
     email?: string;
@@ -777,9 +780,11 @@ export async function setAdminPassword(
   try {
     const { supabase, user } = await requireAdmin();
     const trimmed = password.trim();
-    if (trimmed.length < 8) {
-      return { ok: false, error: "Password must be at least 8 characters." };
-    }
+    const mustReset = Boolean(options.mustReset);
+    const policyError = validateAdminPassword(trimmed, {
+      allowLaunchPassword: mustReset,
+    });
+    if (policyError) return { ok: false, error: policyError };
 
     const service = createServiceClient();
     if (!service) {
@@ -808,7 +813,7 @@ export async function setAdminPassword(
       userId,
       email: (profile.email as string) || "",
       isActive: profile.role === "admin",
-      mustReset: Boolean(options.mustReset),
+      mustReset,
       passwordUpdatedAt: now,
       passwordSetBy: user.id,
     });
@@ -820,7 +825,7 @@ export async function setAdminPassword(
     }
 
     await writeAudit("admin_password_set", "admin_credentials", userId, {
-      must_reset: Boolean(options.mustReset),
+      must_reset: mustReset,
     });
     revalidatePath("/admin/users");
     return { ok: true, message: "Password updated in Supabase Auth." };
@@ -828,6 +833,125 @@ export async function setAdminPassword(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Password update failed.",
+    };
+  }
+}
+
+export async function createAdminAccountFormAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return createAdminAccount({
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    displayName: String(formData.get("displayName") ?? ""),
+    role: String(formData.get("role") ?? "admin") as ProfileRole,
+    mustReset: true,
+  });
+}
+
+/**
+ * Creates a new Auth user + profile + admin_credentials via service role.
+ * Temporary password is allowed to be the launch default when must_reset is set.
+ */
+export async function createAdminAccount(input: {
+  email: string;
+  password: string;
+  displayName?: string;
+  role?: ProfileRole;
+  mustReset?: boolean;
+}): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireAdmin();
+    const email = input.email.trim().toLowerCase();
+    const password = input.password.trim();
+    const role: ProfileRole = input.role ?? "admin";
+    const mustReset = input.mustReset !== false;
+    const displayName = (input.displayName ?? "").trim() || email.split("@")[0] || "Admin";
+
+    if (!email || !email.includes("@")) {
+      return { ok: false, error: "A valid email is required." };
+    }
+    if (!["admin", "editor", "viewer"].includes(role)) {
+      return { ok: false, error: "Role must be admin, editor, or viewer." };
+    }
+
+    const policyError = validateAdminPassword(password, {
+      allowLaunchPassword: mustReset,
+    });
+    if (policyError) return { ok: false, error: policyError };
+
+    const service = createServiceClient();
+    if (!service) {
+      return {
+        ok: false,
+        error:
+          "SUPABASE_SERVICE_ROLE_KEY is required to create accounts. Set it in the server env.",
+      };
+    }
+
+    const { data: created, error: createError } =
+      await service.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: displayName },
+      });
+    if (createError || !created.user) {
+      return {
+        ok: false,
+        error: createError?.message ?? "Failed to create Auth user.",
+      };
+    }
+
+    const userId = created.user.id;
+    const now = new Date().toISOString();
+
+    const { error: profileError } = await service.from("profiles").upsert(
+      {
+        id: userId,
+        role,
+        email,
+        display_name: displayName,
+        suspended_at: role === "suspended" ? now : null,
+        updated_at: now,
+      },
+      { onConflict: "id" },
+    );
+    if (profileError) {
+      return {
+        ok: false,
+        error: `Auth user created but profile failed: ${profileError.message}`,
+      };
+    }
+
+    const metaError = await upsertAdminCredentialsMeta(service, {
+      userId,
+      email,
+      isActive: role === "admin",
+      mustReset,
+      passwordUpdatedAt: now,
+      passwordSetBy: user.id,
+    });
+    if (metaError) {
+      return {
+        ok: false,
+        error: `Account created but credentials metadata failed: ${metaError}`,
+      };
+    }
+
+    await writeAudit("admin_account_created", "profile", userId, {
+      email,
+      role,
+      must_reset: mustReset,
+    });
+    revalidatePath("/admin/users");
+    return { ok: true, message: "Account created.", id: userId };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Create account failed.",
     };
   }
 }

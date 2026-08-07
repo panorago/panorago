@@ -1,5 +1,7 @@
 "use server";
 
+import { ensureBootstrapAdmin } from "@/lib/admin/bootstrap";
+import { BOOTSTRAP_ADMIN_EMAIL, validateAdminPassword } from "@/lib/admin/password";
 import {
   mapPlaceRow,
   mapStoryRow,
@@ -217,18 +219,115 @@ export async function loginAdmin(
   }
 
   try {
+    // First-time bootstrap: create launch admin if missing (service role + rate limit).
+    if (email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) {
+      const boot = await ensureBootstrapAdmin(email);
+      if (!boot.ok) {
+        // Continue to sign-in if user may already exist; surface bootstrap error only on auth fail.
+        console.info("[admin] bootstrap:", boot.error);
+      }
+    }
+
     const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signedIn, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) {
       return { ok: false, error: error.message };
     }
+
+    const userId = signedIn.user?.id;
+    if (userId) {
+      const { data: creds } = await supabase
+        .from("admin_credentials")
+        .select("must_reset")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (creds?.must_reset) {
+        redirect("/admin/change-password");
+      }
+    }
   } catch (error) {
+    // Next.js redirect() throws; rethrow so navigation works.
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof (error as { digest?: unknown }).digest === "string" &&
+      String((error as { digest: string }).digest).startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Login failed.",
+    };
+  }
+
+  redirect("/admin");
+}
+
+export async function changeOwnPassword(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const password = asString(formData.get("password"));
+  const confirm = asString(formData.get("confirm"));
+
+  const policyError = validateAdminPassword(password);
+  if (policyError) return { ok: false, error: policyError };
+  if (password !== confirm) {
+    return { ok: false, error: "Passwords do not match." };
+  }
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Unauthorized" };
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, role, email")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!profile || profile.role !== "admin") {
+      return { ok: false, error: "Forbidden" };
+    }
+
+    const { error: authError } = await supabase.auth.updateUser({
+      password,
+    });
+    if (authError) return { ok: false, error: authError.message };
+
+    const now = new Date().toISOString();
+    const { error: metaError } = await supabase.from("admin_credentials").upsert(
+      {
+        user_id: user.id,
+        email: (profile.email as string) || user.email || "",
+        is_active: true,
+        must_reset: false,
+        password_updated_at: now,
+        password_set_by: user.id,
+        updated_at: now,
+      },
+      { onConflict: "user_id" },
+    );
+    if (metaError) {
+      return {
+        ok: false,
+        error: `Password updated, but credentials metadata failed: ${metaError.message}`,
+      };
+    }
+
+    revalidatePath("/admin");
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Password change failed.",
     };
   }
 

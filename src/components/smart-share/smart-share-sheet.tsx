@@ -364,31 +364,17 @@ export function SmartShareSheet({
               </AnimatePresence>
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-gold)]">
-                  Download share card
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      ["square", "1080×1080"],
-                      ["og", "1200×630"],
-                      ["story", "1080×1920"],
-                    ] as const
-                  ).map(([ratio, label]) => (
-                    <Button
-                      key={ratio}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-white/25 text-white hover:bg-white/10"
-                      disabled={downloading != null}
-                      onClick={() => void handleDownload(ratio)}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      {downloading === ratio ? "…" : label}
-                    </Button>
-                  ))}
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-white/25 text-white hover:bg-white/10"
+                  disabled={downloading != null}
+                  onClick={() => void handleDownload("square")}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {downloading === "square" ? "…" : "Download picture"}
+                </Button>
               </div>
 
               <p className="flex items-center gap-1.5 text-[11px] text-white/45">

@@ -84,6 +84,8 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const isLogin = pathname.startsWith("/admin/login");
+  const isChangePassword = pathname.startsWith("/admin/change-password");
+  const isAuthGate = isLogin || isChangePassword;
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -110,7 +112,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  if (isLogin) {
+  if (isAuthGate) {
     return (
       <div className="min-h-dvh bg-[var(--background)] text-[var(--foreground)]">
         {children}

@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { PanoraLogo } from "@/components/brand/panora-logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { loginAdmin, type ActionResult } from "@/lib/admin/actions";
+import { changeOwnPassword, type ActionResult } from "@/lib/admin/actions";
 import { useActionState } from "react";
 
 const initial: ActionResult | null = null;
 
-export default function AdminLoginPage() {
-  const [state, formAction, pending] = useActionState(loginAdmin, initial);
+export default function AdminChangePasswordPage() {
+  const [state, formAction, pending] = useActionState(changeOwnPassword, initial);
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4">
@@ -20,7 +20,12 @@ export default function AdminLoginPage() {
       <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
         <ThemeToggle />
       </div>
-      <div className="relative w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--shadow)] backdrop-blur-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="change-password-title"
+        className="relative w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--shadow)] backdrop-blur-2xl"
+      >
         <PanoraLogo
           variant="full"
           href={null}
@@ -29,33 +34,41 @@ export default function AdminLoginPage() {
           imageClassName="h-9 w-auto"
         />
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
-          Command Center
+          Security
         </p>
-        <h1 className="mt-2 font-display text-3xl">Admin sign in</h1>
+        <h1
+          id="change-password-title"
+          className="mt-2 font-display text-3xl"
+        >
+          Change your password
+        </h1>
         <p className="mt-2 text-sm text-muted">
-          Restricted editorial access. Requires{" "}
-          <code className="text-[var(--accent)]">profiles.role = admin</code>.
+          You must set a new password before using Command Center. Use at least
+          8 characters, and do not reuse the launch default.
         </p>
 
         <form action={formAction} className="mt-8 space-y-4">
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted">Email</span>
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="username"
-              placeholder="victorm@panorago.co.zw"
-              className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted">Password</span>
+            <span className="text-xs font-medium text-muted">New password</span>
             <input
               name="password"
               type="password"
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
+              className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              Confirm password
+            </span>
+            <input
+              name="confirm"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
               className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
             />
           </label>
@@ -68,7 +81,7 @@ export default function AdminLoginPage() {
             className="w-full rounded-full"
             disabled={pending}
           >
-            {pending ? "Signing in…" : "Sign in"}
+            {pending ? "Saving…" : "Save password & continue"}
           </Button>
         </form>
       </div>

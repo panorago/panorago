@@ -32,17 +32,14 @@ export async function updateSession(request: NextRequest) {
 
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
   const isLoginRoute = request.nextUrl.pathname.startsWith("/admin/login");
+  const isChangePasswordRoute = request.nextUrl.pathname.startsWith(
+    "/admin/change-password",
+  );
 
   if (isAdminRoute && !isLoginRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin/login";
     redirectUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  if (isLoginRoute && user) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/admin";
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -61,6 +58,49 @@ export async function updateSession(request: NextRequest) {
       await supabase.auth.signOut();
       return NextResponse.redirect(redirectUrl);
     }
+
+    let mustReset = false;
+    try {
+      const { data: creds } = await supabase
+        .from("admin_credentials")
+        .select("must_reset")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      mustReset = Boolean(creds?.must_reset);
+    } catch {
+      mustReset = false;
+    }
+
+    if (mustReset && !isChangePasswordRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/change-password";
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (!mustReset && isChangePasswordRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  if (isLoginRoute && user) {
+    let mustReset = false;
+    try {
+      const { data: creds } = await supabase
+        .from("admin_credentials")
+        .select("must_reset")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      mustReset = Boolean(creds?.must_reset);
+    } catch {
+      mustReset = false;
+    }
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = mustReset
+      ? "/admin/change-password"
+      : "/admin";
+    return NextResponse.redirect(redirectUrl);
   }
 
   return supabaseResponse;

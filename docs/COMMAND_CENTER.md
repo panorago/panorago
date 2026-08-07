@@ -40,7 +40,39 @@ If SQL `insert into storage.buckets` fails (permissions), create the buckets man
 | `NEXT_PUBLIC_SITE_URL` | Server | Absolute URLs |
 | `RESEND_API_KEY` | Server | Optional ESP — without it, mailto/wa.me |
 
-## First admin user
+## First admin user (bootstrap)
 
-1. Create Auth user in Supabase
-2. Insert: `insert into profiles (id, role, email, display_name) values ('<auth-user-uuid>', 'admin', 'you@…', 'You');`
+Command Center can auto-create the launch admin on first successful setup:
+
+1. Apply migrations through `008_admin_credentials.sql` (and later ones as needed).
+2. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and **`SUPABASE_SERVICE_ROLE_KEY`** (server-only) in `.env.local` / Vercel.
+3. Open `/admin/login` and sign in as:
+   - **Email:** `victorm@panorago.co.zw`
+   - **Launch password:** `Password` (documented here only — not shipped as client-side auth)
+4. On first login the server action `ensureBootstrapAdmin` creates the Auth user (if missing), `profiles.role = admin`, and `admin_credentials.must_reset = true`.
+5. You are forced to **change password** at `/admin/change-password` (min 8 chars, not the launch default) before the dashboard unlocks.
+6. After that, use **Users → Create account** to add other admins (Auth + profile + credentials; temporary password + must-reset).
+
+### Manual alternative (no service role on login)
+
+If service role is unavailable at runtime, create the user in the Supabase Auth dashboard, then run:
+
+```sql
+insert into public.profiles (id, role, email, display_name)
+values ('<auth-user-uuid>', 'admin', 'victorm@panorago.co.zw', 'Victor')
+on conflict (id) do update
+  set role = 'admin',
+      email = excluded.email,
+      display_name = excluded.display_name,
+      updated_at = now();
+
+insert into public.admin_credentials (user_id, email, is_active, must_reset)
+values ('<auth-user-uuid>', 'victorm@panorago.co.zw', true, true)
+on conflict (user_id) do update
+  set email = excluded.email,
+      is_active = true,
+      must_reset = true,
+      updated_at = now();
+```
+
+Set the Auth password to the launch default in the dashboard, then complete the in-app change-password gate.

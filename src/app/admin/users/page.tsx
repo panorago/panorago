@@ -1,3 +1,4 @@
+import { CreateAdminAccountForm } from "@/components/admin/create-admin-account-form";
 import {
   getAdminProfiles,
   setAdminPassword,
@@ -37,12 +38,21 @@ export default async function AdminUsersPage() {
         </p>
       </div>
 
+      <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] px-5 py-5 shadow-[var(--shadow)]">
+        <h2 className="font-display text-2xl">Create account</h2>
+        <p className="mt-1 text-sm text-muted">
+          Creates a Supabase Auth user, profile, and credentials row. New
+          accounts must reset their temporary password on first login.
+        </p>
+        <CreateAdminAccountForm />
+      </section>
+
       {profiles.length === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--glass)] px-6 py-16 text-center">
           <p className="font-display text-2xl">No profiles found</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Insert a row into <code>profiles</code> for your auth user with{" "}
-            <code>role = &apos;admin&apos;</code>.
+            Sign in once as the bootstrap admin, or create an account above
+            (requires <code>SUPABASE_SERVICE_ROLE_KEY</code>).
           </p>
         </div>
       ) : (
@@ -120,9 +130,10 @@ export default async function AdminUsersPage() {
                   <input
                     name="mustReset"
                     type="checkbox"
+                    defaultChecked
                     className="rounded border-[var(--border)]"
                   />
-                  Require reset flag
+                  Require reset on next login
                 </label>
                 <button
                   type="submit"
