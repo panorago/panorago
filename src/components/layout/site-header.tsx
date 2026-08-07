@@ -73,7 +73,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     >
       <div className="container-panora flex h-[var(--nav-height)] items-center justify-between gap-4">
         <div className="origin-left shrink-0">
-          <PanoraLogo variant="full" priority />
+          <PanoraLogo variant="full" tone="auto" priority />
         </div>
 
         <nav

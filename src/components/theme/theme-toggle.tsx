@@ -21,9 +21,10 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     setMounted(true);
   }, []);
 
-  const isDark = mounted && resolvedTheme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   function toggle() {
+    if (!mounted) return;
     setTheme(isDark ? "light" : "dark");
   }
 
@@ -31,11 +32,17 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={
+        !mounted
+          ? "Toggle theme"
+          : isDark
+            ? "Switch to light theme"
+            : "Switch to dark theme"
+      }
       className={cn(
         "focus-ring relative inline-flex h-10 w-[4.25rem] shrink-0 items-center rounded-full",
         "border border-[var(--border)] bg-[var(--glass)] backdrop-blur-xl",
-        "shadow-[var(--shadow)] transition-shadow duration-300",
+        "shadow-[var(--shadow)] transition-[box-shadow,background-color,border-color] duration-300",
         "hover:shadow-[var(--shadow-gold)]",
         className,
       )}
@@ -46,8 +53,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       >
         <span
           className={cn(
-            "absolute inset-0 opacity-60 transition-opacity duration-500",
-            isDark ? "opacity-80" : "opacity-40",
+            "absolute inset-0 opacity-40 transition-opacity duration-500 dark:opacity-80",
+            mounted && (isDark ? "opacity-80" : "opacity-40"),
           )}
           style={{
             background:
@@ -56,41 +63,56 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         />
       </span>
 
-      <motion.span
-        aria-hidden
-        className="absolute top-1 left-1 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--background-elevated)] shadow-[var(--shadow-gold)]"
-        animate={{
-          x: isDark ? 28 : 0,
-        }}
-        transition={
-          reduceMotion
-            ? { duration: 0.01 }
-            : motionTokens.spring.snappy
-        }
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={isDark ? "moon" : "sun"}
-            initial={reduceMotion ? false : { opacity: 0, rotate: -40, scale: 0.7 }}
-            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0, rotate: 40, scale: 0.7 }}
-            transition={{
-              duration: motionTokens.duration.fast,
-              ease: motionTokens.ease.out,
-            }}
-            className="flex text-[var(--accent)]"
-          >
-            {isDark ? (
-              <Moon className="h-4 w-4 fill-current" strokeWidth={1.75} />
-            ) : (
-              <Sun className="h-4 w-4 fill-current" strokeWidth={1.75} />
-            )}
-          </motion.span>
-        </AnimatePresence>
-      </motion.span>
+      {mounted ? (
+        <motion.span
+          aria-hidden
+          className="absolute top-1 left-1 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--background-elevated)] shadow-[var(--shadow-gold)]"
+          animate={{ x: isDark ? 28 : 0 }}
+          transition={
+            reduceMotion ? { duration: 0.01 } : motionTokens.spring.snappy
+          }
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={isDark ? "moon" : "sun"}
+              initial={
+                reduceMotion ? false : { opacity: 0, rotate: -40, scale: 0.7 }
+              }
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={
+                reduceMotion
+                  ? undefined
+                  : { opacity: 0, rotate: 40, scale: 0.7 }
+              }
+              transition={{
+                duration: motionTokens.duration.fast,
+                ease: motionTokens.ease.out,
+              }}
+              className="flex text-[var(--accent)]"
+            >
+              {isDark ? (
+                <Moon className="h-4 w-4 fill-current" strokeWidth={1.75} />
+              ) : (
+                <Sun className="h-4 w-4 fill-current" strokeWidth={1.75} />
+              )}
+            </motion.span>
+          </AnimatePresence>
+        </motion.span>
+      ) : (
+        <span
+          aria-hidden
+          className="absolute top-1 left-1 z-10 flex h-8 w-8 translate-x-0 items-center justify-center rounded-full bg-[var(--background-elevated)] shadow-[var(--shadow-gold)] dark:translate-x-7"
+        >
+          <Sun className="h-4 w-4 text-[var(--accent)] dark:hidden" strokeWidth={1.75} />
+          <Moon
+            className="hidden h-4 w-4 fill-current text-[var(--accent)] dark:block"
+            strokeWidth={1.75}
+          />
+        </span>
+      )}
 
       <span className="sr-only">
-        {isDark ? "Dark mode" : "Light mode"}
+        {mounted ? (isDark ? "Dark mode" : "Light mode") : "Theme"}
       </span>
     </button>
   );

@@ -10,10 +10,10 @@ import {
   markVerified,
   type PublicBookingView,
 } from "@/lib/bookings/verify";
+import { PanoraLogo } from "@/components/brand/panora-logo";
 import { absoluteUrl } from "@/lib/utils";
 import { BadgeCheck, CalendarDays, MapPin, Users } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -125,14 +125,15 @@ function FoundTicketCard({
     <main className="gradient-mesh min-h-dvh px-4 py-12 md:py-20">
       <div className="mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--glass)_88%,transparent)] shadow-[var(--shadow)] backdrop-blur-2xl">
         <div className="bg-[var(--brand-navy)] px-8 py-8 text-center text-white">
-          <Image
-            src="/logos/pgo-light-icon.png"
-            alt="Panora Go"
-            width={72}
-            height={72}
-            className="mx-auto"
-            priority
-          />
+          <div className="flex justify-center">
+            <PanoraLogo
+              variant="icon"
+              href={null}
+              tone="on-dark"
+              priority
+              imageClassName="h-[72px] w-auto"
+            />
+          </div>
           <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
             Discover · Connect · Belong
           </p>
@@ -242,14 +243,15 @@ function OfflineTicketCard({
     <main className="gradient-mesh min-h-dvh px-4 py-12 md:py-20">
       <div className="mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[color-mix(in_srgb,var(--glass)_88%,transparent)] shadow-[var(--shadow)] backdrop-blur-2xl">
         <div className="bg-[var(--brand-navy)] px-8 py-8 text-center text-white">
-          <Image
-            src="/logos/pgo-light-icon.png"
-            alt="Panora Go"
-            width={72}
-            height={72}
-            className="mx-auto"
-            priority
-          />
+          <div className="flex justify-center">
+            <PanoraLogo
+              variant="icon"
+              href={null}
+              tone="on-dark"
+              priority
+              imageClassName="h-[72px] w-auto"
+            />
+          </div>
           <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
             Discover · Connect · Belong
           </p>
@@ -380,20 +382,14 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="gradient-mesh min-h-dvh px-4 py-16">
       <div className="mx-auto max-w-lg rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass)] p-8 text-center shadow-[var(--shadow)] backdrop-blur-xl">
-        <Image
-          src="/logos/pgo-dark-icon.png"
-          alt="Panora Go"
-          width={64}
-          height={64}
-          className="mx-auto dark:hidden"
-        />
-        <Image
-          src="/logos/pgo-light-icon.png"
-          alt="Panora Go"
-          width={64}
-          height={64}
-          className="mx-auto hidden dark:block"
-        />
+        <div className="flex justify-center">
+          <PanoraLogo
+            variant="icon"
+            href={null}
+            tone="auto"
+            imageClassName="h-16 w-auto"
+          />
+        </div>
         {children}
       </div>
     </main>

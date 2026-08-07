@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import {
   useCallback,
   useEffect,
@@ -84,15 +83,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
-  const { resolvedTheme } = useTheme();
   const isLogin = pathname.startsWith("/admin/login");
-  /** White/gold on navy Command Center; navy mark in light admin; auto before theme resolves. */
-  const logoTone =
-    resolvedTheme === "light"
-      ? ("on-light" as const)
-      : resolvedTheme === "dark"
-        ? ("on-dark" as const)
-        : ("auto" as const);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -214,7 +205,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
           <PanoraLogo
             variant={collapsed ? "icon" : "full"}
             href="/admin"
-            tone={logoTone}
+            tone="auto"
             priority
             imageClassName={collapsed ? "h-9 w-auto" : "h-8 w-auto"}
           />
@@ -268,7 +259,7 @@ export function CommandCenterShell({ children }: { children: ReactNode }) {
                 <PanoraLogo
                   variant="full"
                   href="/admin"
-                  tone={logoTone}
+                  tone="auto"
                   priority
                   imageClassName="h-8 w-auto"
                 />

@@ -134,6 +134,31 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth dark ↔ light token shifts (short; skipped when reduced-motion). */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .glass,
+  .glass-strong,
+  .surface-card,
+  .gradient-mesh {
+    transition:
+      background-color 220ms ease,
+      background 220ms ease,
+      color 220ms ease,
+      border-color 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .logo-fade {
+    transition: opacity 220ms ease;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

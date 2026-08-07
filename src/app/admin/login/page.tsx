@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { PanoraLogo } from "@/components/brand/panora-logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { loginAdmin, type ActionResult } from "@/lib/admin/actions";
 import { useActionState } from "react";
 
@@ -16,10 +17,14 @@ export default function AdminLoginPage() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_55%),linear-gradient(180deg,var(--background),var(--background-elevated))]"
       />
+      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
       <div className="relative w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--shadow)] backdrop-blur-2xl">
         <PanoraLogo
           variant="full"
           href={null}
+          tone="auto"
           priority
           imageClassName="h-9 w-auto"
         />
