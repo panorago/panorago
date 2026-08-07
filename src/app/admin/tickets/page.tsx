@@ -13,10 +13,10 @@ export default async function AdminTicketsPage({
   searchParams: Promise<{ q?: string; status?: string }>;
 }) {
   const params = await searchParams;
-  const status = params.status ?? "confirmed";
+  const status = params.status ?? "all";
   const q = params.q ?? "";
   const bookings = await getAdminBookings({
-    status: status === "all" ? undefined : status,
+    status: status === "all" ? "all" : status,
     q: q || undefined,
   });
 
@@ -53,8 +53,10 @@ export default async function AdminTicketsPage({
           </p>
           <h1 className="mt-1 font-display text-4xl">Tickets</h1>
           <p className="mt-2 max-w-xl text-sm text-muted">
-            Download, regenerate, and track Panora confirmation tickets. Default
-            view shows confirmed bookings.
+            Download, regenerate, and track Panora tickets. Change status
+            inline — updates sync live across the Command Center.
+            Showing {bookings.length} booking
+            {bookings.length === 1 ? "" : "s"}.
           </p>
         </div>
         <Link
@@ -77,10 +79,12 @@ export default async function AdminTicketsPage({
           defaultValue={status}
           className="rounded-full border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-sm"
         >
-          <option value="confirmed">Confirmed</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
           <option value="all">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="unavailable">Unavailable</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="completed">Completed</option>
         </select>
         <button
           type="submit"

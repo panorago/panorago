@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import {
   createStoryAction,
-  likeStoryAction,
+  toggleStoryLikeAction,
 } from "@/lib/stories/actions";
 import { fadeUp, staggerContainer } from "@/lib/motion/variants";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,11 @@ function rememberLike(storyId: string) {
   localStorage.setItem(LIKED_KEY, JSON.stringify([...ids]));
 }
 
+function forgetLike(storyId: string) {
+  const ids = getLikedIds().filter((id) => id !== storyId);
+  localStorage.setItem(LIKED_KEY, JSON.stringify(ids));
+}
+
 interface ExperienceStoriesProps {
   placeId: string;
   placeName: string;
@@ -82,22 +87,40 @@ export function ExperienceStories({
     [optimisticStories],
   );
 
-  function handleLike(story: ExperienceStory) {
-    if (liked.has(story.id)) return;
-
+  function handleLikeToggle(story: ExperienceStory) {
     const visitorKey = getVisitorKey();
-    setLiked((prev) => new Set(prev).add(story.id));
-    rememberLike(story.id);
+    const wasLiked = liked.has(story.id);
+
+    setLiked((prev) => {
+      const next = new Set(prev);
+      if (wasLiked) next.delete(story.id);
+      else next.add(story.id);
+      return next;
+    });
+    if (wasLiked) forgetLike(story.id);
+    else rememberLike(story.id);
+
     setStories((prev) =>
       prev.map((item) =>
         item.id === story.id
-          ? { ...item, likesCount: item.likesCount + 1, likedByMe: true }
+          ? {
+              ...item,
+              likesCount: Math.max(
+                0,
+                item.likesCount + (wasLiked ? -1 : 1),
+              ),
+              likedByMe: !wasLiked,
+            }
           : item,
       ),
     );
 
     startTransition(async () => {
-      const result = await likeStoryAction(story.id, visitorKey);
+      const result = await toggleStoryLikeAction(
+        story.id,
+        visitorKey,
+        wasLiked,
+      );
       setStories((prev) =>
         prev.map((item) =>
           item.id === story.id
@@ -105,6 +128,14 @@ export function ExperienceStories({
             : item,
         ),
       );
+      setLiked((prev) => {
+        const next = new Set(prev);
+        if (result.liked) next.add(story.id);
+        else next.delete(story.id);
+        return next;
+      });
+      if (result.liked) rememberLike(story.id);
+      else forgetLike(story.id);
     });
   }
 
@@ -211,12 +242,15 @@ export function ExperienceStories({
               </div>
               <button
                 type="button"
-                onClick={() => handleLike(story)}
+                onClick={() => handleLikeToggle(story)}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-sm transition hover:border-[var(--accent)]",
                   liked.has(story.id) && "border-[var(--accent)] text-[var(--accent)]",
                 )}
-                aria-label="Like this story"
+                aria-pressed={liked.has(story.id)}
+                aria-label={
+                  liked.has(story.id) ? "Unlike this story" : "Like this story"
+                }
               >
                 <Heart
                   className={cn(

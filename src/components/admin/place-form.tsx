@@ -105,6 +105,12 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
     longitude: place?.longitude ?? null,
   });
 
+  const initialOther = place?.amenities.other?.join(", ") ?? "";
+  const [otherAmenities, setOtherAmenities] = useState(initialOther);
+  const [showOtherAmenities, setShowOtherAmenities] = useState(
+    Boolean(initialOther.trim()),
+  );
+
   function onSubmit(formData: FormData) {
     setError(null);
     setMessage(null);
@@ -145,18 +151,22 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
             />
           </label>
           <label className="space-y-1.5">
-            <span className="text-xs font-medium text-muted">Category</span>
-            <select
+            <span className="text-xs font-medium text-muted">
+              Category (suggestions or free text)
+            </span>
+            <input
               name="category"
+              list="place-category-suggestions"
+              required
               defaultValue={place?.category ?? "dining"}
               className={field}
-            >
+              placeholder="dining, escape, farm stay…"
+            />
+            <datalist id="place-category-suggestions">
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="space-y-1.5 md:col-span-2">
             <span className="text-xs font-medium text-muted">
@@ -427,7 +437,10 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
         </div>
       </Section>
 
-      <Section title="Amenities">
+      <Section
+        title="Amenities"
+        subtitle="Tick common amenities, or add custom ones under Other."
+      >
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {AMENITY_TOGGLES.map(({ key, label }) => (
             <label
@@ -442,7 +455,32 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
               {label}
             </label>
           ))}
+          <label className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showOtherAmenities}
+              onChange={(e) => setShowOtherAmenities(e.target.checked)}
+            />
+            Other
+          </label>
         </div>
+        {showOtherAmenities ? (
+          <label className="mt-3 block space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              Other amenities (comma or newline)
+            </span>
+            <textarea
+              name="otherAmenities"
+              rows={2}
+              value={otherAmenities}
+              onChange={(e) => setOtherAmenities(e.target.value)}
+              className={field}
+              placeholder="Braai area, Day beds, Private chef…"
+            />
+          </label>
+        ) : (
+          <input type="hidden" name="otherAmenities" value="" />
+        )}
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">Phone signal</span>

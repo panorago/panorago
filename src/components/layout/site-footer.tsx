@@ -10,11 +10,13 @@ const EXPLORE_LINKS = [
   { href: "/discover?vibe=Weekend%20Away", label: "Weekend escapes" },
   { href: "/saved", label: "Wishlist" },
   { href: "/enquiry", label: "Enquire" },
+  { href: "/add-your-place", label: "Add your place" },
 ] as const;
 
 const COMPANY_LINKS = [
   { href: "/the-panora-way", label: "The Panora Way" },
   { href: "/about", label: "About Panora" },
+  { href: "/add-your-place", label: "List your place" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
 ] as const;

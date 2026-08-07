@@ -37,8 +37,8 @@ export function SaveButton({
       aria-pressed={saved}
       aria-label={
         saved
-          ? `Remove ${placeName ?? "place"} from saved`
-          : `Save ${placeName ?? "place"}`
+          ? `Remove ${placeName ?? "place"} from wishlist`
+          : `Add ${placeName ?? "place"} to wishlist`
       }
       className={cn(
         "focus-ring relative inline-flex items-center justify-center rounded-full",

@@ -27,7 +27,7 @@ const ITEMS = [
   { href: "/discover", label: "Discover", icon: Compass, kind: "link" as const },
   { href: "#search", label: "Search", icon: Search, kind: "search" as const },
   { href: "/map", label: "Map", icon: Map, kind: "link" as const },
-  { href: "/saved", label: "Saved", icon: Heart, kind: "link" as const },
+  { href: "/saved", label: "Wishlist", icon: Heart, kind: "link" as const },
 ];
 
 export function BottomNav() {

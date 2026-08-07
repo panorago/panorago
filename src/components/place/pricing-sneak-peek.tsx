@@ -15,10 +15,10 @@ type PricingSneakPeekProps = {
   >;
 };
 
-function sampleLines(category: PlaceCategory, priceGuide: string): string[] {
+function sampleLines(category: string, priceGuide: string): string[] {
   const guide = formatPriceGuide(priceGuide);
 
-  switch (category) {
+  switch (category as PlaceCategory) {
     case "dining":
     case "coffee":
       return [

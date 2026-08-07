@@ -1,7 +1,5 @@
-import {
-  getAdminBookings,
-  updateBookingStatus,
-} from "@/lib/admin/command";
+import { EnquiryStatusSelect } from "@/components/admin/enquiry-status-select";
+import { getAdminBookings } from "@/lib/admin/command";
 import { BOOKING_STATUS_COLORS, type BookingStatus } from "@/lib/bookings/codes";
 import { mailtoUrl, telUrl, whatsappUrl } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -40,6 +38,10 @@ export default async function AdminEnquiriesPage({ searchParams }: PageProps) {
           <h1 className="mt-1 font-display text-4xl">Enquiries</h1>
           <p className="mt-2 text-sm text-muted">
             Bookings with customer numbers, QR tickets, and status history.
+            Showing {bookings.length}{" "}
+            {status === "all" ? "total" : status} enquir
+            {bookings.length === 1 ? "y" : "ies"}
+            {q ? ` matching “${q}”` : ""}.
           </p>
         </div>
         <Link
@@ -87,7 +89,6 @@ export default async function AdminEnquiriesPage({ searchParams }: PageProps) {
       ) : (
         <ul className="space-y-4">
           {bookings.map((booking) => {
-            const meta = BOOKING_STATUS_COLORS[booking.status];
             return (
               <li
                 key={booking.id}
@@ -102,11 +103,10 @@ export default async function AdminEnquiriesPage({ searchParams }: PageProps) {
                       >
                         {booking.customerName}
                       </Link>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.className}`}
-                      >
-                        {meta.label}
-                      </span>
+                      <EnquiryStatusSelect
+                        bookingId={booking.id}
+                        initialStatus={booking.status}
+                      />
                     </div>
                     <p className="mt-1 text-sm text-muted">
                       {booking.venueName} ·{" "}
@@ -191,34 +191,6 @@ export default async function AdminEnquiriesPage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
-                  {(
-                    [
-                      "confirmed",
-                      "unavailable",
-                      "cancelled",
-                      "completed",
-                      "pending",
-                    ] as BookingStatus[]
-                  )
-                    .filter((s) => s !== booking.status)
-                    .map((next) => (
-                      <form
-                        key={next}
-                        action={async () => {
-                          "use server";
-                          await updateBookingStatus(booking.id, next);
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className="rounded-full border border-[var(--border)] px-3 py-1 text-xs capitalize hover:bg-[var(--glass)]"
-                        >
-                          Mark {next}
-                        </button>
-                      </form>
-                    ))}
-                </div>
               </li>
             );
           })}

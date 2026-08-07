@@ -318,6 +318,20 @@ export async function getStoriesForPlace(
   }
 }
 
+async function readLikesCount(
+  storyId: string,
+  fallback = 0,
+): Promise<number> {
+  const supabase = await trySupabase();
+  if (!supabase) return fallback;
+  const { data } = await supabase
+    .from("experience_stories")
+    .select("likes_count")
+    .eq("id", storyId)
+    .maybeSingle();
+  return data?.likes_count ?? fallback;
+}
+
 export async function likeStory(
   storyId: string,
   visitorKey: string,
@@ -340,14 +354,8 @@ export async function likeStory(
 
     if (likeError) {
       if (likeError.code === "23505") {
-        const { data } = await supabase
-          .from("experience_stories")
-          .select("likes_count")
-          .eq("id", storyId)
-          .maybeSingle();
-
         return {
-          likesCount: data?.likes_count ?? 0,
+          likesCount: await readLikesCount(storyId),
           liked: true,
         };
       }
@@ -359,13 +367,7 @@ export async function likeStory(
       };
     }
 
-    const { data: current } = await supabase
-      .from("experience_stories")
-      .select("likes_count")
-      .eq("id", storyId)
-      .maybeSingle();
-
-    const nextCount = (current?.likes_count ?? 0) + 1;
+    const nextCount = (await readLikesCount(storyId)) + 1;
 
     await supabase
       .from("experience_stories")
@@ -380,4 +382,88 @@ export async function likeStory(
       liked: Boolean(seed),
     };
   }
+}
+
+export async function unlikeStory(
+  storyId: string,
+  visitorKey: string,
+): Promise<{ likesCount: number; liked: boolean }> {
+  const supabase = await trySupabase();
+
+  if (!supabase) {
+    const story = SEED_STORIES.find((item) => item.id === storyId);
+    if (!story) {
+      return { likesCount: 0, liked: false };
+    }
+    return {
+      likesCount: Math.max(0, story.likesCount - 1),
+      liked: false,
+    };
+  }
+
+  try {
+    // Prefer service role so unlike works even before the public DELETE policy.
+    const { createServiceClient } = await import("@/lib/supabase/service");
+    const writer = createServiceClient() ?? supabase;
+
+    const { data: existing } = await writer
+      .from("story_likes")
+      .select("story_id")
+      .eq("story_id", storyId)
+      .eq("visitor_key", visitorKey)
+      .maybeSingle();
+
+    if (!existing) {
+      return {
+        likesCount: await readLikesCount(storyId),
+        liked: false,
+      };
+    }
+
+    const { error: deleteError } = await writer
+      .from("story_likes")
+      .delete()
+      .eq("story_id", storyId)
+      .eq("visitor_key", visitorKey);
+
+    if (deleteError) {
+      console.info("[stories] unlike:", deleteError.message);
+      return {
+        likesCount: await readLikesCount(storyId),
+        liked: true,
+      };
+    }
+
+    const current = await readLikesCount(storyId);
+    const nextCount = Math.max(0, current - 1);
+
+    await writer
+      .from("experience_stories")
+      .update({ likes_count: nextCount })
+      .eq("id", storyId);
+
+    return { likesCount: nextCount, liked: false };
+  } catch (err) {
+    console.info(
+      "[stories] unlike failed:",
+      err instanceof Error ? err.message : err,
+    );
+    const seed = SEED_STORIES.find((item) => item.id === storyId);
+    return {
+      likesCount: seed ? Math.max(0, seed.likesCount - 1) : 0,
+      liked: false,
+    };
+  }
+}
+
+/** Toggle like / unlike for a visitor. */
+export async function toggleStoryLike(
+  storyId: string,
+  visitorKey: string,
+  currentlyLiked: boolean,
+): Promise<{ likesCount: number; liked: boolean }> {
+  if (currentlyLiked) {
+    return unlikeStory(storyId, visitorKey);
+  }
+  return likeStory(storyId, visitorKey);
 }

@@ -1,3 +1,5 @@
+import { CollectionPlacePicker } from "@/components/admin/collection-place-picker";
+import { getAdminPlaces } from "@/lib/admin/actions";
 import {
   deleteCollection,
   getAdminCollections,
@@ -12,7 +14,17 @@ const field =
   "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
 
 export default async function AdminCollectionsPage() {
-  const collections = await getAdminCollections();
+  const [collections, places] = await Promise.all([
+    getAdminCollections(),
+    getAdminPlaces(),
+  ]);
+
+  const placeOptions = places.map((p) => ({
+    id: p.id,
+    name: p.name,
+    city: p.city,
+    slug: p.slug,
+  }));
 
   return (
     <div className="space-y-8">
@@ -22,7 +34,8 @@ export default async function AdminCollectionsPage() {
         </p>
         <h1 className="mt-1 font-display text-4xl">Collections</h1>
         <p className="mt-2 text-sm text-muted">
-          Secret collections and curated lists. Reorder with sort order values.
+          Secret collections and curated lists. Tick places from the list below
+          — reorder with sort order values.
         </p>
       </div>
 
@@ -84,17 +97,12 @@ export default async function AdminCollectionsPage() {
                   className={field}
                 />
               </label>
-              <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs text-muted">
-                  Place IDs (comma or newline)
-                </span>
-                <textarea
-                  name="placeIds"
-                  rows={3}
-                  defaultValue={collection.placeIds.join("\n")}
-                  className={field}
+              <div className="md:col-span-2">
+                <CollectionPlacePicker
+                  places={placeOptions}
+                  initialSelectedIds={collection.placeIds}
                 />
-              </label>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -151,10 +159,9 @@ export default async function AdminCollectionsPage() {
             <input type="checkbox" name="enabled" defaultChecked />
             Enabled
           </label>
-          <label className="space-y-1.5 md:col-span-2">
-            <span className="text-xs text-muted">Place IDs</span>
-            <textarea name="placeIds" rows={3} className={field} />
-          </label>
+          <div className="md:col-span-2">
+            <CollectionPlacePicker places={placeOptions} />
+          </div>
         </div>
         <button
           type="submit"

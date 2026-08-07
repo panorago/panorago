@@ -112,16 +112,49 @@ function mapPublic(row: Record<string, unknown>): PublicBookingView {
 }
 
 export async function listBookingsForAdmin(): Promise<BookingRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  if (error || !data) {
-    console.info("[bookings] admin list:", error?.message);
+  const session = await createClient();
+  const {
+    data: { user },
+  } = await session.auth.getUser();
+  if (!user) {
+    console.info("[bookings] admin list: unauthorized");
     return [];
   }
-  return data as BookingRow[];
+
+  const { data: profile } = await session
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile && profile.role !== "admin") {
+    console.info("[bookings] admin list: forbidden");
+    return [];
+  }
+
+  const supabase = createServiceClient() ?? session;
+  const pageSize = 1000;
+  const hardCap = 5000;
+  const all: BookingRow[] = [];
+  let from = 0;
+
+  while (all.length < hardCap) {
+    const to = Math.min(from + pageSize - 1, hardCap - 1);
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.info("[bookings] admin list:", error.message);
+      break;
+    }
+    if (!data?.length) break;
+    all.push(...(data as BookingRow[]));
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return all;
 }

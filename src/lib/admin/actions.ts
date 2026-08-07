@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/places";
 import { mapSupabaseAuthError } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type {
   HomepageSection,
   HomepageSectionKey,
@@ -49,7 +50,8 @@ async function requireAdmin() {
     throw new Error("Forbidden");
   }
 
-  return { supabase, user, profile };
+  const service = createServiceClient();
+  return { supabase: service ?? supabase, user, profile };
 }
 
 function asString(value: FormDataEntryValue | null, fallback = "") {
@@ -130,6 +132,7 @@ function placePayloadFromForm(formData: FormData) {
     pricingItems: pricingItems.length > 0 ? pricingItems : undefined,
   };
 
+  const otherAmenities = parseLines(asString(formData.get("otherAmenities")));
   const amenities: PlaceAmenityFlags = {
     power: asBool(formData.get("power")),
     solar: asBool(formData.get("solar")),
@@ -153,6 +156,7 @@ function placePayloadFromForm(formData: FormData) {
       (asString(
         formData.get("roadCondition"),
       ) as PlaceAmenityFlags["roadCondition"]) || undefined,
+    ...(otherAmenities.length > 0 ? { other: otherAmenities } : {}),
   };
 
   const contact: PlaceContact = {

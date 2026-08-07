@@ -41,7 +41,9 @@ async function requireAdmin() {
     throw new Error("Forbidden");
   }
 
-  return { supabase, user, profile };
+  // Prefer service role for admin reads/writes so RLS never silently hides rows.
+  const service = createServiceClient();
+  return { supabase: service ?? supabase, user, profile, sessionClient: supabase };
 }
 
 async function writeAudit(
@@ -102,20 +104,36 @@ export async function getAdminBookings(opts?: {
 }): Promise<Booking[]> {
   try {
     const { supabase } = await requireAdmin();
-    let query = supabase
-      .from("bookings")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(opts?.limit ?? 200);
+    // Page through so we never silently truncate without a UI page control.
+    const pageSize = 1000;
+    const hardCap = opts?.limit ?? 5000;
+    const all: Record<string, unknown>[] = [];
+    let from = 0;
 
-    if (opts?.status && opts.status !== "all") {
-      query = query.eq("status", opts.status);
+    while (all.length < hardCap) {
+      const to = Math.min(from + pageSize - 1, hardCap - 1);
+      let query = supabase
+        .from("bookings")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (opts?.status && opts.status !== "all") {
+        query = query.eq("status", opts.status);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.info("[admin] getAdminBookings:", error.message);
+        break;
+      }
+      if (!data?.length) break;
+      all.push(...(data as Record<string, unknown>[]));
+      if (data.length < pageSize) break;
+      from += pageSize;
     }
 
-    const { data, error } = await query;
-    if (error || !data) return [];
-
-    let rows = (data as Record<string, unknown>[]).map(mapBooking);
+    let rows = all.map(mapBooking);
     const q = opts?.q?.trim().toLowerCase();
     if (q) {
       rows = rows.filter(
@@ -129,7 +147,11 @@ export async function getAdminBookings(opts?: {
       );
     }
     return rows;
-  } catch {
+  } catch (err) {
+    console.info(
+      "[admin] getAdminBookings failed:",
+      err instanceof Error ? err.message : err,
+    );
     return [];
   }
 }
@@ -982,6 +1004,10 @@ export async function getPlaceSubmissions(): Promise<PlaceSubmission[]> {
       longitude: (row.longitude as number | null) ?? null,
       heroImage: (row.hero_image as string | null) ?? null,
       notes: (row.notes as string | null) ?? null,
+      payload:
+        row.payload && typeof row.payload === "object"
+          ? (row.payload as Record<string, unknown>)
+          : {},
       createdPlaceId: (row.created_place_id as string | null) ?? null,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
@@ -1004,6 +1030,32 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
     const name = String(sub.place_name);
     const slug = slugify(name, { lower: true, strict: true, trim: true });
     const now = new Date().toISOString();
+    const extra =
+      sub.payload && typeof sub.payload === "object"
+        ? (sub.payload as Record<string, unknown>)
+        : {};
+    const amenities =
+      extra.amenities && typeof extra.amenities === "object"
+        ? (extra.amenities as Record<string, unknown>)
+        : {};
+    const gallery = Array.isArray(extra.gallery_urls)
+      ? (extra.gallery_urls as unknown[]).filter(
+          (u): u is string => typeof u === "string" && u.trim().length > 0,
+        )
+      : [];
+    const highlights: Record<string, unknown> = {};
+    if (typeof extra.average_spend === "string" && extra.average_spend) {
+      highlights.averageSpend = extra.average_spend;
+    }
+    if (typeof extra.opening_hours === "string" && extra.opening_hours) {
+      highlights.openingHours = extra.opening_hours;
+    }
+    if (typeof extra.best_time === "string" && extra.best_time) {
+      highlights.bestTime = extra.best_time;
+    }
+    if (typeof extra.dress_vibe === "string" && extra.dress_vibe) {
+      highlights.dressVibe = extra.dress_vibe;
+    }
 
     const { data: place, error: placeError } = await supabase
       .from("places")
@@ -1018,16 +1070,32 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
         category: sub.category || "dining",
         mood: [],
         story: sub.story || `${name} — submitted via Add Your Place.`,
-        panora_notes: sub.notes || "Draft from public submission — review before publish.",
-        highlights: {},
-        amenities: {},
+        panora_notes:
+          (typeof extra.panora_notes === "string" && extra.panora_notes) ||
+          sub.notes ||
+          "Draft from public submission — review before publish.",
+        highlights,
+        amenities,
         contact: {
           website: sub.website,
           whatsapp: sub.whatsapp,
-          email: sub.submitter_email,
-          phone: sub.submitter_phone,
+          email:
+            (typeof extra.email === "string" && extra.email) ||
+            sub.submitter_email,
+          phone:
+            (typeof extra.phone === "string" && extra.phone) ||
+            sub.submitter_phone,
+          instagram:
+            typeof extra.instagram === "string" ? extra.instagram : null,
+          facebook: typeof extra.facebook === "string" ? extra.facebook : null,
+          googleMapsUrl:
+            typeof extra.google_maps_url === "string"
+              ? extra.google_maps_url
+              : null,
         },
-        price_guide: "Enquire",
+        price_guide:
+          (typeof extra.price_guide === "string" && extra.price_guide) ||
+          "Enquire",
         verified: false,
         published: false,
         featured: false,
@@ -1036,7 +1104,7 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
         hero_image:
           sub.hero_image ||
           "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
-        gallery: [],
+        gallery,
         menu_image_urls: [],
         pricing_items: [],
         homepage_sections: [],

@@ -114,6 +114,10 @@ function amenitySearchTerms(amenities: PlaceAmenityFlags): string[] {
       terms.push(key.replace(/([a-z])([A-Z])/g, "$1 $2"));
     } else if (typeof value === "string" && value) {
       terms.push(key, value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "string" && item.trim()) terms.push(item);
+      }
     }
   }
 

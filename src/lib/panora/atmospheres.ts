@@ -140,7 +140,7 @@ export function atmospheresForPlace(
     pushUnique(ids, seen, MOOD_TO_ATMOSPHERE[mood]);
   }
 
-  for (const id of CATEGORY_ATMOSPHERES[place.category] ?? []) {
+  for (const id of CATEGORY_ATMOSPHERES[place.category as PlaceCategory] ?? []) {
     pushUnique(ids, seen, id);
   }
 

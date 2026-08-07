@@ -7,7 +7,10 @@ import {
   useSyncExternalStore,
 } from "react";
 
+/** Canonical wishlist / saved-places storage (one list). */
 const STORAGE_KEY = "panora-saved";
+/** Legacy key — merged into STORAGE_KEY on read. */
+const LEGACY_WISHLIST_KEY = "panora-wishlist";
 const EMPTY_SAVED: string[] = [];
 
 let cachedRaw: string | null = null;
@@ -25,8 +28,31 @@ function parseSaved(raw: string | null): string[] {
   }
 }
 
+function mergeLegacyWishlist(): string[] | null {
+  if (typeof window === "undefined") return null;
+  const legacyRaw = window.localStorage.getItem(LEGACY_WISHLIST_KEY);
+  if (!legacyRaw) return null;
+  const legacyIds = parseSaved(legacyRaw);
+  if (legacyIds.length === 0) {
+    window.localStorage.removeItem(LEGACY_WISHLIST_KEY);
+    return null;
+  }
+  const current = parseSaved(window.localStorage.getItem(STORAGE_KEY));
+  const merged = [...new Set([...current, ...legacyIds])];
+  const raw = JSON.stringify(merged);
+  window.localStorage.setItem(STORAGE_KEY, raw);
+  window.localStorage.removeItem(LEGACY_WISHLIST_KEY);
+  return merged;
+}
+
 function getSnapshot(): string[] {
   if (typeof window === "undefined") return EMPTY_SAVED;
+  const merged = mergeLegacyWishlist();
+  if (merged) {
+    cachedRaw = JSON.stringify(merged);
+    cachedIds = merged.length === 0 ? EMPTY_SAVED : merged;
+    return cachedIds;
+  }
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (raw === cachedRaw) return cachedIds;
   cachedRaw = raw;

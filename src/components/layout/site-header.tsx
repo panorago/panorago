@@ -131,6 +131,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           <Link
             href="/saved"
             aria-label="Wishlist"
+            title="Wishlist"
             className={cn(
               "focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)]",
               "text-[var(--foreground-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]",
@@ -142,6 +143,14 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             <Heart className="h-4 w-4" strokeWidth={2} />
           </Link>
           <ThemeToggle className="hidden sm:inline-flex" />
+          <Button
+            href="/add-your-place"
+            variant="ghost"
+            size="sm"
+            className="hidden md:inline-flex"
+          >
+            Add your place
+          </Button>
           <Button
             href="/enquiry"
             variant="gold"
@@ -192,20 +201,32 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   {link.label}
                 </Link>
               ))}
-              <div className="mt-3 flex items-center justify-between gap-3 px-1">
-                <div className="flex items-center gap-2">
-                  <Link
-                    href="/saved"
-                    aria-label="Wishlist"
-                    className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--foreground-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                    onClick={() => setOpen(false)}
-                  >
-                    <Heart className="h-4 w-4" strokeWidth={2} />
-                  </Link>
-                  <ThemeToggle />
+              <div className="mt-3 flex flex-col gap-2 px-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/saved"
+                      aria-label="Wishlist"
+                      title="Wishlist"
+                      className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--foreground-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                      onClick={() => setOpen(false)}
+                    >
+                      <Heart className="h-4 w-4" strokeWidth={2} />
+                    </Link>
+                    <ThemeToggle />
+                  </div>
+                  <Button href="/enquiry" variant="gold" size="md">
+                    Enquiry
+                  </Button>
                 </div>
-                <Button href="/enquiry" variant="gold" size="md">
-                  Enquiry
+                <Button
+                  href="/add-your-place"
+                  variant="secondary"
+                  size="md"
+                  className="w-full justify-center"
+                  onClick={() => setOpen(false)}
+                >
+                  Add your place
                 </Button>
               </div>
             </nav>

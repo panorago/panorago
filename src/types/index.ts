@@ -66,6 +66,8 @@ export interface PlaceAmenityFlags {
   photography?: boolean;
   phoneSignal?: "strong" | "moderate" | "weak" | "none";
   roadCondition?: "excellent" | "good" | "fair" | "challenging";
+  /** Free-text amenities from admin / Add Your Place “Other” */
+  other?: string[];
 }
 
 export interface PricingItem {
@@ -122,7 +124,8 @@ export interface Place {
   country: string;
   latitude: number | null;
   longitude: number | null;
-  category: PlaceCategory;
+  /** Suggested values in PlaceCategory; free text allowed from admin / submissions. */
+  category: PlaceCategory | string;
   mood: MoodTag[];
   story: string;
   panoraNotes: string;
@@ -216,6 +219,8 @@ export interface PlaceSubmission {
   longitude: number | null;
   heroImage: string | null;
   notes: string | null;
+  /** Extra fields from the public form (amenities, gallery, hours, etc.) */
+  payload?: Record<string, unknown>;
   createdPlaceId: string | null;
   createdAt: string;
   updatedAt: string;

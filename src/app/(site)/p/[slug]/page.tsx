@@ -30,7 +30,6 @@ import {
   Baby,
   Clock,
   MapPin,
-  Sparkles,
   Wallet,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -366,16 +365,22 @@ export default async function SmartShareLandingPage({
             </Reveal>
           ) : null}
 
-          {/* Explorer Passport teaser */}
+          {/* Wishlist = saved places */}
           <Reveal>
             <div className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 backdrop-blur-md">
-              <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" />
-              <div>
-                <p className="text-sm font-semibold">Explorer Passport</p>
+              <SaveButton placeId={place.id} placeName={place.name} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Wishlist</p>
                 <p className="mt-1 text-sm text-muted">
-                  Save this place to your wishlist — your Panora passport of
-                  discoveries is on the horizon.
+                  Heart this place to add it to your wishlist — the same saved
+                  list on this device. Open it anytime from the header heart.
                 </p>
+                <Link
+                  href="/saved"
+                  className="mt-2 inline-flex text-sm font-medium text-[var(--accent)] hover:underline"
+                >
+                  View wishlist →
+                </Link>
               </div>
             </div>
           </Reveal>

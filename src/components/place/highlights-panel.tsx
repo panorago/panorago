@@ -82,6 +82,9 @@ export function HighlightsPanel({
   });
 
   const activeAmenities = amenityDefs.filter((item) => amenities[item.key] === true);
+  const otherAmenities = (amenities.other ?? []).filter(
+    (item) => typeof item === "string" && item.trim().length > 0,
+  );
 
   const phoneSignal = amenities.phoneSignal;
   const roadCondition = amenities.roadCondition;
@@ -151,7 +154,10 @@ export function HighlightsPanel({
       )}
 
       {showAmenities &&
-        (activeAmenities.length > 0 || phoneSignal || roadCondition) && (
+        (activeAmenities.length > 0 ||
+          otherAmenities.length > 0 ||
+          phoneSignal ||
+          roadCondition) && (
         <div>
           {mode === "all" ? (
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
@@ -165,6 +171,15 @@ export function HighlightsPanel({
                 className="flex items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background-elevated)] px-3 py-2.5 text-sm"
               >
                 <Icon className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                {label}
+              </li>
+            ))}
+            {otherAmenities.map((label) => (
+              <li
+                key={label}
+                className="flex items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background-elevated)] px-3 py-2.5 text-sm"
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-[var(--accent)]" />
                 {label}
               </li>
             ))}

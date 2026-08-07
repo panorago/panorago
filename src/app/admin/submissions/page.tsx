@@ -114,6 +114,16 @@ export default async function AdminSubmissionsPage() {
                   {sub.story}
                 </p>
               )}
+              {sub.payload && Object.keys(sub.payload).length > 0 ? (
+                <details className="mt-3 text-xs text-muted">
+                  <summary className="cursor-pointer text-[var(--accent)]">
+                    Extra submission details
+                  </summary>
+                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] p-3 font-mono text-[11px]">
+                    {JSON.stringify(sub.payload, null, 2)}
+                  </pre>
+                </details>
+              ) : null}
             </li>
           ))}
         </ul>

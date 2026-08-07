@@ -1,10 +1,18 @@
 "use server";
 
-import { likeStory } from "@/lib/data/places";
+import { toggleStoryLike, likeStory } from "@/lib/data/places";
 import { createClient } from "@/lib/supabase/server";
 
 export async function likeStoryAction(storyId: string, visitorKey: string) {
   return likeStory(storyId, visitorKey);
+}
+
+export async function toggleStoryLikeAction(
+  storyId: string,
+  visitorKey: string,
+  currentlyLiked: boolean,
+) {
+  return toggleStoryLike(storyId, visitorKey, currentlyLiked);
 }
 
 export async function createStoryAction(input: {

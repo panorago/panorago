@@ -2,9 +2,9 @@ import { SavedPlacesClient } from "@/components/place/saved-places-client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Saved places",
+  title: "Wishlist",
   description:
-    "Your saved Panora Go places on this device — ready for the next weekend.",
+    "Your Panora Go wishlist — saved places on this device, ready for the next weekend.",
 };
 
 export default function SavedPage() {
