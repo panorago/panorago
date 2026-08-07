@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
   },
-  // Tab favicon: icon.svg (readable PGO pin). Homescreen / apple-touch: dark PGO plate.
+  // Tab favicon: icon.svg (readable PGO pin). Homescreen / apple-touch: light PGO (navy on light).
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
     ],
     apple: [
       {
-        url: "/logos/pgo-dark-icon.png",
+        url: "/logos/pgo-light-icon.png",
         sizes: "256x256",
         type: "image/png",
       },
