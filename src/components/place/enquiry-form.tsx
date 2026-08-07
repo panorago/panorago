@@ -23,7 +23,7 @@ export function EnquiryForm({
           ? `Plan your visit to ${initialPlaceName}`
           : "Start your enquiry"}
       </h1>
-      <p className="mt-3 text-sm text-muted">
+      <p className="long-form mt-3 text-sm text-muted">
         We don&apos;t take instant bookings. Share your details and our
         concierge confirms with the venue, then sends your Panora ticket.
       </p>

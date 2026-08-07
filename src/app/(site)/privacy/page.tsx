@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           Legal
         </p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Privacy</h1>
-        <div className="mt-8 space-y-5 text-sm leading-relaxed text-[var(--foreground-muted)]">
+        <div className="long-form mt-8 space-y-5 text-sm leading-relaxed text-[var(--foreground-muted)]">
           <p>
             Panora Go collects only what we need to help you discover and
             enquire about places — such as enquiry details you submit, optional

@@ -110,7 +110,7 @@ export default async function AdminSubmissionsPage() {
                 )}
               </div>
               {sub.story && (
-                <p className="mt-3 line-clamp-4 text-sm leading-relaxed">
+                <p className="long-form mt-3 line-clamp-4 text-sm leading-relaxed">
                   {sub.story}
                 </p>
               )}

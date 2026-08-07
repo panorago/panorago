@@ -21,7 +21,7 @@ export default function TermsPage() {
           Legal
         </p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Terms</h1>
-        <div className="mt-8 space-y-5 text-sm leading-relaxed text-[var(--foreground-muted)]">
+        <div className="long-form mt-8 space-y-5 text-sm leading-relaxed text-[var(--foreground-muted)]">
           <p>
             Panora Go is a curated discovery and concierge enquiry platform. We
             do not process payments or confirmed bookings on this site. Venue

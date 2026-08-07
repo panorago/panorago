@@ -54,7 +54,7 @@ export function SavedPlacesClient() {
   }, []);
 
   return (
-    <div className="gradient-mesh pt-[calc(var(--nav-height)+2rem)]">
+    <div className="gradient-mesh pt-8">
       <div className="container-panora pb-[var(--space-section)]">
         <Reveal className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">

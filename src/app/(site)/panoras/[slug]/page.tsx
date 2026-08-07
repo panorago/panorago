@@ -172,7 +172,7 @@ export default async function PlacePage({
               </Link>
             ))}
           </div>
-          <h1 className="mt-4 font-display text-4xl leading-tight md:text-6xl">
+          <h1 className="mt-4 break-words font-display text-4xl leading-tight md:text-6xl">
             {place.name}
           </h1>
           <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-white/85">
@@ -215,8 +215,8 @@ export default async function PlacePage({
       </section>
 
       <div className="gradient-mesh">
-        <div className="container-panora grid gap-10 py-[var(--space-section)] lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="space-y-14 min-w-0">
+        <div className="container-panora grid gap-10 py-[var(--space-section)] lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+          <div className="min-w-0 space-y-14">
             {/* 2. Video (if URL) — before gallery */}
             {place.videoUrl ? (
               <Reveal>
@@ -243,7 +243,7 @@ export default async function PlacePage({
                 The story
               </p>
               <h2 className="mt-2 font-display text-3xl">Atmosphere & arrival</h2>
-              <div className="mt-5 space-y-4 text-base leading-relaxed text-[var(--foreground)]">
+              <div className="long-form mt-5 space-y-4 text-base leading-relaxed text-[var(--foreground)]">
                 {place.story.split(/\n\n+/).map((paragraph) => (
                   <p key={paragraph.slice(0, 32)}>{paragraph}</p>
                 ))}
@@ -284,7 +284,7 @@ export default async function PlacePage({
                 Panora notes
               </p>
               <h2 className="mt-2 font-display text-3xl">Insider guidance</h2>
-              <p className="mt-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-6 text-sm leading-relaxed">
+              <p className="long-form mt-5 max-w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-4 text-sm leading-relaxed sm:p-6">
                 {place.panoraNotes}
               </p>
             </Reveal>
@@ -408,7 +408,7 @@ export default async function PlacePage({
             )}
           </div>
 
-          <div className="lg:pt-2">
+          <div className="min-w-0 lg:pt-2">
             <EnquiryPanel
               placeName={place.name}
               placeSlug={place.slug}

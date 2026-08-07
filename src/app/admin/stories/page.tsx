@@ -117,7 +117,7 @@ export default async function AdminStoriesPage() {
                   </form>
                 </div>
               </div>
-              <p className="mt-3 text-sm leading-relaxed">{story.body}</p>
+              <p className="long-form mt-3 text-sm leading-relaxed">{story.body}</p>
             </li>
           ))}
         </ul>

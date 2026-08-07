@@ -202,8 +202,8 @@ export function PlacesMap({ places }: PlacesMapProps) {
 
   return (
     <div className="relative flex h-[calc(100dvh-var(--nav-height)-var(--bottom-nav-height)-env(safe-area-inset-bottom))] min-h-[28rem] flex-col bg-[var(--brand-navy)] text-white md:h-[calc(100dvh-var(--nav-height))]">
-      <div className="absolute inset-x-0 top-0 z-20 border-b border-white/10 bg-[color-mix(in_srgb,var(--brand-navy)_88%,transparent)] px-4 py-3 backdrop-blur-xl sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="absolute inset-x-0 top-0 z-20 border-b border-white/10 bg-[color-mix(in_srgb,var(--brand-navy)_88%,transparent)] py-3 backdrop-blur-xl">
+        <div className="container-panora flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
               Explore
@@ -257,7 +257,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
       <AnimatePresence>
         {selected ? (
           <motion.div
-            className="absolute inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 mx-auto w-auto max-w-md sm:inset-x-auto sm:right-6 sm:bottom-8 sm:left-auto sm:w-full"
+            className="absolute inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 mx-auto w-auto max-w-md sm:inset-x-auto sm:right-6 sm:bottom-8 sm:left-auto sm:w-full lg:right-8"
             initial={reduceMotion ? false : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: 16 }}
@@ -381,7 +381,7 @@ function ElegantMapFallback({
         }}
         aria-hidden
       />
-      <div className="relative mx-auto h-full w-full max-w-5xl px-2 sm:px-6">
+      <div className="container-panora relative h-full max-w-5xl">
         <div className="relative h-full w-full">
           {places.map((place) => {
             const { left, top } = project(

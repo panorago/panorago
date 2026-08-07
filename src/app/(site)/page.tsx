@@ -73,7 +73,7 @@ export default async function HomePage() {
           >
             Tourism discovery built to Discover, Connect, and Belong
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+          <p className="long-form mt-3 max-w-2xl text-sm leading-relaxed text-muted">
             Panora Go curates Zimbabwe&apos;s most unforgettable places —
             weekends, dining, and escapes with insider notes so your next trip
             feels planned, not guessed.
@@ -89,7 +89,7 @@ export default async function HomePage() {
             delay={index * 0.04}
           >
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                   Collection
                 </p>
@@ -129,10 +129,10 @@ export default async function HomePage() {
           </div>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {SEED_SECRET_COLLECTIONS.map((collection) => (
-              <li key={collection.key}>
+              <li key={collection.key} className="min-w-0">
                 <Link
                   href={`/discover?collection=${encodeURIComponent(collection.key)}`}
-                  className="group block rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 transition hover:border-[var(--accent)] hover:shadow-[var(--shadow-gold)]"
+                  className="group block h-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 transition hover:border-[var(--accent)] hover:shadow-[var(--shadow-gold)]"
                 >
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
                     Secret

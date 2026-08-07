@@ -122,8 +122,9 @@ function FoundTicketCard({
   const headline = statusHeadline(booking.status);
 
   return (
-    <main className="gradient-mesh min-h-dvh px-4 py-12 md:py-20">
-      <div className="mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--glass)_88%,transparent)] shadow-[var(--shadow)] backdrop-blur-2xl">
+    <main className="gradient-mesh min-h-dvh py-12 md:py-20">
+      <div className="container-narrow">
+        <div className="mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--glass)_88%,transparent)] shadow-[var(--shadow)] backdrop-blur-2xl">
         <div className="bg-[var(--brand-navy)] px-8 py-8 text-center text-white">
           <div className="flex justify-center">
             <PanoraLogo
@@ -217,6 +218,7 @@ function FoundTicketCard({
             </Link>
           </div>
         </div>
+        </div>
       </div>
     </main>
   );
@@ -240,8 +242,9 @@ function OfflineTicketCard({
     BOOKING_STATUS_COLORS[statusKey] ?? BOOKING_STATUS_COLORS.pending;
 
   return (
-    <main className="gradient-mesh min-h-dvh px-4 py-12 md:py-20">
-      <div className="mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[color-mix(in_srgb,var(--glass)_88%,transparent)] shadow-[var(--shadow)] backdrop-blur-2xl">
+    <main className="gradient-mesh min-h-dvh py-12 md:py-20">
+      <div className="container-narrow">
+        <div className="mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[color-mix(in_srgb,var(--glass)_88%,transparent)] shadow-[var(--shadow)] backdrop-blur-2xl">
         <div className="bg-[var(--brand-navy)] px-8 py-8 text-center text-white">
           <div className="flex justify-center">
             <PanoraLogo
@@ -318,6 +321,7 @@ function OfflineTicketCard({
             <HomeLink />
           </div>
         </div>
+        </div>
       </div>
     </main>
   );
@@ -380,17 +384,19 @@ function formatWhen(value: string | null) {
 
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <main className="gradient-mesh min-h-dvh px-4 py-16">
-      <div className="mx-auto max-w-lg rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass)] p-8 text-center shadow-[var(--shadow)] backdrop-blur-xl">
-        <div className="flex justify-center">
-          <PanoraLogo
-            variant="icon"
-            href={null}
-            tone="auto"
-            imageClassName="h-16 w-auto"
-          />
+    <main className="gradient-mesh min-h-dvh py-16">
+      <div className="container-narrow">
+        <div className="mx-auto max-w-lg rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass)] p-8 text-center shadow-[var(--shadow)] backdrop-blur-xl">
+          <div className="flex justify-center">
+            <PanoraLogo
+              variant="icon"
+              href={null}
+              tone="auto"
+              imageClassName="h-16 w-auto"
+            />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </main>
   );

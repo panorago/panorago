@@ -111,7 +111,7 @@ export default function AddYourPlacePage() {
 
   if (done) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-24 text-center">
+      <div className="container-narrow py-24 text-center">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
           Received
         </p>
@@ -125,7 +125,7 @@ export default function AddYourPlacePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:py-24">
+    <div className="container-narrow py-16 sm:py-24">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
         Partners
       </p>

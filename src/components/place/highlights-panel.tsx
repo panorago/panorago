@@ -106,7 +106,7 @@ export function HighlightsPanel({
                   {label}
                 </span>
               </div>
-              <p className="text-sm leading-relaxed text-[var(--foreground)]">
+              <p className="long-form text-sm leading-relaxed text-[var(--foreground)]">
                 {highlights[key] as string}
               </p>
             </div>

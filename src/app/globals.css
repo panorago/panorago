@@ -139,6 +139,7 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light;
+  overflow-x: clip;
 }
 
 html.dark {
@@ -191,6 +192,7 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
 }
 
 ::selection {
@@ -232,18 +234,80 @@ h4 {
   text-wrap: balance;
 }
 
+/*
+ * Long-form reading copy (stories, about/legal, notes, enquiry body).
+ * Apply `.long-form` to a paragraph or to a wrapper of paragraphs —
+ * not headlines, nav, buttons, labels, or short UI chrome.
+ *
+ * Mobile: start-aligned (avoid huge word gaps on narrow measures).
+ * sm+ (~640px): justified with soft wrapping / hyphens.
+ */
+.long-form,
+.long-form:where(:not(p, li, blockquote)) > p {
+  text-align: start;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+
+@media (min-width: 40rem) {
+  .long-form,
+  .long-form:where(:not(p, li, blockquote)) > p {
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
+}
+
+.long-form :where(h1, h2, h3, h4),
+.long-form > :where(.font-display),
+.long-form > p.font-display {
+  text-align: start;
+  text-wrap: balance;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+
 .text-muted {
   color: var(--foreground-muted);
 }
 
-.container-panora {
-  width: min(1120px, calc(100% - 2rem));
+/*
+ * Page content rhythm — shared by header, footer, and public pages.
+ * Horizontal padding: px-4 → sm:px-6 → lg:px-8
+ * Max widths: ~6xl (1120) / ~3xl (760)
+ */
+.container-panora,
+.container-narrow {
+  width: 100%;
   margin-inline: auto;
+  padding-inline: 1rem;
+  box-sizing: border-box;
+}
+
+.container-panora {
+  max-width: 1120px;
 }
 
 .container-narrow {
-  width: min(760px, calc(100% - 2rem));
-  margin-inline: auto;
+  max-width: 760px;
+}
+
+@media (min-width: 40rem) {
+  .container-panora,
+  .container-narrow {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .container-panora,
+  .container-narrow {
+    padding-inline: 2rem;
+  }
 }
 
 .focus-ring:focus-visible {

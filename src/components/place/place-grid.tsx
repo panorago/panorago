@@ -42,7 +42,7 @@ export function PlaceGrid({
   return (
     <Stagger
       className={cn(
-        "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6",
+        "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 [&>*]:min-w-0",
         className,
       )}
       fast={reduceMotion ?? false}

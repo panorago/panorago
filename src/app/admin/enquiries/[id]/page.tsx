@@ -95,7 +95,7 @@ export default async function AdminEnquiryDetailPage({ params }: PageProps) {
             <p className="text-xs uppercase tracking-[0.14em] text-muted">
               Special request
             </p>
-            <p className="mt-1 text-sm leading-relaxed">{booking.specialRequest}</p>
+            <p className="long-form mt-1 text-sm leading-relaxed">{booking.specialRequest}</p>
           </div>
         )}
       </section>

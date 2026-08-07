@@ -32,7 +32,7 @@ export function PanoraCircle({
               key={story.id}
               className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 backdrop-blur-md"
             >
-              <p className="text-sm leading-relaxed">{story.body}</p>
+              <p className="long-form text-sm leading-relaxed">{story.body}</p>
               <p className="mt-3 text-xs font-medium text-[var(--accent)]">
                 — {story.authorName}
                 {story.feeling ? ` · ${story.feeling}` : ""}

@@ -24,7 +24,7 @@ export default function AboutPage() {
         <h1 className="mt-3 font-display text-4xl md:text-5xl">
           We sell weekends, not inventory.
         </h1>
-        <div className="mt-8 space-y-5 text-base leading-relaxed text-[var(--foreground-muted)]">
+        <div className="long-form mt-8 space-y-5 text-base leading-relaxed text-[var(--foreground-muted)]">
           <p>
             Panora Go is Zimbabwe&apos;s premium lifestyle discovery platform.
             We hand-curate places worth dressing for — restaurants, escapes,

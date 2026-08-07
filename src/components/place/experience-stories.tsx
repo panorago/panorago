@@ -261,7 +261,7 @@ export function ExperienceStories({
                 {story.likesCount}
               </button>
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--foreground)]">
+            <p className="long-form mt-3 text-sm leading-relaxed text-[var(--foreground)]">
               {story.body}
             </p>
           </motion.li>

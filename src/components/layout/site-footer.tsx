@@ -124,10 +124,10 @@ export function SiteFooter({ className }: SiteFooterProps) {
       )}
     >
       <div className="container-panora py-16 sm:py-20">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1.1fr]">
-          <div className="space-y-5">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
+          <div className="min-w-0 space-y-5">
             <PanoraLogo variant="icon" tone="auto" alt="PGO" />
-            <p className="max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">
+            <p className="long-form max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">
               Zimbabwe&apos;s premium lifestyle discovery platform. We sell
               experiences, memories, weekends, and anticipation — hand-curated
               places with insider notes, never generic listings.
@@ -137,7 +137,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
             </p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-lg">Explore</h2>
             <ul className="mt-4 space-y-2.5">
               {EXPLORE_LINKS.map((link) => (
@@ -153,7 +153,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
             </ul>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-lg">Company</h2>
             <ul className="mt-4 space-y-2.5">
               {COMPANY_LINKS.map((link) => (
@@ -169,7 +169,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
             </ul>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-lg">Concierge</h2>
             <ul className="mt-4 space-y-3 text-sm text-[var(--foreground-muted)]">
               <li>
@@ -195,9 +195,9 @@ export function SiteFooter({ className }: SiteFooterProps) {
               <li>
                 <a
                   href={`mailto:${email}`}
-                  className="focus-ring inline-flex items-center gap-2 transition-colors hover:text-[var(--foreground)]"
+                  className="focus-ring inline-flex min-w-0 items-center gap-2 break-all transition-colors hover:text-[var(--foreground)]"
                 >
-                  <Mail className="h-4 w-4 text-[var(--accent)]" />
+                  <Mail className="h-4 w-4 shrink-0 text-[var(--accent)]" />
                   {email}
                 </a>
               </li>

@@ -94,7 +94,7 @@ export function HomeHero({
 
       <div className="relative z-10 flex min-h-dvh flex-col justify-end pb-16 pt-[calc(var(--nav-height)+2rem)] md:justify-center md:pb-24">
         <motion.div
-          className="container-panora max-w-3xl text-white"
+          className="container-narrow text-white"
           initial="hidden"
           animate="visible"
           variants={prefersReduced ? undefined : staggerContainer}

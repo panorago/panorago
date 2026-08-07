@@ -88,7 +88,7 @@ const WEEKEND = [
 
 export default function ThePanoraWayPage() {
   return (
-    <div className="gradient-mesh pt-[calc(var(--nav-height)+2rem)]">
+    <div className="gradient-mesh pt-8">
       <article className="pb-[var(--space-section)]">
         {/* Hero philosophy */}
         <Reveal className="container-narrow">
@@ -106,7 +106,7 @@ export default function ThePanoraWayPage() {
             <p>A sunset you&apos;ve never seen before.</p>
             <p>A weekend escape that turns into your favourite memory.</p>
           </div>
-          <div className="mt-10 space-y-5 text-base leading-relaxed md:text-lg">
+          <div className="long-form mt-10 space-y-5 text-base leading-relaxed md:text-lg">
             <p>
               Panora Go was created for people who believe life is too short for
               ordinary weekends.
@@ -131,7 +131,7 @@ export default function ThePanoraWayPage() {
             <Reveal
               key={item.title}
               delay={index * 0.06}
-              className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-6 shadow-[var(--shadow)] backdrop-blur-xl md:p-8"
+              className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-6 shadow-[var(--shadow)] backdrop-blur-xl md:p-8"
             >
               <p className="text-2xl" aria-hidden>
                 {item.emoji}
@@ -140,7 +140,7 @@ export default function ThePanoraWayPage() {
               <p className="mt-3 text-base font-medium leading-relaxed">
                 {item.lead}
               </p>
-              <div className="mt-5 space-y-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
+              <div className="long-form mt-5 space-y-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
                 {item.body.map((paragraph) => (
                   <p key={paragraph.slice(0, 40)}>{paragraph}</p>
                 ))}
@@ -173,7 +173,7 @@ export default function ThePanoraWayPage() {
             <p>The quiet conversation over coffee.</p>
             <p>The laughter around a fire.</p>
           </div>
-          <p className="mt-6 text-base leading-relaxed">
+          <p className="long-form mt-6 text-base leading-relaxed">
             Those are the moments that stay with us. That&apos;s why Panora Go
             captures the details most travel platforms ignore.
           </p>
@@ -206,7 +206,7 @@ export default function ThePanoraWayPage() {
           <p className="mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
             Real journeys deserve real information.
           </p>
-          <p className="mt-4 text-base leading-relaxed text-[var(--foreground-muted)]">
+          <p className="long-form mt-4 text-base leading-relaxed text-[var(--foreground-muted)]">
             Beautiful photos only tell half the story. We tell you what you
             actually need to know before you leave home.
           </p>
@@ -240,7 +240,7 @@ export default function ThePanoraWayPage() {
           <p className="mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
             Because your weekends deserve better than endless scrolling.
           </p>
-          <div className="mt-6 space-y-4 text-base leading-relaxed text-[var(--foreground-muted)]">
+          <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-[var(--foreground-muted)]">
             <p>There are thousands of places. But only a few are worth your time.</p>
             <p>
               Panora Go doesn&apos;t overwhelm you with endless listings. We
@@ -275,7 +275,7 @@ export default function ThePanoraWayPage() {
           <p className="mt-4 text-lg leading-relaxed">
             We don&apos;t list places. We introduce experiences.
           </p>
-          <div className="mt-6 space-y-4 text-base leading-relaxed text-[var(--foreground-muted)]">
+          <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-[var(--foreground-muted)]">
             <p>
               Every destination on Panora Go is carefully selected before it
               earns its place on our platform.
@@ -302,7 +302,7 @@ export default function ThePanoraWayPage() {
             <h2 className="mt-3 font-display text-3xl md:text-4xl">
               Our Promise
             </h2>
-            <div className="mt-6 space-y-4 text-base leading-relaxed text-white/80 md:text-lg">
+            <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-white/80 md:text-lg">
               <p>
                 We believe Zimbabwe is filled with extraordinary places waiting
                 to be experienced.

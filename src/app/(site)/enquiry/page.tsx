@@ -21,7 +21,7 @@ export default async function EnquiryPage({
   const placeName = params.place?.trim() ?? "";
 
   return (
-    <div className="gradient-mesh pt-[calc(var(--nav-height)+2rem)]">
+    <div className="gradient-mesh pt-8">
       <div className="container-panora pb-[var(--space-section)]">
         <Reveal className="mx-auto max-w-xl">
           <EnquiryForm initialPlaceName={placeName} />

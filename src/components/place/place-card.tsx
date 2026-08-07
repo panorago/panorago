@@ -38,7 +38,7 @@ export function PlaceCard({
   return (
     <motion.article
       variants={reduceMotion ? undefined : fadeUp}
-      className={cn("group relative", className)}
+      className={cn("group relative min-w-0", className)}
       {...(float && !reduceMotion ? floatSubtle : {})}
     >
       <motion.div
@@ -119,7 +119,7 @@ export function PlaceCard({
               </span>
             </div>
 
-            <h3 className="font-[family-name:var(--font-display)] text-xl leading-tight tracking-tight text-[var(--foreground)]">
+            <h3 className="break-words font-[family-name:var(--font-display)] text-xl leading-tight tracking-tight text-[var(--foreground)]">
               {place.name}
             </h3>
 

@@ -228,12 +228,12 @@ export default async function SmartShareLandingPage({
           aria-hidden
         />
 
-        <div className="relative z-10 flex min-h-[100svh] flex-col justify-end px-4 pb-12 pt-[calc(var(--nav-height)+1.5rem)] sm:px-6 md:px-10">
-          <div className="mx-auto w-full max-w-3xl">
+        <div className="relative z-10 flex min-h-[100svh] flex-col justify-end pb-12 pt-[calc(var(--nav-height)+1.5rem)]">
+          <div className="container-narrow">
             {/* Glass welcome — brand first */}
-            <div className="rounded-[var(--radius-xl)] border border-white/20 bg-white/10 p-6 shadow-[var(--shadow-gold)] backdrop-blur-xl md:p-8">
+            <div className="rounded-[var(--radius-xl)] border border-white/20 bg-white/10 p-4 shadow-[var(--shadow-gold)] backdrop-blur-xl sm:p-6 md:p-8">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-gold)]">
                     Panora Go
                   </p>
@@ -241,7 +241,7 @@ export default async function SmartShareLandingPage({
                     Discover. Connect. Belong.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <SaveButton
                     placeId={place.id}
                     placeName={place.name}
@@ -257,7 +257,7 @@ export default async function SmartShareLandingPage({
                 </div>
               </div>
 
-              <h1 className="mt-5 font-display text-4xl leading-[1.05] text-white md:text-6xl">
+              <h1 className="mt-5 break-words font-display text-4xl leading-[1.05] text-white md:text-6xl">
                 {place.name}
               </h1>
 
@@ -303,13 +303,13 @@ export default async function SmartShareLandingPage({
             <h2 className="mt-2 font-display text-3xl md:text-4xl">
               The Panora Story
             </h2>
-            <div className="mt-6 max-w-2xl space-y-4 text-base leading-relaxed md:text-lg">
+            <div className="long-form mt-6 max-w-2xl space-y-4 text-base leading-relaxed md:text-lg">
               {place.story.split(/\n\n+/).map((paragraph) => (
                 <p key={paragraph.slice(0, 40)}>{paragraph}</p>
               ))}
             </div>
             {place.panoraNotes ? (
-              <p className="mt-6 max-w-2xl rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-5 text-sm leading-relaxed backdrop-blur-md">
+              <p className="long-form mt-6 max-w-2xl rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-4 text-sm leading-relaxed backdrop-blur-md sm:p-5">
                 <span className="font-semibold text-[var(--accent)]">
                   Insider whisper —{" "}
                 </span>
@@ -355,14 +355,16 @@ export default async function SmartShareLandingPage({
                 {practical.map((item) => (
                   <li
                     key={item.label}
-                    className="flex gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-4 backdrop-blur-md"
+                    className="flex min-w-0 gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-4 backdrop-blur-md"
                   >
                     <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" />
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                         {item.label}
                       </p>
-                      <p className="mt-1 text-sm leading-relaxed">{item.value}</p>
+                      <p className="mt-1 break-words text-sm leading-relaxed">
+                        {item.value}
+                      </p>
                     </div>
                   </li>
                 ))}

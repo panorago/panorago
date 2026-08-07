@@ -262,7 +262,7 @@ export function EnquiryBookingForm({
           <h3 className="mt-2 font-display text-2xl leading-tight">
             Your enquiry has been received
           </h3>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--foreground)]">
+          <p className="long-form mt-3 text-sm leading-relaxed text-[var(--foreground)]">
             Thank you for choosing Panora Go. Our Concierge Team is contacting{" "}
             <span className="font-medium">{placeName}</span> to confirm
             availability. We will reach out shortly using your preferred contact
