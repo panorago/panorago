@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
   },
-  // File conventions: app/icon.svg + app/apple-icon.tsx. Theme PNGs reinforce PGO on all chrome.
+  // Tab favicon: icon.svg (readable PGO pin). Homescreen / apple-touch: dark PGO plate.
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -85,7 +85,13 @@ export const metadata: Metadata = {
         media: "(prefers-color-scheme: dark)",
       },
     ],
-    apple: [{ url: "/apple-icon" }],
+    apple: [
+      {
+        url: "/logos/pgo-dark-icon.png",
+        sizes: "256x256",
+        type: "image/png",
+      },
+    ],
   },
   category: "travel",
 };

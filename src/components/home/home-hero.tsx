@@ -12,17 +12,21 @@ import { useEffect, useRef, useState } from "react";
 interface HomeHeroProps {
   heroImage: string;
   /**
-   * Optional MP4/WebM URL. When unset, the Zimbabwe hero photograph is shown
-   * (preferred). Set NEXT_PUBLIC_HERO_VIDEO to opt into video.
+   * Optional MP4/WebM URL. Defaults to the locally hosted Victoria Falls clip.
+   * Override with NEXT_PUBLIC_HERO_VIDEO, or pass explicitly.
    */
   heroVideoSrc?: string;
 }
 
-const OPTIONAL_HERO_VIDEO = process.env.NEXT_PUBLIC_HERO_VIDEO || undefined;
+/** Local Victoria Falls / waterfall hero — drop a rights-safe MP4 at this path to replace. */
+const DEFAULT_HERO_VIDEO = "/videos/hero-victoria-falls.mp4";
+
+const HERO_VIDEO_SRC =
+  process.env.NEXT_PUBLIC_HERO_VIDEO?.trim() || DEFAULT_HERO_VIDEO;
 
 export function HomeHero({
   heroImage,
-  heroVideoSrc = OPTIONAL_HERO_VIDEO,
+  heroVideoSrc = HERO_VIDEO_SRC,
 }: HomeHeroProps) {
   const prefersReduced = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,6 +59,15 @@ export function HomeHero({
           repeatType: "reverse",
         }}
       >
+        {/* Still always present as poster/fallback under video */}
+        <Image
+          src={heroImage}
+          alt="Victoria Falls, Zimbabwe — rainbow over the gorge"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
         {showVideo ? (
           <video
             ref={videoRef}
@@ -70,16 +83,7 @@ export function HomeHero({
           >
             <source src={heroVideoSrc} type="video/mp4" />
           </video>
-        ) : (
-          <Image
-            src={heroImage}
-            alt="Victoria Falls, Zimbabwe — rainbow over the gorge"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center"
-          />
-        )}
+        ) : null}
       </motion.div>
 
       <div

@@ -14,22 +14,16 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["travel", "lifestyle"],
     icons: [
       {
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "any",
-      },
-      {
         src: "/logos/pgo-dark-icon.png",
         sizes: "256x256",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/logos/pgo-light-icon.png",
+        src: "/logos/pgo-dark-icon.png",
         sizes: "256x256",
         type: "image/png",
-        purpose: "any",
+        purpose: "maskable",
       },
     ],
   };

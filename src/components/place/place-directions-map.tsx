@@ -7,6 +7,8 @@ import {
   formatArrivalEstimate,
   getMapsApiKey,
   PANORA_MAP_STYLES,
+  PANORA_PIN_SIZE_LG,
+  panoraMarkerIconOptions,
   panoraMarkerIconUrl,
   panoraMarkerSvg,
   userMarkerSvg,
@@ -271,24 +273,21 @@ export function PlaceDirectionsMap({
         });
 
         const iconUrl = panoraMarkerIconUrl();
+        const pinSize = PANORA_PIN_SIZE_LG;
         const venueMarker = new g.Marker({
           position: venue,
           map,
           title: name,
-          icon: {
-            url: iconUrl,
-            scaledSize: new g.Size(44, 44),
-            anchor: new g.Point(22, 44),
-          },
+          icon: panoraMarkerIconOptions(g, pinSize),
           animation: g.Animation.DROP,
         });
 
         const img = new Image();
         img.onerror = () => {
           venueMarker.setIcon({
-            url: panoraMarkerSvg(52),
-            scaledSize: new g.Size(52, 64),
-            anchor: new g.Point(26, 60),
+            url: panoraMarkerSvg(pinSize.width),
+            scaledSize: new g.Size(pinSize.width, pinSize.height),
+            anchor: new g.Point(pinSize.width / 2, pinSize.height),
           });
         };
         img.src = iconUrl;

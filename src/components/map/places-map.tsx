@@ -10,7 +10,8 @@ import { loadGoogleMaps } from "@/lib/maps/load-google-maps";
 import {
   getMapsApiKey,
   PANORA_MAP_STYLES,
-  panoraMarkerIconUrl,
+  PANORA_PIN_SIZE,
+  panoraMarkerIconOptions,
 } from "@/lib/maps/panora-map";
 import { smartSharePath } from "@/lib/panora/smart-share";
 import { cn, formatPriceGuide } from "@/lib/utils";
@@ -108,11 +109,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
             position,
             map,
             title: place.name,
-            icon: {
-              url: panoraMarkerIconUrl(),
-              scaledSize: new g.Size(40, 40),
-              anchor: new g.Point(20, 40),
-            },
+            icon: panoraMarkerIconOptions(g, PANORA_PIN_SIZE),
           });
           marker.addListener("click", () => setSelectedId(place.id));
           marker.addListener("mouseover", () => {

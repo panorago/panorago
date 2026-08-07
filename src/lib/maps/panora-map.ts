@@ -74,34 +74,45 @@ export function getMapsApiKey(): string | undefined {
   return key || undefined;
 }
 
-/** Prefer PGO brand icon; SVG “P” pin as fallback for data-URI markers. */
+/** Panora P-pin asset (teardrop + lettermark). Aspect 48×60; anchor bottom-center. */
+export const PANORA_PIN_SIZE = { width: 40, height: 50 } as const;
+export const PANORA_PIN_SIZE_LG = { width: 44, height: 55 } as const;
+
 export function panoraMarkerIconUrl(): string {
   if (typeof window !== "undefined") {
-    return `${window.location.origin}/logos/pgo-light-icon.png`;
+    return `${window.location.origin}/images/map/panora-pin.svg`;
   }
-  return "/logos/pgo-light-icon.png";
+  return "/images/map/panora-pin.svg";
 }
 
-/** Gold “P” pin with soft glow — used when image marker is unavailable. */
-export function panoraMarkerSvg(size = 48): string {
+/** Inline SVG data-URI fallback matching `public/images/map/panora-pin.svg`. */
+export function panoraMarkerSvg(width = 48): string {
+  const height = Math.round((width * 60) / 48);
   const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size + 12}" viewBox="0 0 48 60">
-  <defs>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2.2" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  <ellipse cx="24" cy="54" rx="10" ry="3.5" fill="rgba(0,0,0,0.35)"/>
-  <path filter="url(#glow)" d="M24 2C14.06 2 6 10.06 6 20c0 12.5 18 34 18 34s18-21.5 18-34C42 10.06 33.94 2 24 2z"
-    fill="#0A192F" stroke="#C29B62" stroke-width="2.25"/>
-  <circle cx="24" cy="20" r="9.5" fill="#C29B62"/>
-  <text x="24" y="24.5" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="700" fill="#0A192F">P</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 48 60">
+  <ellipse cx="24" cy="56.5" rx="9" ry="2.8" fill="#000000" fill-opacity="0.32"/>
+  <path d="M24 2C14.06 2 6 10.06 6 20c0 12.5 18 34 18 34s18-21.5 18-34C42 10.06 33.94 2 24 2z"
+    fill="#0A192F" stroke="#C29B62" stroke-width="2.25" stroke-linejoin="round"/>
+  <circle cx="24" cy="20" r="10" fill="#C29B62"/>
+  <path fill="#0A192F"
+    d="M19.2 12.6h6.05c3.05 0 5.05 1.7 5.05 4.35 0 2.55-1.9 4.3-5.05 4.3H22.5v6.15h-3.3V12.6zm3.3 6.15h2.55c1.35 0 2.15-.75 2.15-1.85s-.8-1.8-2.15-1.8H22.5v3.65z"/>
 </svg>`.trim();
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+/** Google Maps Icon options with bottom-center tip anchor. */
+export function panoraMarkerIconOptions(
+  g: Pick<
+    import("@/lib/maps/load-google-maps").GoogleMapsBundle,
+    "Size" | "Point"
+  >,
+  size: { width: number; height: number } = PANORA_PIN_SIZE,
+): google.maps.Icon {
+  return {
+    url: panoraMarkerIconUrl(),
+    scaledSize: new g.Size(size.width, size.height),
+    anchor: new g.Point(size.width / 2, size.height),
+  };
 }
 
 export function userMarkerSvg(size = 36): string {
