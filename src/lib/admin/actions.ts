@@ -8,6 +8,7 @@ import {
   type PlaceRow,
   type StoryRow,
 } from "@/lib/data/places";
+import { mapSupabaseAuthError } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type {
   HomepageSection,
@@ -218,12 +219,16 @@ export async function loginAdmin(
     return { ok: false, error: "Email and password are required." };
   }
 
+  const isBootstrapEmail =
+    email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+  let bootstrapError: string | null = null;
+
   try {
     // First-time bootstrap: create launch admin if missing (service role + rate limit).
-    if (email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) {
+    if (isBootstrapEmail) {
       const boot = await ensureBootstrapAdmin(email);
       if (!boot.ok) {
-        // Continue to sign-in if user may already exist; surface bootstrap error only on auth fail.
+        bootstrapError = boot.error;
         console.info("[admin] bootstrap:", boot.error);
       }
     }
@@ -234,7 +239,38 @@ export async function loginAdmin(
       password,
     });
     if (error) {
-      return { ok: false, error: error.message };
+      const authMessage = mapSupabaseAuthError(error.message);
+      const looksMissingUser = /invalid login credentials|invalid_credentials/i.test(
+        error.message,
+      );
+      const looksPath = /invalid path|requested path is invalid|path specified/i.test(
+        error.message,
+      );
+
+      // Prefer actionable bootstrap / env errors over a bare auth failure.
+      if (isBootstrapEmail && bootstrapError) {
+        if (
+          /SERVICE_ROLE|SECRET_KEY|service key|bootstrap/i.test(bootstrapError)
+        ) {
+          return { ok: false, error: bootstrapError };
+        }
+        if (looksPath || looksMissingUser) {
+          return {
+            ok: false,
+            error: `${bootstrapError}${looksMissingUser ? " Sign-in also failed — the launch admin may not exist yet." : ""}`,
+          };
+        }
+      }
+
+      if (isBootstrapEmail && looksMissingUser && !bootstrapError) {
+        return {
+          ok: false,
+          error:
+            "Invalid login credentials. For first-time setup, confirm SUPABASE_SERVICE_ROLE_KEY is set and try again with the launch password, or create the user in the Supabase Auth dashboard (see docs/COMMAND_CENTER.md).",
+        };
+      }
+
+      return { ok: false, error: authMessage };
     }
 
     const userId = signedIn.user?.id;
@@ -259,10 +295,9 @@ export async function loginAdmin(
     ) {
       throw error;
     }
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Login failed.",
-    };
+    const message =
+      error instanceof Error ? error.message : "Login failed.";
+    return { ok: false, error: mapSupabaseAuthError(message) };
   }
 
   redirect("/admin");

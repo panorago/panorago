@@ -1,5 +1,7 @@
 import { BOOTSTRAP_ADMIN_EMAIL } from "@/lib/admin/password";
+import { mapSupabaseAuthError } from "@/lib/supabase/config";
 import { createServiceClient } from "@/lib/supabase/service";
+import type { User } from "@supabase/supabase-js";
 
 /**
  * Server-only module (imported by server actions). Not a "use server" entrypoint
@@ -20,10 +22,22 @@ function isBootstrapRateLimited() {
   return false;
 }
 
+function mapBootstrapAuthError(message: string): string {
+  const mapped = mapSupabaseAuthError(message);
+  if (mapped !== message) return mapped;
+  if (/jwt|api key|not authorized|forbidden|service_role|secret/i.test(message)) {
+    return (
+      "Supabase Auth Admin rejected the service key. Set SUPABASE_SERVICE_ROLE_KEY " +
+      "(legacy JWT) or SUPABASE_SECRET_KEY (sb_secret_…) from Project Settings → API Keys."
+    );
+  }
+  return mapped;
+}
+
 async function findAuthUserByEmail(
   service: NonNullable<ReturnType<typeof createServiceClient>>,
   email: string,
-) {
+): Promise<{ user: User | null; error?: string }> {
   const normalized = email.trim().toLowerCase();
 
   const { data: profile } = await service
@@ -33,8 +47,13 @@ async function findAuthUserByEmail(
     .maybeSingle();
 
   if (profile?.id) {
-    const { data } = await service.auth.admin.getUserById(profile.id as string);
-    if (data?.user) return data.user;
+    const { data, error } = await service.auth.admin.getUserById(
+      profile.id as string,
+    );
+    if (error) {
+      return { user: null, error: mapBootstrapAuthError(error.message) };
+    }
+    if (data?.user) return { user: data.user };
   }
 
   for (let page = 1; page <= 10; page += 1) {
@@ -42,14 +61,17 @@ async function findAuthUserByEmail(
       page,
       perPage: 200,
     });
-    if (error || !data?.users?.length) return null;
+    if (error) {
+      return { user: null, error: mapBootstrapAuthError(error.message) };
+    }
+    if (!data?.users?.length) return { user: null };
     const found = data.users.find(
       (user) => user.email?.toLowerCase() === normalized,
     );
-    if (found) return found;
-    if (data.users.length < 200) return null;
+    if (found) return { user: found };
+    if (data.users.length < 200) return { user: null };
   }
-  return null;
+  return { user: null };
 }
 
 /**
@@ -77,12 +99,16 @@ export async function ensureBootstrapAdmin(
     return {
       ok: false,
       error:
-        "SUPABASE_SERVICE_ROLE_KEY is required for first-time admin bootstrap.",
+        "SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) is required for first-time admin bootstrap. Add it to server env (.env.local / Vercel) — never expose it to the browser.",
     };
   }
 
   try {
-    const existing = await findAuthUserByEmail(service, BOOTSTRAP_ADMIN_EMAIL);
+    const lookup = await findAuthUserByEmail(service, BOOTSTRAP_ADMIN_EMAIL);
+    if (lookup.error) {
+      return { ok: false, error: lookup.error };
+    }
+    const existing = lookup.user;
     const now = new Date().toISOString();
 
     if (existing) {
@@ -135,7 +161,9 @@ export async function ensureBootstrapAdmin(
       }
       return {
         ok: false,
-        error: createError?.message ?? "Failed to create bootstrap admin.",
+        error: mapBootstrapAuthError(
+          createError?.message ?? "Failed to create bootstrap admin.",
+        ),
       };
     }
 

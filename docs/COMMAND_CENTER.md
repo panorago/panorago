@@ -30,15 +30,25 @@ If SQL `insert into storage.buckets` fails (permissions), create the buckets man
 
 | Variable | Where | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Client + server | Required |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | Required |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Ticket/QR uploads; never expose |
+| `NEXT_PUBLIC_SUPABASE_URL` | Client + server | Required — project origin only (`https://xxxx.supabase.co`), no trailing slash, no `/auth/v1` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | Required (`anon` JWT or `sb_publishable_…`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Required for admin bootstrap / create-account / privileged writes (`service_role` JWT). Never expose |
+| `SUPABASE_SECRET_KEY` | **Server only** | Optional alias for new `sb_secret_…` keys when service_role JWT is unused |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Client | Browser Maps key only |
 | `NEXT_PUBLIC_PANORA_WHATSAPP` | Client | Concierge WhatsApp |
 | `NEXT_PUBLIC_PANORA_EMAIL` | Client | Concierge email |
 | `NEXT_PUBLIC_PANORA_PHONE` | Client | Optional |
-| `NEXT_PUBLIC_SITE_URL` | Server | Absolute URLs |
+| `NEXT_PUBLIC_SITE_URL` | Server | Absolute app origin (no trailing slash) |
 | `RESEND_API_KEY` | Server | Optional ESP — without it, mailto/wa.me |
+
+### Supabase Auth URL allowlist
+
+In **Authentication → URL Configuration**:
+
+- **Site URL:** your app origin — `http://localhost:3000` locally, or `https://your-production-domain` in prod (same value as `NEXT_PUBLIC_SITE_URL`).
+- **Redirect URLs:** allowlist at least that origin, e.g. `http://localhost:3000/**` and `https://your-production-domain/**`.
+
+Password sign-in does not send `redirectTo`, but Site URL must still be a valid absolute app URL (not the Supabase project URL).
 
 ## First admin user (bootstrap)
 
