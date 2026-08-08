@@ -18,13 +18,15 @@ const display = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  preload: true,
 });
 
 const body = Outfit({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
+  preload: true,
 });
 
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
@@ -130,7 +132,7 @@ export default function RootLayout({
             defer
             data-domain={plausibleDomain}
             src="https://plausible.io/js/script.js"
-            strategy="afterInteractive"
+            strategy="lazyOnload"
           />
         ) : null}
       </body>

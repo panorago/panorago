@@ -42,7 +42,7 @@ export default function AdminChangePasswordPage() {
         >
           Change your password
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="long-form mt-2 text-sm leading-relaxed text-muted">
           You must set a new password before using Command Center. Use at least
           8 characters, and do not reuse the launch default.
         </p>

@@ -98,10 +98,10 @@ export default function ThePanoraWayPage() {
           <h1 className="mt-3 font-display text-4xl leading-[1.08] md:text-6xl">
             Discover. Connect. Belong.
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-[var(--foreground-muted)] md:text-xl">
+          <p className="long-form mt-6 text-lg leading-relaxed text-[var(--foreground-muted)] md:text-xl">
             Every unforgettable journey begins with curiosity.
           </p>
-          <div className="mt-8 space-y-3 text-base leading-relaxed text-[var(--foreground-muted)] md:text-lg">
+          <div className="long-form mt-8 space-y-3 text-base leading-relaxed text-[var(--foreground-muted)] md:text-lg">
             <p>A hidden café tucked beneath ancient trees.</p>
             <p>A sunset you&apos;ve never seen before.</p>
             <p>A weekend escape that turns into your favourite memory.</p>
@@ -162,7 +162,7 @@ export default function ThePanoraWayPage() {
           <h2 className="mt-3 font-display text-3xl md:text-4xl">
             Atmosphere First
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
+          <p className="long-form mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
             Because people remember how a place felt long after they&apos;ve
             forgotten what it cost.
           </p>
@@ -203,7 +203,7 @@ export default function ThePanoraWayPage() {
           <h2 className="mt-3 font-display text-3xl md:text-4xl">
             Local Honesty
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
+          <p className="long-form mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
             Real journeys deserve real information.
           </p>
           <p className="long-form mt-4 text-base leading-relaxed text-[var(--foreground-muted)]">
@@ -223,7 +223,7 @@ export default function ThePanoraWayPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-base font-medium">
+          <p className="long-form mt-6 text-base font-medium leading-relaxed">
             No surprises. No exaggerated promises. Just honest information from
             people who know the journey.
           </p>
@@ -237,7 +237,7 @@ export default function ThePanoraWayPage() {
           <h2 className="mt-3 font-display text-3xl md:text-4xl">
             Weekends With Intent
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
+          <p className="long-form mt-4 text-lg leading-relaxed text-[var(--foreground-muted)]">
             Because your weekends deserve better than endless scrolling.
           </p>
           <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-[var(--foreground-muted)]">
@@ -272,7 +272,7 @@ export default function ThePanoraWayPage() {
           <h2 className="mt-3 font-display text-3xl md:text-4xl">
             Curated With Care
           </h2>
-          <p className="mt-4 text-lg leading-relaxed">
+          <p className="long-form mt-4 text-lg leading-relaxed">
             We don&apos;t list places. We introduce experiences.
           </p>
           <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-[var(--foreground-muted)]">
@@ -302,7 +302,7 @@ export default function ThePanoraWayPage() {
             <h2 className="mt-3 font-display text-3xl md:text-4xl">
               Our Promise
             </h2>
-            <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-white/80 md:text-lg">
+            <div className="long-form mt-6 space-y-4 text-base leading-relaxed text-white/90 md:text-lg">
               <p>
                 We believe Zimbabwe is filled with extraordinary places waiting
                 to be experienced.

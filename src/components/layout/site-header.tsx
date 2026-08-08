@@ -35,9 +35,11 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   useEffect(() => {
     // Sync immediately (restored scroll / mid-page nav) so glass chrome never
     // keeps a stale on-dark wordmark over the light header.
+    // Only commit when the boolean flips — avoids scroll-driven re-renders.
     setScrolled(scrollY.get() > 24);
     return scrollY.on("change", (y) => {
-      setScrolled(y > 24);
+      const next = y > 24;
+      setScrolled((prev) => (prev === next ? prev : next));
     });
   }, [scrollY]);
 
@@ -67,20 +69,21 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   }
 
   /**
-   * Inverse mark only while the transparent bar sits on a full-bleed dark hero.
-   * Once scrolled, glass chrome follows theme (`auto`) — never keep on-dark on
-   * the light/frosted header.
+   * Inverse mark only while the transparent bar sits on a full-bleed dark surface.
+   * Once glass chrome is active, follow theme (`auto`) — never keep on-dark on
+   * the frosted pill (light or dark theme).
    */
-  const overDarkHero =
+  const overDarkSurface =
     pathname === "/" ||
+    pathname === "/map" ||
+    pathname.startsWith("/map/") ||
     pathname.startsWith("/panoras/") ||
     pathname.startsWith("/p/");
+  const glassActive = scrolled || open;
   const logoTone =
-    !scrolled && !open && overDarkHero
+    !glassActive && overDarkSurface
       ? ("on-dark" as const)
       : ("auto" as const);
-
-  const glassActive = scrolled || open;
 
   return (
     <header
@@ -94,7 +97,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       <div className="pointer-events-auto mx-auto w-full max-w-[1120px]">
         <div
           className={cn(
-            "rounded-full border transition-[background-color,backdrop-filter,border-color,box-shadow,-webkit-backdrop-filter] duration-300",
+            "rounded-full border transition-[background-color,backdrop-filter,border-color,box-shadow,-webkit-backdrop-filter] duration-150",
             glassActive
               ? "border-[var(--border)] bg-[var(--glass-strong)] shadow-[var(--nav-shadow)] backdrop-blur-2xl"
               : "border-transparent bg-transparent shadow-none",
@@ -115,15 +118,16 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   <Link
                     key={link.label}
                     href={link.href}
+                    prefetch
                     className={cn(
                       "focus-ring relative rounded-[var(--radius-sm)] px-3.5 py-2 text-sm font-medium transition-colors",
                       active
                         ? "text-[var(--foreground)]"
                         : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]",
-                      !glassActive && overDarkHero
+                      !glassActive && overDarkSurface
                         ? active
                           ? "text-white"
-                          : "text-white/70 hover:text-white"
+                          : "text-white/85 hover:text-white"
                         : null,
                     )}
                   >
@@ -155,8 +159,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   pathname === "/saved" || pathname.startsWith("/saved/")
                     ? "border-[var(--accent)] text-[var(--accent)]"
                     : null,
-                  !glassActive && overDarkHero
-                    ? "border-white/20 bg-white/10 text-white/80 hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  !glassActive && overDarkSurface
+                    ? "border-white/25 bg-white/12 text-white hover:border-[var(--accent)] hover:text-[var(--accent)]"
                     : null,
                 )}
               >
@@ -169,8 +173,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                 size="sm"
                 className={cn(
                   "hidden md:inline-flex",
-                  !glassActive && overDarkHero
-                    ? "text-white/80 hover:bg-white/10 hover:text-white"
+                  !glassActive && overDarkSurface
+                    ? "text-white hover:bg-white/10 hover:text-white"
                     : null,
                 )}
               >
@@ -183,8 +187,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   size="sm"
                   className={cn(
                     "hidden sm:inline-flex",
-                    !glassActive && overDarkHero
-                      ? "border-white/25 text-white hover:bg-white/10"
+                    !glassActive && overDarkSurface
+                      ? "border-white/30 text-white hover:bg-white/10"
                       : null,
                   )}
                 >
@@ -197,8 +201,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   size="sm"
                   className={cn(
                     "hidden sm:inline-flex",
-                    !glassActive && overDarkHero
-                      ? "border-white/25 text-white hover:bg-white/10"
+                    !glassActive && overDarkSurface
+                      ? "border-white/30 text-white hover:bg-white/10"
                       : null,
                   )}
                   onClick={() =>
@@ -215,7 +219,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                 href="/enquiry"
                 variant="gold"
                 size="sm"
-                className="hidden sm:inline-flex"
+                className="hidden sm:inline-flex opacity-100"
               >
                 Enquiry
               </Button>
@@ -223,8 +227,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                 type="button"
                 className={cn(
                   "focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] lg:hidden",
-                  !glassActive && overDarkHero
-                    ? "border-white/20 bg-white/10 text-white"
+                  !glassActive && overDarkSurface
+                    ? "border-white/25 bg-white/12 text-white"
                     : null,
                 )}
                 aria-expanded={open}

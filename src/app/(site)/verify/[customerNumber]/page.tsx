@@ -90,7 +90,7 @@ export default async function VerifyPage({ params, searchParams }: PageProps) {
     return (
       <Shell>
         <h1 className="mt-6 font-display text-3xl">Ticket not found</h1>
-        <p className="mt-3 text-sm text-muted">
+        <p className="long-form mt-3 text-sm leading-relaxed text-muted">
           We could not verify{" "}
           <span className="font-semibold text-[var(--accent)]">
             {customerNumber || "this code"}
@@ -265,7 +265,7 @@ function OfflineTicketCard({
         </div>
 
         <div className="space-y-5 px-8 py-8">
-          <p className="text-sm text-muted">
+          <p className="long-form text-sm leading-relaxed text-muted">
             This code is valid, but we could not load the live booking record
             (offline, seed, or sync delay). Present your Customer Number to
             Concierge.

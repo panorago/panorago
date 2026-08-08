@@ -23,6 +23,72 @@ type ProgressiveImageProps = Omit<ImageProps, "onLoad" | "placeholder"> & {
   blurDataURL?: string;
 };
 
+function ParallaxImage({
+  className,
+  parallaxStrength,
+  fadeDuration,
+  blurDataURL,
+  alt,
+  fill,
+  width,
+  height,
+  loaded,
+  onLoaded,
+  reduceMotion,
+  ...props
+}: ProgressiveImageProps & {
+  loaded: boolean;
+  onLoaded: () => void;
+  reduceMotion: boolean | null;
+  parallaxStrength: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const y = useTransform(
+    scrollYProgress,
+    [0, 1],
+    reduceMotion ? [0, 0] : [parallaxStrength, -parallaxStrength],
+  );
+  const duration = fadeDuration ?? motionTokens.duration.slow;
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "overflow-hidden",
+        fill && "relative h-full w-full",
+      )}
+    >
+      <motion.div
+        className={cn(fill ? "absolute inset-0" : "relative", "will-change-transform")}
+        style={{ y }}
+      >
+        <Image
+          alt={alt}
+          fill={fill}
+          width={fill ? undefined : width}
+          height={fill ? undefined : height}
+          placeholder="blur"
+          blurDataURL={blurDataURL}
+          onLoad={onLoaded}
+          className={cn(
+            "object-cover transition-opacity",
+            loaded ? "opacity-100" : "opacity-0",
+            className,
+          )}
+          style={{
+            transitionDuration: reduceMotion ? "0ms" : `${duration * 1000}ms`,
+          }}
+          {...props}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
 export function ProgressiveImage({
   className,
   containerClassName,
@@ -38,62 +104,57 @@ export function ProgressiveImage({
 }: ProgressiveImageProps) {
   const [loaded, setLoaded] = useState(false);
   const reduceMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"],
-  });
-
-  const y = useTransform(
-    scrollYProgress,
-    [0, 1],
-    reduceMotion || !parallax
-      ? [0, 0]
-      : [parallaxStrength, -parallaxStrength],
-  );
-
   const duration = fadeDuration ?? motionTokens.duration.slow;
 
-  const image = (
-    <motion.div
-      className={cn(
-        fill ? "absolute inset-0" : "relative",
-        parallax && "will-change-transform",
-      )}
-      style={parallax && !reduceMotion ? { y } : undefined}
-    >
-      <Image
-        alt={alt}
-        fill={fill}
-        width={fill ? undefined : width}
-        height={fill ? undefined : height}
-        placeholder="blur"
-        blurDataURL={blurDataURL}
-        onLoad={() => setLoaded(true)}
-        className={cn(
-          "object-cover transition-opacity",
-          loaded ? "opacity-100" : "opacity-0",
-          className,
-        )}
-        style={{
-          transitionDuration: reduceMotion ? "0ms" : `${duration * 1000}ms`,
-        }}
-        {...props}
-      />
-    </motion.div>
-  );
+  if (parallax && !reduceMotion) {
+    return (
+      <div className={cn(fill && "relative h-full w-full", containerClassName)}>
+        <ParallaxImage
+          className={className}
+          parallaxStrength={parallaxStrength}
+          fadeDuration={fadeDuration}
+          blurDataURL={blurDataURL}
+          alt={alt}
+          fill={fill}
+          width={width}
+          height={height}
+          loaded={loaded}
+          onLoaded={() => setLoaded(true)}
+          reduceMotion={reduceMotion}
+          {...props}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
-      ref={ref}
       className={cn(
         "overflow-hidden",
         fill && "relative h-full w-full",
         containerClassName,
       )}
     >
-      {image}
+      <div className={cn(fill ? "absolute inset-0" : "relative")}>
+        <Image
+          alt={alt}
+          fill={fill}
+          width={fill ? undefined : width}
+          height={fill ? undefined : height}
+          placeholder="blur"
+          blurDataURL={blurDataURL}
+          onLoad={() => setLoaded(true)}
+          className={cn(
+            "object-cover transition-opacity",
+            loaded ? "opacity-100" : "opacity-0",
+            className,
+          )}
+          style={{
+            transitionDuration: reduceMotion ? "0ms" : `${duration * 1000}ms`,
+          }}
+          {...props}
+        />
+      </div>
     </div>
   );
 }

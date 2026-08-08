@@ -1,11 +1,24 @@
 "use client";
 
-import { LocationMapPicker } from "@/components/admin/location-map-picker";
+import dynamic from "next/dynamic";
 import { MediaDropzone } from "@/components/admin/media-dropzone";
 import { Button } from "@/components/ui/button";
 import type { Place, PricingItem } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
+
+const LocationMapPicker = dynamic(
+  () =>
+    import("@/components/admin/location-map-picker").then((m) => ({
+      default: m.LocationMapPicker,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-56 animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)]" />
+    ),
+  },
+);
 
 const CATEGORIES = [
   "dining",

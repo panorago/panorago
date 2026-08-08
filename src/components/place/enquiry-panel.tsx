@@ -26,7 +26,7 @@ export function EnquiryPanel({
       <h2 className="mt-2 font-display text-2xl leading-tight">
         Plan your visit to {placeName}
       </h2>
-      <p className="mt-2 text-sm text-muted">
+      <p className="long-form mt-2 text-sm leading-relaxed text-muted">
         Share a few details — we confirm availability with the venue, then send
         your Panora ticket.
       </p>

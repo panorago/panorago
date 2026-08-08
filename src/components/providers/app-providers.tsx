@@ -68,7 +68,7 @@ function ThemeTransitionOverlay() {
             initial={{ scale: 0, opacity: 0.9 }}
             animate={{ scale: 1, opacity: 0 }}
             transition={{
-              duration: motionTokens.duration.slower,
+              duration: motionTokens.duration.base,
               ease: motionTokens.ease.premium,
             }}
           />
@@ -90,7 +90,7 @@ export function AppProviders({ children, themeProps }: AppProvidersProps) {
       defaultTheme="system"
       enableSystem
       enableColorScheme
-      disableTransitionOnChange={false}
+      disableTransitionOnChange
       {...themeProps}
     >
       <AuthProvider>

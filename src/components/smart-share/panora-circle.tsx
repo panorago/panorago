@@ -20,7 +20,7 @@ export function PanoraCircle({
         Belong
       </p>
       <h2 className="mt-2 font-display text-3xl md:text-4xl">Panora Circle</h2>
-      <p className="mt-2 max-w-xl text-sm text-muted">
+      <p className="long-form mt-2 max-w-xl text-sm leading-relaxed text-muted">
         Moments from travellers who found {placeName} — not star ratings, living
         stories.
       </p>
@@ -42,7 +42,7 @@ export function PanoraCircle({
         </ul>
       ) : (
         <div className="mt-6 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--glass)] p-6 text-sm text-muted">
-          <p>
+          <p className="long-form leading-relaxed">
             The Circle is waiting for its first chapter here. When you go, leave
             a moment — not a review.
           </p>

@@ -21,6 +21,7 @@ import type {
   PlaceContact,
   PlaceHighlights,
 } from "@/types";
+import { revalidatePublicPlaces } from "@/lib/data/revalidate-places";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import slugify from "slugify";
@@ -436,8 +437,7 @@ export async function createPlace(formData: FormData): Promise<ActionResult> {
 
     if (error) return { ok: false, error: error.message };
 
-    revalidatePath("/");
-    revalidatePath("/discover");
+    revalidatePublicPlaces(payload.slug);
     revalidatePath("/admin");
     revalidatePath("/admin/places");
 
@@ -461,9 +461,7 @@ export async function updatePlace(
     const { error } = await supabase.from("places").update(payload).eq("id", id);
     if (error) return { ok: false, error: error.message };
 
-    revalidatePath("/");
-    revalidatePath("/discover");
-    revalidatePath(`/panoras/${payload.slug}`);
+    revalidatePublicPlaces(payload.slug);
     revalidatePath("/admin/places");
     revalidatePath(`/admin/places/${id}`);
 
@@ -487,8 +485,7 @@ export async function setPlacePublished(
       .update({ published, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
-    revalidatePath("/discover");
+    revalidatePublicPlaces();
     revalidatePath("/admin/places");
     return {
       ok: true,
@@ -507,8 +504,7 @@ export async function deletePlace(id: string): Promise<ActionResult> {
     const { supabase } = await requireAdmin();
     const { error } = await supabase.from("places").delete().eq("id", id);
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
-    revalidatePath("/discover");
+    revalidatePublicPlaces();
     revalidatePath("/admin/places");
     return { ok: true, message: "Place deleted." };
   } catch (error) {
@@ -858,9 +854,8 @@ export async function importPlacesCsv(
     const { error } = await supabase.from("places").insert(payloads);
     if (error) return { ok: false, error: error.message };
 
+    revalidatePublicPlaces();
     revalidatePath("/admin/places");
-    revalidatePath("/discover");
-    revalidatePath("/");
 
     return {
       ok: true,

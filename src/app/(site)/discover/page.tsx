@@ -8,6 +8,8 @@ import type { MoodTag } from "@/types";
 import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
+export const revalidate = 120;
+
 export const metadata: Metadata = {
   title: "Discover Zimbabwe places",
   description:

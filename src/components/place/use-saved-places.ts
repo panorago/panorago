@@ -123,10 +123,31 @@ export function getSavedPlaceIds(): string[] {
   return getSnapshot();
 }
 
-/** Replace the full wishlist (e.g. after server sync). */
+/** Replace the full wishlist (e.g. after server sync that already unions local∪remote). */
 export function replaceSavedPlaceIds(ids: string[]) {
   if (typeof window === "undefined") return;
-  writeSaved([...new Set(ids.filter((id) => typeof id === "string"))]);
+  writeSaved([...new Set(ids.filter((id) => typeof id === "string" && id))]);
+}
+
+/** Union into the wishlist without dropping existing local ids. */
+export function mergeSavedPlaceIds(ids: string[]) {
+  if (typeof window === "undefined") return getSnapshot();
+  const merged = [
+    ...new Set([
+      ...getSnapshot(),
+      ...ids.filter((id) => typeof id === "string" && id),
+    ]),
+  ];
+  writeSaved(merged);
+  return merged;
+}
+
+/** Ensure a single id is present locally (idempotent). */
+export function ensureSavedPlaceId(placeId: string) {
+  if (typeof window === "undefined" || !placeId) return;
+  const current = getSnapshot();
+  if (current.includes(placeId)) return;
+  writeSaved([...current, placeId]);
 }
 
 /** Hydration-safe saved check for first paint */

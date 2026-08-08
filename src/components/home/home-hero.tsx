@@ -113,7 +113,7 @@ export function HomeHero({
           </motion.h1>
           <motion.p
             variants={prefersReduced ? undefined : fadeUp}
-            className="mt-5 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg"
+            className="long-form mt-5 max-w-xl text-base leading-relaxed text-white/92 sm:text-lg"
           >
             Panora Go — curated tourism across Panora Zimbabwe. Discover
             places worth the weekend.

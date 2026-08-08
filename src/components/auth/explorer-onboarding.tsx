@@ -124,7 +124,7 @@ export function ExplorerOnboarding({
           <h2 className="mt-2 font-display text-3xl text-[var(--foreground)]">
             Welcome to Panora.
           </h2>
-          <p className="mt-2 max-w-lg text-sm text-[var(--foreground-muted)]">
+          <p className="long-form mt-2 max-w-lg text-sm leading-relaxed text-[var(--foreground-muted)]">
             Discover. Connect. Belong. Pick a few vibes so we can shape your
             journey.
           </p>

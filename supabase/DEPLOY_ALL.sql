@@ -1823,3 +1823,30 @@ create policy "stories_explorer_insert"
     and (author_user_id is null or author_user_id = auth.uid())
     and published = false
   );
+
+-- ---------------------------------------------------------------------------
+-- 015 wishlist save hardening (no FK; place_id text)
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  fk_name text;
+begin
+  select c.conname into fk_name
+  from pg_constraint c
+  join pg_class t on t.oid = c.conrelid
+  join pg_namespace n on n.oid = t.relnamespace
+  where n.nspname = 'public'
+    and t.relname = 'wishlists'
+    and c.contype = 'f'
+    and pg_get_constraintdef(c.oid) ilike '%place_id%';
+
+  if fk_name is not null then
+    execute format('alter table public.wishlists drop constraint %I', fk_name);
+  end if;
+end $$;
+
+alter table public.wishlists
+  alter column place_id type text using place_id::text;
+
+comment on column public.wishlists.place_id is
+  'Saved place id (UUID or client/seed key). No FK — missing places rows must not block wishlist sync.';

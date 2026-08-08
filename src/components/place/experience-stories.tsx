@@ -225,7 +225,7 @@ export function ExperienceStories({
         <h2 className="mt-2 font-display text-3xl md:text-4xl">
           Experiences at {placeName}
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
+        <p className="long-form mt-2 max-w-2xl text-sm leading-relaxed text-muted">
           Real moments from guests — no star ratings, just stories worth
           reading before you go.
         </p>

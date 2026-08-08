@@ -30,6 +30,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+export const revalidate = 120;
+
 export async function generateStaticParams() {
   const places = await getPublishedPlaces().catch(() =>
     SEED_PLACES.filter((p) => p.published),
@@ -175,7 +177,7 @@ export default async function PlacePage({
           <h1 className="mt-4 break-words font-display text-4xl leading-tight md:text-6xl">
             {place.name}
           </h1>
-          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-white/85">
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-white/92">
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-4 w-4" />
               {place.location}, {place.city}

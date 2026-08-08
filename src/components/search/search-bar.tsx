@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Search, X } from "lucide-react";
 import {
+  useDeferredValue,
   useEffect,
   useId,
   useRef,
@@ -60,6 +61,7 @@ export function SearchBar({
   const [expanded, setExpanded] = useState(defaultExpanded || autoFocus || large);
   const [query, setQuery] = useState(initialQuery ?? defaultQuery);
   const [focused, setFocused] = useState(false);
+  const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     if (initialQuery != null) setQuery(initialQuery);
@@ -76,9 +78,9 @@ export function SearchBar({
     focused && query.trim().length === 0 && SUGGESTIONS.length > 0;
 
   const filtered =
-    query.trim().length > 0
+    deferredQuery.trim().length > 0
       ? SUGGESTIONS.filter((s) =>
-          s.toLowerCase().includes(query.trim().toLowerCase()),
+          s.toLowerCase().includes(deferredQuery.trim().toLowerCase()),
         )
       : [];
 

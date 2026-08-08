@@ -37,6 +37,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+export const revalidate = 120;
+
 export async function generateStaticParams() {
   const places = await getPublishedPlaces().catch(() =>
     SEED_PLACES.filter((p) => p.published),
@@ -237,7 +239,7 @@ export default async function SmartShareLandingPage({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-gold)]">
                     Panora Go
                   </p>
-                  <p className="mt-1 text-xs tracking-wide text-white/65">
+                  <p className="mt-1 text-xs tracking-wide text-white/85">
                     Discover. Connect. Belong.
                   </p>
                 </div>
@@ -264,7 +266,7 @@ export default async function SmartShareLandingPage({
                 {place.name}
               </h1>
 
-              <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/85">
+              <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/92">
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 text-[var(--brand-gold)]" />
                   {place.location}, {place.city}
@@ -327,7 +329,7 @@ export default async function SmartShareLandingPage({
               Atmosphere
             </p>
             <h2 className="mt-2 font-display text-3xl">How it feels</h2>
-            <p className="mt-2 max-w-xl text-sm text-muted">
+            <p className="long-form mt-2 max-w-xl text-sm leading-relaxed text-muted">
               Because people remember how a place felt long after they&apos;ve
               forgotten what it cost.
             </p>

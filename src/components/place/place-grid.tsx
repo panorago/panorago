@@ -32,7 +32,7 @@ export function PlaceGrid({
         <p className="font-[family-name:var(--font-display)] text-2xl text-[var(--foreground)]">
           {emptyTitle}
         </p>
-        <p className="mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
+        <p className="long-form mt-3 text-sm leading-relaxed text-[var(--foreground-muted)]">
           {emptyDescription}
         </p>
       </div>

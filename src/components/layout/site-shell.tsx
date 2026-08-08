@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
+import { BackToTopDynamic } from "@/components/layout/back-to-top-dynamic";
 import { BottomNav } from "@/components/layout/bottom-nav";
-import { BackToTop } from "@/components/layout/back-to-top";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
 import { cn } from "@/lib/utils";
 
 type SiteShellProps = {
@@ -39,7 +39,7 @@ export function SiteShell({
       </main>
       {hideFooter ? null : <SiteFooter />}
       <BottomNav />
-      <BackToTop />
+      <BackToTopDynamic />
     </div>
   );
 }

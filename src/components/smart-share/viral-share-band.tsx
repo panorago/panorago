@@ -18,7 +18,7 @@ export function ViralShareBand({ place }: ViralShareBandProps) {
         <h2 className="mt-3 font-display text-2xl md:text-3xl">
           Know someone who would love this place?
         </h2>
-        <p className="mt-3 max-w-lg text-sm text-white/70">
+        <p className="long-form mt-3 max-w-lg text-sm leading-relaxed text-white/90">
           Send them a beautiful Panora page — story, atmosphere, and nearby gems
           — before they open Maps.
         </p>
@@ -28,9 +28,10 @@ export function ViralShareBand({ place }: ViralShareBandProps) {
             label="Share the discovery"
             variant="accent"
             size="lg"
+            className="opacity-100"
           />
         </div>
-        <p className="mt-6 text-xs tracking-wide text-white/45">
+        <p className="mt-6 text-xs tracking-wide text-white/70">
           Discover. Connect. Belong.
         </p>
       </div>

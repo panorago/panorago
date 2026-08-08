@@ -248,7 +248,8 @@ export function AuthModal({
             variant="full"
             href={null}
             tone="auto"
-            imageClassName="h-8 w-auto"
+            priority
+            imageClassName="h-8 w-auto opacity-100"
           />
         </div>
 
@@ -319,7 +320,7 @@ export function AuthModal({
         >
           {headlineFor(intent, welcomeBack)}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">
+        <p className="long-form mt-2 text-sm leading-relaxed text-[var(--foreground-muted)]">
           {subtitleFor(intent, welcomeBack)}
         </p>
 

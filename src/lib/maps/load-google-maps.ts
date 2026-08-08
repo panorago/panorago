@@ -15,9 +15,23 @@ export type GoogleMapsBundle = {
   places?: typeof google.maps.places;
 };
 
+type LoadGoogleMapsOpts = {
+  /** Load Places library (admin pickers / nearby). */
+  places?: boolean;
+  /**
+   * Load Directions / Routes. Default true for place detail maps;
+   * explore map can skip until a pin is selected.
+   */
+  routes?: boolean;
+};
+
+function routesNotLoaded(): never {
+  throw new Error("Google Maps routes library was not loaded");
+}
+
 export async function loadGoogleMaps(
   apiKey: string,
-  opts?: { places?: boolean },
+  opts?: LoadGoogleMapsOpts,
 ): Promise<GoogleMapsBundle> {
   if (configuredKey !== apiKey) {
     setOptions({
@@ -27,11 +41,13 @@ export async function loadGoogleMaps(
     configuredKey = apiKey;
   }
 
-  const [mapsLib, markerLib, routesLib, coreLib] = await Promise.all([
+  const wantRoutes = opts?.routes !== false;
+
+  const [mapsLib, markerLib, coreLib, routesLib] = await Promise.all([
     importLibrary("maps"),
     importLibrary("marker"),
-    importLibrary("routes"),
     importLibrary("core"),
+    wantRoutes ? importLibrary("routes") : Promise.resolve(null),
   ]);
 
   let places: typeof google.maps.places | undefined;
@@ -43,9 +59,15 @@ export async function loadGoogleMaps(
     Map: mapsLib.Map,
     Marker: markerLib.Marker,
     Animation: markerLib.Animation,
-    DirectionsService: routesLib.DirectionsService,
-    DirectionsRenderer: routesLib.DirectionsRenderer,
-    TravelMode: routesLib.TravelMode,
+    DirectionsService: routesLib
+      ? routesLib.DirectionsService
+      : (routesNotLoaded as unknown as typeof google.maps.DirectionsService),
+    DirectionsRenderer: routesLib
+      ? routesLib.DirectionsRenderer
+      : (routesNotLoaded as unknown as typeof google.maps.DirectionsRenderer),
+    TravelMode: routesLib
+      ? routesLib.TravelMode
+      : (routesNotLoaded as unknown as typeof google.maps.TravelMode),
     LatLngBounds: coreLib.LatLngBounds,
     Size: coreLib.Size,
     Point: coreLib.Point,

@@ -11,6 +11,7 @@ import type { ExplorerProfile } from "@/lib/auth/profile";
 import { syncWishlistAction } from "@/lib/auth/wishlist";
 import {
   getSavedPlaceIds,
+  mergeSavedPlaceIds,
   replaceSavedPlaceIds,
 } from "@/components/place/use-saved-places";
 
@@ -35,6 +36,10 @@ export function ExplorerProfileClient() {
       if (synced.ok) {
         replaceSavedPlaceIds(synced.placeIds);
         setSavedCount(synced.placeIds.length);
+      } else {
+        const merged = mergeSavedPlaceIds(synced.placeIds ?? local);
+        setSavedCount(merged.length);
+        console.warn("[wishlist] explorer sync deferred", synced.error);
       }
     })();
   }, [user]);
@@ -54,7 +59,7 @@ export function ExplorerProfileClient() {
           Explorer Profile
         </p>
         <h1 className="mt-2 font-display text-4xl">Join Panora</h1>
-        <p className="mt-3 max-w-lg text-sm text-muted">
+        <p className="long-form mt-3 max-w-lg text-sm leading-relaxed text-muted">
           Save places, send enquiries, and belong in the Circle — browsing stays
           free for everyone.
         </p>
@@ -147,7 +152,7 @@ export function ExplorerProfileClient() {
             <Sparkles className="mt-0.5 h-5 w-5 text-[var(--accent)]" />
             <div>
               <p className="font-display text-xl">Collections coming</p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="long-form mt-1 text-sm leading-relaxed text-muted">
                 Visited, Weekend Ideas, and custom lists — scaffolded for a
                 later release. Your wishlist is live today.
               </p>

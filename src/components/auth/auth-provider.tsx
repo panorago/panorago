@@ -31,7 +31,9 @@ import {
 import type { ExplorerProfile } from "@/lib/auth/profile";
 import { syncWishlistAction } from "@/lib/auth/wishlist";
 import {
+  ensureSavedPlaceId,
   getSavedPlaceIds,
+  mergeSavedPlaceIds,
   replaceSavedPlaceIds,
 } from "@/components/place/use-saved-places";
 import { createClient } from "@/lib/supabase/client";
@@ -106,6 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [intent, setIntent] = useState<AuthIntent | null>(null);
   const [modalMounted, setModalMounted] = useState(false);
   const fulfilling = useRef(false);
+  const fulfillQueued = useRef(false);
+  const queuedPending = useRef<AuthIntent | null>(null);
+  const initialSyncDone = useRef(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -140,40 +145,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * After Join / Welcome Back: merge local wishlist + pending save into Supabase,
-   * then keep localStorage as the single client source of truth.
+   * then keep localStorage as the single client source of truth (local ∪ remote).
    */
   const fulfillIntent = useCallback(
     async (pending: AuthIntent | null) => {
-      if (fulfilling.current) return;
+      if (fulfilling.current) {
+        // Another fulfill is in flight (SIGNED_IN + onAuthenticated race).
+        // Queue one more pass so a late save intent is not dropped.
+        fulfillQueued.current = true;
+        if (pending) queuedPending.current = pending;
+        return;
+      }
       fulfilling.current = true;
       try {
-        const pendingSaveId =
-          (pending?.kind === "save" && pending.place?.placeId) ||
-          readPendingSavePlaceId();
+        let active = pending;
+        do {
+          fulfillQueued.current = false;
+          if (queuedPending.current) {
+            active = queuedPending.current;
+            queuedPending.current = null;
+          }
 
-        let local = getSavedPlaceIds();
-        if (pendingSaveId && !local.includes(pendingSaveId)) {
-          local = [...local, pendingSaveId];
-        }
-        replaceSavedPlaceIds(local);
+          const storedIntent = readAuthIntent();
+          const pendingSaveId =
+            (active?.kind === "save" && active.place?.placeId) ||
+            readPendingSavePlaceId() ||
+            (storedIntent?.kind === "save"
+              ? storedIntent.place?.placeId
+              : null);
 
-        const returnTo = pending?.returnTo;
+          if (pendingSaveId) {
+            ensureSavedPlaceId(pendingSaveId);
+          }
 
-        const synced = await syncWishlistAction(local);
-        if (synced.ok) {
-          replaceSavedPlaceIds(synced.placeIds);
-        } else {
-          // One retry — cookie/session can lag a beat after OAuth.
-          const retry = await syncWishlistAction(getSavedPlaceIds());
-          if (retry.ok) replaceSavedPlaceIds(retry.placeIds);
-        }
+          const local = getSavedPlaceIds();
+          const returnTo =
+            active?.returnTo || storedIntent?.returnTo || undefined;
 
-        clearAuthIntent();
-        clearPendingSavePlaceId();
+          const synced = await syncWishlistAction(local);
+          if (synced.ok) {
+            replaceSavedPlaceIds(synced.placeIds);
+          } else {
+            console.warn("[wishlist] post-auth sync failed, retrying", synced.error);
+            // Keep every local id; retry once for cookie/session lag after OAuth
+            mergeSavedPlaceIds(synced.placeIds ?? local);
+            await new Promise((r) => window.setTimeout(r, 350));
+            const retry = await syncWishlistAction(getSavedPlaceIds());
+            if (retry.ok) {
+              replaceSavedPlaceIds(retry.placeIds);
+            } else {
+              mergeSavedPlaceIds(retry.placeIds ?? getSavedPlaceIds());
+              console.warn("[wishlist] post-auth sync retry failed", retry.error);
+            }
+          }
 
-        if (returnTo && returnTo.startsWith("/") && returnTo !== pathname) {
-          router.push(returnTo);
-        }
+          clearAuthIntent();
+          clearPendingSavePlaceId();
+
+          if (returnTo && returnTo.startsWith("/") && returnTo !== pathname) {
+            router.push(returnTo);
+          }
+
+          active = null;
+        } while (fulfillQueued.current);
       } finally {
         fulfilling.current = false;
       }
@@ -188,6 +222,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (resolved.kind === "save" && resolved.place?.placeId) {
       writePendingSavePlaceId(resolved.place.placeId);
+      // Local save must never wait on OAuth round-trip
+      ensureSavedPlaceId(resolved.place.placeId);
     }
     setIntent(resolved);
     writeAuthIntent(resolved);
@@ -235,17 +271,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         setUser(session?.user ?? null);
-        if (event === "SIGNED_IN" && session?.user) {
+
+        const shouldFulfill =
+          Boolean(session?.user) &&
+          (event === "SIGNED_IN" ||
+            (event === "INITIAL_SESSION" &&
+              !initialSyncDone.current &&
+              (Boolean(readPendingSavePlaceId()) ||
+                Boolean(readAuthIntent()) ||
+                getSavedPlaceIds().length > 0)));
+
+        if (shouldFulfill && session?.user) {
+          initialSyncDone.current = true;
           const result = await ensureExplorerSessionAction();
           if (result.ok) setProfile(result.profile);
-          const pending = readAuthIntent();
-          // Always merge wishlist on sign-in (pending save or local-only).
-          await fulfillIntent(pending ?? { kind: "generic" });
+
+          const pending =
+            readAuthIntent() ??
+            (readPendingSavePlaceId()
+              ? {
+                  kind: "save" as const,
+                  place: { placeId: readPendingSavePlaceId()! },
+                }
+              : { kind: "generic" as const });
+
+          await fulfillIntent(pending);
           setAuthOpen(false);
           setIntent(null);
         }
+
         if (event === "SIGNED_OUT") {
           setProfile(null);
+          initialSyncDone.current = false;
         }
       });
       unsub = () => subscription.unsubscribe();

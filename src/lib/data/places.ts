@@ -1,9 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
 import { SEED_PLACES, SEED_STORIES } from "@/data/seed-places";
 import {
   aiSearchPlaces,
   getDiverseRecommendations,
 } from "@/lib/search/ai-search";
+import { createPublicClient } from "@/lib/supabase/public";
+import { createClient } from "@/lib/supabase/server";
 import type {
   ExperienceStory,
   HomepageSectionKey,
@@ -15,6 +17,9 @@ import type {
   PlaceHighlights,
   PricingItem,
 } from "@/types";
+
+/** Public catalogue freshness — admin mutations already revalidatePath. */
+const PLACES_REVALIDATE_SECONDS = 120;
 
 export interface PlaceRow {
   id: string;
@@ -184,6 +189,7 @@ function seedStoriesForPlace(placeId: string): ExperienceStory[] {
   );
 }
 
+/** Cookie-based client — for authenticated story likes / user-scoped writes. */
 async function trySupabase() {
   try {
     return await createClient();
@@ -192,8 +198,8 @@ async function trySupabase() {
   }
 }
 
-export async function getPublishedPlaces(): Promise<Place[]> {
-  const supabase = await trySupabase();
+async function fetchPublishedPlaces(): Promise<Place[]> {
+  const supabase = createPublicClient();
   if (!supabase) return seedPublishedPlaces();
 
   try {
@@ -214,52 +220,73 @@ export async function getPublishedPlaces(): Promise<Place[]> {
   }
 }
 
+export const getPublishedPlaces = unstable_cache(
+  fetchPublishedPlaces,
+  ["published-places"],
+  { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
+);
+
 export async function getPlaceBySlug(slug: string): Promise<Place | null> {
-  const supabase = await trySupabase();
-  if (!supabase) return seedPlaceBySlug(slug);
+  const normalized = slug.trim();
+  if (!normalized) return null;
 
-  try {
-    const { data, error } = await supabase
-      .from("places")
-      .select("*")
-      .eq("slug", slug)
-      .eq("published", true)
-      .or("archived.is.null,archived.eq.false")
-      .maybeSingle();
+  return unstable_cache(
+    async () => {
+      const supabase = createPublicClient();
+      if (!supabase) return seedPlaceBySlug(normalized);
 
-    if (error || !data) {
-      return seedPlaceBySlug(slug);
-    }
+      try {
+        const { data, error } = await supabase
+          .from("places")
+          .select("*")
+          .eq("slug", normalized)
+          .eq("published", true)
+          .or("archived.is.null,archived.eq.false")
+          .maybeSingle();
 
-    return mapPlaceRow(data as PlaceRow);
-  } catch {
-    return seedPlaceBySlug(slug);
-  }
+        if (error || !data) {
+          return seedPlaceBySlug(normalized);
+        }
+
+        return mapPlaceRow(data as PlaceRow);
+      } catch {
+        return seedPlaceBySlug(normalized);
+      }
+    },
+    ["place-by-slug", normalized],
+    { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places", `place:${normalized}`] },
+  )();
 }
 
 export async function getPlacesBySection(
   key: HomepageSectionKey,
 ): Promise<Place[]> {
-  const supabase = await trySupabase();
-  if (!supabase) return seedPlacesBySection(key);
+  return unstable_cache(
+    async () => {
+      const supabase = createPublicClient();
+      if (!supabase) return seedPlacesBySection(key);
 
-  try {
-    const { data, error } = await supabase
-      .from("places")
-      .select("*")
-      .eq("published", true)
-      .or("archived.is.null,archived.eq.false")
-      .contains("homepage_sections", [key])
-      .order("updated_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("places")
+          .select("*")
+          .eq("published", true)
+          .or("archived.is.null,archived.eq.false")
+          .contains("homepage_sections", [key])
+          .order("updated_at", { ascending: false });
 
-    if (error || !data || data.length === 0) {
-      return seedPlacesBySection(key);
-    }
+        if (error || !data || data.length === 0) {
+          return seedPlacesBySection(key);
+        }
 
-    return (data as PlaceRow[]).map(mapPlaceRow);
-  } catch {
-    return seedPlacesBySection(key);
-  }
+        return (data as PlaceRow[]).map(mapPlaceRow);
+      } catch {
+        return seedPlacesBySection(key);
+      }
+    },
+    ["places-by-section", key],
+    { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
+  )();
 }
 
 export async function searchPlaces(
@@ -297,25 +324,34 @@ export async function getRecommendationsForPlace(
 export async function getStoriesForPlace(
   placeId: string,
 ): Promise<ExperienceStory[]> {
-  const supabase = await trySupabase();
-  if (!supabase) return seedStoriesForPlace(placeId);
+  const id = placeId.trim();
+  if (!id) return [];
 
-  try {
-    const { data, error } = await supabase
-      .from("experience_stories")
-      .select("*")
-      .eq("place_id", placeId)
-      .eq("published", true)
-      .order("created_at", { ascending: false });
+  return unstable_cache(
+    async () => {
+      const supabase = createPublicClient();
+      if (!supabase) return seedStoriesForPlace(id);
 
-    if (error || !data || data.length === 0) {
-      return seedStoriesForPlace(placeId);
-    }
+      try {
+        const { data, error } = await supabase
+          .from("experience_stories")
+          .select("*")
+          .eq("place_id", id)
+          .eq("published", true)
+          .order("created_at", { ascending: false });
 
-    return (data as StoryRow[]).map(mapStoryRow);
-  } catch {
-    return seedStoriesForPlace(placeId);
-  }
+        if (error || !data || data.length === 0) {
+          return seedStoriesForPlace(id);
+        }
+
+        return (data as StoryRow[]).map(mapStoryRow);
+      } catch {
+        return seedStoriesForPlace(id);
+      }
+    },
+    ["stories-for-place", id],
+    { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places", `stories:${id}`] },
+  )();
 }
 
 async function readLikesCount(

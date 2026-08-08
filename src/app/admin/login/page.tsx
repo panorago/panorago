@@ -42,7 +42,7 @@ function AdminLoginForm() {
           Command Center
         </p>
         <h1 className="mt-2 font-display text-3xl">Admin sign in</h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="long-form mt-2 text-sm leading-relaxed text-muted">
           Restricted editorial access. Requires{" "}
           <code className="text-[var(--accent)]">profiles.role = admin</code>.
         </p>

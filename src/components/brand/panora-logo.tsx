@@ -47,8 +47,8 @@ const INTRINSIC: Record<LogoVariant, { width: number; height: number }> = {
 };
 
 /**
- * Theme-aware logo. Avoids opacity dual-stack (easy to get white-on-white).
- * `auto` uses `dark:` which is keyed to `.dark` via `@custom-variant` — never
+ * Theme-aware logo. One crisp asset per tone — never dual-opacity stacks.
+ * `auto` uses `dark:` keyed to `.dark` via `@custom-variant` — never
  * `prefers-color-scheme` alone.
  */
 export function PanoraLogo({
@@ -63,8 +63,8 @@ export function PanoraLogo({
   const intrinsic = INTRINSIC[variant];
   const sizeClass =
     variant === "full"
-      ? "h-10 w-auto object-contain"
-      : "h-12 w-auto object-contain";
+      ? "h-10 w-auto object-contain opacity-100"
+      : "h-12 w-auto object-contain opacity-100";
   const sizes = variant === "full" ? "180px" : "64px";
   const navySrc = LOGO_SRC[variant].navy;
   const inverseSrc = LOGO_SRC[variant].inverse;
@@ -73,7 +73,7 @@ export function PanoraLogo({
     <span
       data-tone={tone}
       className={cn(
-        "panora-logo relative inline-grid items-center justify-items-start [&>img]:col-start-1 [&>img]:row-start-1",
+        "panora-logo relative inline-grid items-center justify-items-start opacity-100 [&>img]:col-start-1 [&>img]:row-start-1",
         className,
       )}
     >
@@ -129,7 +129,11 @@ export function PanoraLogo({
   if (href === null) return mark;
 
   return (
-    <Link href={href} className="focus-ring inline-flex items-center" aria-label={alt}>
+    <Link
+      href={href}
+      className="focus-ring inline-flex items-center opacity-100"
+      aria-label={alt}
+    >
       {mark}
     </Link>
   );

@@ -75,7 +75,7 @@ export function writePendingSavePlaceId(placeId: string | null) {
   }
   sessionStorage.setItem(
     AUTH_PENDING_SAVE_KEY,
-    JSON.stringify({ placeId }),
+    JSON.stringify({ placeId, at: Date.now() }),
   );
 }
 

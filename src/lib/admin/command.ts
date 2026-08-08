@@ -16,6 +16,7 @@ import type {
   SecretCollection,
   SiteSettings,
 } from "@/types";
+import { revalidatePublicPlaces } from "@/lib/data/revalidate-places";
 import { revalidatePath } from "next/cache";
 import slugify from "slugify";
 
@@ -431,9 +432,8 @@ export async function setPlaceFlags(
     const { error } = await supabase.from("places").update(payload).eq("id", id);
     if (error) return { ok: false, error: error.message };
     await writeAudit("place_flags", "place", id, flags);
+    revalidatePublicPlaces();
     revalidatePath("/admin/places");
-    revalidatePath("/");
-    revalidatePath("/discover");
     return { ok: true, message: "Place updated." };
   } catch (error) {
     return {
@@ -1352,8 +1352,8 @@ export async function reorderHomepageSections(
     await writeAudit("homepage_reorder", "homepage_sections", null, {
       orderedIds,
     });
+    revalidatePublicPlaces();
     revalidatePath("/admin/homepage");
-    revalidatePath("/");
     return { ok: true, message: "Order saved." };
   } catch (error) {
     return {

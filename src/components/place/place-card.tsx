@@ -126,7 +126,7 @@ export function PlaceCard({
               {place.name}
             </h3>
 
-            <p className="line-clamp-2 text-sm leading-relaxed text-[var(--foreground-muted)]">
+            <p className="long-form line-clamp-2 text-sm leading-relaxed text-[var(--foreground-muted)]">
               {tease}
             </p>
 

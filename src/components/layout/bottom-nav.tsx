@@ -102,6 +102,7 @@ export function BottomNav() {
               <li key={item.label} className="flex flex-1">
                 <Link
                   href={item.href}
+                  prefetch
                   className={cn(
                     "focus-ring relative flex flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-sm)] text-[10px] font-medium",
                     active

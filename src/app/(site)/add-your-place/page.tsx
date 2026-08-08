@@ -116,7 +116,7 @@ export default function AddYourPlacePage() {
           Received
         </p>
         <h1 className="mt-2 font-display text-4xl">Thank you</h1>
-        <p className="mt-3 text-sm text-muted">
+        <p className="long-form mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
           Our editorial team will review your place. If approved, it enters as a
           draft for Panora Verified curation.
         </p>
@@ -130,7 +130,7 @@ export default function AddYourPlacePage() {
         Partners
       </p>
       <h1 className="mt-2 font-display text-4xl sm:text-5xl">Add your place</h1>
-      <p className="mt-3 max-w-xl text-sm text-muted">
+      <p className="long-form mt-3 max-w-xl text-sm leading-relaxed text-muted">
         Share as much detail as you can — story, amenities, hours, contacts, and
         photos. We review every submission before it appears publicly.
       </p>

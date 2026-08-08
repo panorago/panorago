@@ -1,7 +1,9 @@
-import { PlacesMap } from "@/components/map/places-map";
+import { PlacesMapDynamic } from "@/components/map/places-map-dynamic";
 import { getPublishedPlaces } from "@/lib/data/places";
 import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
+
+export const revalidate = 120;
 
 export const metadata: Metadata = {
   title: "Map",
@@ -17,7 +19,7 @@ export default async function MapPage() {
 
   return (
     <div className="-mt-[var(--nav-height)] pt-[var(--nav-height)]">
-      <PlacesMap places={places} />
+      <PlacesMapDynamic places={places} />
     </div>
   );
 }

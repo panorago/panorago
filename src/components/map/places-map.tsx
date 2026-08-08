@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProgressiveImage } from "@/components/media/progressive-image";
-import { SmartShareSheet } from "@/components/smart-share/smart-share-sheet";
 import { loadGoogleMaps } from "@/lib/maps/load-google-maps";
 import {
   getMapsApiKey,
@@ -17,6 +17,14 @@ import { smartSharePath } from "@/lib/panora/smart-share";
 import { cn, formatPriceGuide } from "@/lib/utils";
 import { motionTokens } from "@/lib/motion/variants";
 import type { Place } from "@/types";
+
+const SmartShareSheetLazy = dynamic(
+  () =>
+    import("@/components/smart-share/smart-share-sheet").then((m) => ({
+      default: m.SmartShareSheet,
+    })),
+  { ssr: false },
+);
 
 const REGIONS = [
   "All",
@@ -54,6 +62,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
   const [mapFailed, setMapFailed] = useState(false);
   const [routeHint, setRouteHint] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [mapsInView, setMapsInView] = useState(false);
   const userPos = useRef<{ lat: number; lng: number } | null>(null);
 
   const filtered = useMemo(
@@ -70,13 +79,34 @@ export function PlacesMap({ places }: PlacesMapProps) {
   const selected = filtered.find((p) => p.id === selectedId) ?? null;
 
   useEffect(() => {
-    if (!apiKey || mapFailed || !mapRef.current) return;
+    const el = mapRef.current;
+    if (!el || mapsInView) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setMapsInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setMapsInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "180px 0px", threshold: 0.01 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [mapsInView]);
+
+  useEffect(() => {
+    if (!apiKey || mapFailed || !mapsInView || !mapRef.current) return;
 
     let cancelled = false;
 
     async function init() {
       try {
-        const g = await loadGoogleMaps(apiKey!);
+        // Skip routes until a pin is selected (see directions effect).
+        const g = await loadGoogleMaps(apiKey!, { routes: false });
         if (cancelled || !mapRef.current) return;
 
         if (!mapInstance.current) {
@@ -135,7 +165,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, mapFailed, filtered]);
+  }, [apiKey, mapFailed, mapsInView, filtered]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -225,7 +255,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                   region === item
                     ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] text-[var(--accent)]"
-                    : "border-white/20 bg-white/5 text-white/80 hover:border-white/40",
+                    : "border-white/25 bg-white/8 text-white/90 hover:border-white/45",
                 )}
               >
                 {item}
@@ -290,7 +320,7 @@ export function PlacesMap({ places }: PlacesMapProps) {
                 <h2 className="font-display text-2xl leading-tight">
                   {selected.name}
                 </h2>
-                <p className="line-clamp-2 text-sm text-white/75">
+                <p className="long-form line-clamp-2 text-sm leading-relaxed text-white/90">
                   {selected.story.slice(0, 120)}…
                 </p>
                 {routeHint ? (
@@ -330,8 +360,8 @@ export function PlacesMap({ places }: PlacesMapProps) {
         ) : null}
       </AnimatePresence>
 
-      {selected ? (
-        <SmartShareSheet
+      {selected && shareOpen ? (
+        <SmartShareSheetLazy
           place={selected}
           open={shareOpen}
           onOpenChange={setShareOpen}

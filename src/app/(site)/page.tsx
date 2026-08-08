@@ -9,6 +9,8 @@ import type { HomepageSectionKey } from "@/types";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+export const revalidate = 120;
+
 export const metadata: Metadata = {
   title: {
     absolute: SITE_TITLE,
@@ -96,7 +98,7 @@ export default async function HomePage() {
                 <h2 className="mt-2 font-display text-3xl md:text-4xl">
                   {section.title}
                 </h2>
-                <p className="mt-2 max-w-xl text-sm text-muted">
+                <p className="long-form mt-2 max-w-xl text-sm leading-relaxed text-muted">
                   {section.subtitle}
                 </p>
               </div>
@@ -123,7 +125,7 @@ export default async function HomePage() {
             <h2 className="mt-2 font-display text-3xl md:text-4xl">
               Secret Collections
             </h2>
-            <p className="mt-2 max-w-xl text-sm text-muted">
+            <p className="long-form mt-2 max-w-xl text-sm leading-relaxed text-muted">
               Curated moods for how you actually want the weekend to feel.
             </p>
           </div>
@@ -140,7 +142,7 @@ export default async function HomePage() {
                   <h3 className="mt-2 font-display text-2xl leading-tight group-hover:text-[var(--accent)]">
                     {collection.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted">
+                  <p className="long-form mt-2 text-sm leading-relaxed text-muted">
                     {collection.subtitle}
                   </p>
                   <p className="mt-4 text-xs font-medium text-[var(--accent)]">

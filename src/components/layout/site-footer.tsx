@@ -126,7 +126,12 @@ export function SiteFooter({ className }: SiteFooterProps) {
       <div className="container-panora py-16 sm:py-20">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
           <div className="min-w-0 space-y-5">
-            <PanoraLogo variant="icon" tone="auto" alt="PGO" />
+            <PanoraLogo
+              variant="icon"
+              tone="auto"
+              alt="PGO"
+              imageClassName="opacity-100"
+            />
             <p className="long-form max-w-sm text-sm leading-relaxed text-[var(--foreground-muted)]">
               Zimbabwe&apos;s premium lifestyle discovery platform. We sell
               experiences, memories, weekends, and anticipation — hand-curated
