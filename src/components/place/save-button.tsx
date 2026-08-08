@@ -4,9 +4,13 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Heart } from "lucide-react";
 
 import { useOptionalAuth } from "@/components/auth/auth-provider";
-import { useIsSaved } from "@/components/place/use-saved-places";
 import {
-  savePlaceAction,
+  getSavedPlaceIds,
+  replaceSavedPlaceIds,
+  useIsSaved,
+} from "@/components/place/use-saved-places";
+import {
+  syncWishlistAction,
   unsavePlaceAction,
 } from "@/lib/auth/wishlist";
 import { cn } from "@/lib/utils";
@@ -69,10 +73,27 @@ export function SaveButton({
     toggle();
 
     if (auth?.user) {
-      if (wasSaved) {
-        void unsavePlaceAction(placeId);
-      } else {
-        void savePlaceAction(placeId);
+      try {
+        if (wasSaved) {
+          const removed = await unsavePlaceAction(placeId);
+          if (!removed.ok) {
+            toggle(); // revert optimistic local unsave
+            return;
+          }
+        }
+        const local = getSavedPlaceIds();
+        const synced = await syncWishlistAction(local);
+        if (synced.ok) {
+          replaceSavedPlaceIds(synced.placeIds);
+        } else if (!wasSaved) {
+          // Save failed server-side — keep local heart, retry next sync
+        }
+      } catch {
+        if (!wasSaved) {
+          // keep optimistic local save
+        } else {
+          toggle();
+        }
       }
     }
   }

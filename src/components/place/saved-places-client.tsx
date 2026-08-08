@@ -1,22 +1,28 @@
 "use client";
 
+import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { Reveal } from "@/components/motion/reveal";
 import {
   getSavedPlaceIds,
   PlaceCard,
 } from "@/components/place/place-card";
+import {
+  replaceSavedPlaceIds,
+} from "@/components/place/use-saved-places";
+import { syncWishlistAction } from "@/lib/auth/wishlist";
 import type { Place } from "@/types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function SavedPlacesClient() {
+  const auth = useOptionalAuth();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadPlaces() {
       const ids = getSavedPlaceIds();
       if (ids.length === 0) {
         if (!cancelled) {
@@ -42,16 +48,34 @@ export function SavedPlacesClient() {
       }
     }
 
-    load();
-    const onChange = () => load();
+    async function init() {
+      // Signed-in: merge localStorage ↔ Supabase so /saved matches /explorer
+      if (auth?.user) {
+        const local = getSavedPlaceIds();
+        const synced = await syncWishlistAction(local);
+        if (!cancelled && synced.ok) {
+          const prev = local.slice().sort().join(",");
+          const next = synced.placeIds.slice().sort().join(",");
+          if (prev !== next) replaceSavedPlaceIds(synced.placeIds);
+        }
+      }
+      if (!cancelled) await loadPlaces();
+    }
+
+    void init();
+    const onChange = () => {
+      void loadPlaces();
+    };
     window.addEventListener("panora-saved-changed", onChange);
+    window.addEventListener("panora-saved-change", onChange);
     window.addEventListener("storage", onChange);
     return () => {
       cancelled = true;
       window.removeEventListener("panora-saved-changed", onChange);
+      window.removeEventListener("panora-saved-change", onChange);
       window.removeEventListener("storage", onChange);
     };
-  }, []);
+  }, [auth?.user]);
 
   return (
     <div className="gradient-mesh pt-8">
@@ -64,8 +88,9 @@ export function SavedPlacesClient() {
             Places you&apos;re holding onto
           </h1>
           <p className="mt-3 text-sm text-muted">
-            Your wishlist is the same as saved places on this device — tap the
-            heart anywhere to add or remove.
+            {auth?.user
+              ? "Your wishlist syncs with your Panora account — the same list as Explorer."
+              : "Saved on this device for now. Join Panora to keep your wishlist across devices."}
           </p>
         </Reveal>
 

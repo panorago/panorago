@@ -21,15 +21,15 @@ import {
 } from "@/lib/auth/actions";
 import {
   clearAuthIntent,
+  clearPendingSavePlaceId,
   readAuthIntent,
+  readPendingSavePlaceId,
   writeAuthIntent,
+  writePendingSavePlaceId,
   type AuthIntent,
 } from "@/lib/auth/intent";
 import type { ExplorerProfile } from "@/lib/auth/profile";
-import {
-  savePlaceAction,
-  syncWishlistAction,
-} from "@/lib/auth/wishlist";
+import { syncWishlistAction } from "@/lib/auth/wishlist";
 import {
   getSavedPlaceIds,
   replaceSavedPlaceIds,
@@ -78,13 +78,19 @@ function JoinQueryBridge({
     if (searchParams.get("join") !== "1") return;
     if (user) return;
     const next = searchParams.get("next") ?? undefined;
+    const authError = searchParams.get("auth_error") === "1";
     openAuth({
       kind: next?.startsWith("/explorer") ? "explorer" : "generic",
       returnTo: next && next.startsWith("/") ? next : undefined,
+      headline: "Join Panora",
+      subtitle: authError
+        ? "That sign-in link didn’t finish — try Google or email again."
+        : undefined,
     });
     const params = new URLSearchParams(searchParams.toString());
     params.delete("join");
     params.delete("next");
+    params.delete("auth_error");
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }, [openAuth, pathname, router, searchParams, user]);
@@ -132,39 +138,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const fulfillIntent = useCallback(async (pending: AuthIntent | null) => {
-    if (!pending || fulfilling.current) return;
-    fulfilling.current = true;
-    try {
-      if (pending.kind === "save" && pending.place?.placeId) {
-        const local = getSavedPlaceIds();
-        const merged = local.includes(pending.place.placeId)
-          ? local
-          : [...local, pending.place.placeId];
-        replaceSavedPlaceIds(merged);
-        await savePlaceAction(pending.place.placeId);
-        const synced = await syncWishlistAction(merged);
-        if (synced.ok) replaceSavedPlaceIds(synced.placeIds);
-      } else {
-        const local = getSavedPlaceIds();
-        if (local.length > 0) {
-          const synced = await syncWishlistAction(local);
-          if (synced.ok) replaceSavedPlaceIds(synced.placeIds);
+  /**
+   * After Join / Welcome Back: merge local wishlist + pending save into Supabase,
+   * then keep localStorage as the single client source of truth.
+   */
+  const fulfillIntent = useCallback(
+    async (pending: AuthIntent | null) => {
+      if (fulfilling.current) return;
+      fulfilling.current = true;
+      try {
+        const pendingSaveId =
+          (pending?.kind === "save" && pending.place?.placeId) ||
+          readPendingSavePlaceId();
+
+        let local = getSavedPlaceIds();
+        if (pendingSaveId && !local.includes(pendingSaveId)) {
+          local = [...local, pendingSaveId];
         }
+        replaceSavedPlaceIds(local);
+
+        const returnTo = pending?.returnTo;
+
+        const synced = await syncWishlistAction(local);
+        if (synced.ok) {
+          replaceSavedPlaceIds(synced.placeIds);
+        } else {
+          // One retry — cookie/session can lag a beat after OAuth.
+          const retry = await syncWishlistAction(getSavedPlaceIds());
+          if (retry.ok) replaceSavedPlaceIds(retry.placeIds);
+        }
+
+        clearAuthIntent();
+        clearPendingSavePlaceId();
+
+        if (returnTo && returnTo.startsWith("/") && returnTo !== pathname) {
+          router.push(returnTo);
+        }
+      } finally {
+        fulfilling.current = false;
       }
-      clearAuthIntent();
-      if (pending.returnTo && pending.returnTo !== pathname) {
-        router.push(pending.returnTo);
-      }
-    } finally {
-      fulfilling.current = false;
-    }
-  }, [pathname, router]);
+    },
+    [pathname, router],
+  );
 
   const openAuth = useCallback((next?: AuthIntent) => {
     const resolved: AuthIntent = next ?? { kind: "generic" };
     if (!resolved.returnTo && typeof window !== "undefined") {
       resolved.returnTo = window.location.pathname + window.location.search;
+    }
+    if (resolved.kind === "save" && resolved.place?.placeId) {
+      writePendingSavePlaceId(resolved.place.placeId);
     }
     setIntent(resolved);
     writeAuthIntent(resolved);
@@ -216,16 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const result = await ensureExplorerSessionAction();
           if (result.ok) setProfile(result.profile);
           const pending = readAuthIntent();
-          if (pending) {
-            await fulfillIntent(pending);
-            setAuthOpen(false);
-          } else {
-            const local = getSavedPlaceIds();
-            if (local.length > 0) {
-              const synced = await syncWishlistAction(local);
-              if (synced.ok) replaceSavedPlaceIds(synced.placeIds);
-            }
-          }
+          // Always merge wishlist on sign-in (pending save or local-only).
+          await fulfillIntent(pending ?? { kind: "generic" });
+          setAuthOpen(false);
+          setIntent(null);
         }
         if (event === "SIGNED_OUT") {
           setProfile(null);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+/** Public alias — opens Join Panora (not Command Center). */
 export default function LoginAliasPage() {
-  redirect("/admin/login");
+  redirect("/?join=1");
 }

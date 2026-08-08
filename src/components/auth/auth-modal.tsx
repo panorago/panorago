@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthEmailForm } from "@/components/auth/auth-email-form";
+import { PanoraLogo } from "@/components/brand/panora-logo";
 import { ProgressiveImage } from "@/components/media/progressive-image";
 import { Button } from "@/components/ui/button";
 import type { AuthIntent } from "@/lib/auth/intent";
@@ -8,7 +9,7 @@ import { writeAuthIntent } from "@/lib/auth/intent";
 import { createClient } from "@/lib/supabase/client";
 import { mapSupabaseAuthError } from "@/lib/supabase/config";
 import { motionTokens } from "@/lib/motion/variants";
-import { absoluteUrl, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   AnimatePresence,
   motion,
@@ -51,6 +52,34 @@ function subtitleFor(intent: AuthIntent | null, welcomeBack: boolean) {
   return "Discover. Connect. Belong. — one account for saves, bookings, and Circle.";
 }
 
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  );
+}
+
 export function AuthModal({
   open,
   intent,
@@ -67,6 +96,11 @@ export function AuthModal({
   const [heartPulse, setHeartPulse] = useState(false);
 
   const place = intent?.place;
+  const returnTo =
+    intent?.returnTo ||
+    (typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : "/");
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -112,29 +146,29 @@ export function AuthModal({
     setGooglePending(true);
     try {
       if (intent) writeAuthIntent(intent);
-      const next =
-        intent?.returnTo ||
-        `${window.location.pathname}${window.location.search}`;
+      const next = intent?.returnTo || returnTo;
+      const origin = window.location.origin;
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: absoluteUrl(
-            `/auth/callback?next=${encodeURIComponent(next)}`,
-          ),
+          redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
           skipBrowserRedirect: true,
+          queryParams: {
+            prompt: "select_account",
+          },
         },
       });
-      if (error || !data.url) {
+      if (oauthError || !data.url) {
         setError(
           mapSupabaseAuthError(
-            error?.message ?? "Google sign-in unavailable.",
+            oauthError?.message ?? "Google sign-in unavailable.",
           ),
         );
         setGooglePending(false);
         return;
       }
-      window.location.href = data.url;
+      window.location.assign(data.url);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Google sign-in unavailable.",
@@ -153,10 +187,10 @@ export function AuthModal({
       aria-modal="true"
       aria-labelledby={titleId}
       className={cn(
-        "relative w-full overflow-hidden border border-[var(--border)] bg-[var(--glass-strong)] shadow-[var(--shadow-gold)] backdrop-blur-2xl",
+        "relative w-full overflow-hidden border border-[var(--border)] bg-[var(--glass-strong)] shadow-[var(--nav-shadow)] backdrop-blur-2xl",
         isMobile
           ? "max-h-[92dvh] rounded-t-[1.75rem] border-b-0"
-          : "max-w-md rounded-[1.75rem]",
+          : "max-w-md rounded-[1.75rem] shadow-[var(--shadow-gold)]",
       )}
       initial={
         reduceMotion
@@ -165,9 +199,7 @@ export function AuthModal({
             ? { y: "100%" }
             : { opacity: 0, scale: 0.96, y: 12 }
       }
-      animate={
-        isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }
-      }
+      animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
       exit={
         reduceMotion
           ? undefined
@@ -180,15 +212,23 @@ export function AuthModal({
           ? { duration: 0.01 }
           : isMobile
             ? motionTokens.spring.soft
-            : { duration: motionTokens.duration.base, ease: motionTokens.ease.premium }
+            : {
+                duration: motionTokens.duration.base,
+                ease: motionTokens.ease.premium,
+              }
       }
       drag={isMobile ? "y" : false}
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={{ top: 0.05, bottom: 0.55 }}
       onDragEnd={isMobile ? onDragEnd : undefined}
     >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--accent)_14%,transparent),transparent_55%)]"
+      />
+
       {isMobile ? (
-        <div className="flex justify-center pt-3" aria-hidden>
+        <div className="relative flex justify-center pt-3" aria-hidden>
           <span className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
         </div>
       ) : null}
@@ -202,7 +242,16 @@ export function AuthModal({
         <X className="h-4 w-4" />
       </button>
 
-      <div className="max-h-[calc(92dvh-1rem)] overflow-y-auto px-5 pb-6 pt-4 sm:px-7 sm:pb-8 sm:pt-6">
+      <div className="relative max-h-[calc(92dvh-1rem)] overflow-y-auto px-5 pb-6 pt-4 sm:px-7 sm:pb-8 sm:pt-6">
+        <div className="mb-5 flex items-center gap-3">
+          <PanoraLogo
+            variant="full"
+            href={null}
+            tone="auto"
+            imageClassName="h-8 w-auto"
+          />
+        </div>
+
         {place?.imageUrl || place?.placeName ? (
           <div className="mb-5 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)]">
             <div className="relative aspect-[16/9]">
@@ -249,7 +298,10 @@ export function AuthModal({
                       ? { scale: [1, 1.25, 1] }
                       : { scale: 1 }
                   }
-                  transition={{ duration: 0.55, ease: motionTokens.ease.premium }}
+                  transition={{
+                    duration: 0.55,
+                    ease: motionTokens.ease.premium,
+                  }}
                 >
                   <Heart className="h-4 w-4 fill-[var(--accent)]" />
                 </motion.span>
@@ -276,16 +328,17 @@ export function AuthModal({
             <>
               <Button
                 type="button"
-                variant="primary"
-                className="w-full rounded-full"
+                variant="outline"
+                className="w-full rounded-full border-[var(--border-strong)] bg-[var(--background-elevated)]/70"
                 disabled={googlePending}
                 onClick={() => void continueWithGoogle()}
               >
+                <GoogleMark className="h-4 w-4" />
                 {googlePending ? "Redirecting…" : "Continue with Google"}
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="primary"
                 className="w-full rounded-full"
                 onClick={() => setShowEmail(true)}
               >
@@ -301,13 +354,15 @@ export function AuthModal({
                     setShowEmail(true);
                   }}
                 >
-                  Sign In
+                  Welcome Back
                 </button>
               </p>
             </>
           ) : (
             <AuthEmailForm
+              key={welcomeBack ? "signin" : "join"}
               initialMode={welcomeBack ? "signin" : "join"}
+              returnTo={returnTo}
               onSuccess={onAuthenticated}
               onModeChange={(m) => setWelcomeBack(m === "signin")}
             />
@@ -337,7 +392,9 @@ export function AuthModal({
         <motion.div
           className={cn(
             "fixed inset-0 z-[120] flex",
-            isMobile ? "items-end justify-center" : "items-center justify-center p-4",
+            isMobile
+              ? "items-end justify-center"
+              : "items-center justify-center p-4",
           )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -1,5 +1,6 @@
 import { upsertExplorerProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
+import { siteOriginFromRequest } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 function safeNextPath(raw: string | null): string {
@@ -8,7 +9,8 @@ function safeNextPath(raw: string | null): string {
 }
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = siteOriginFromRequest(request);
   const code = searchParams.get("code");
   const next = safeNextPath(searchParams.get("next"));
 
@@ -28,5 +30,6 @@ export async function GET(request: Request) {
   const joinUrl = new URL("/", origin);
   joinUrl.searchParams.set("join", "1");
   joinUrl.searchParams.set("next", next);
+  joinUrl.searchParams.set("auth_error", "1");
   return NextResponse.redirect(joinUrl.toString());
 }

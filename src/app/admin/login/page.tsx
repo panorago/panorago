@@ -4,12 +4,22 @@ import { Button } from "@/components/ui/button";
 import { PanoraLogo } from "@/components/brand/panora-logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { loginAdmin, type ActionResult } from "@/lib/admin/actions";
-import { useActionState } from "react";
+import { useActionState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const initial: ActionResult | null = null;
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const [state, formAction, pending] = useActionState(loginAdmin, initial);
+  const searchParams = useSearchParams();
+
+  const gateError = useMemo(() => {
+    if (searchParams.get("error") === "forbidden") {
+      return "This account does not have Command Center access.";
+    }
+    return null;
+  }, [searchParams]);
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4">
@@ -20,7 +30,7 @@ export default function AdminLoginPage() {
       <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
         <ThemeToggle />
       </div>
-      <div className="relative w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--shadow)] backdrop-blur-2xl">
+      <div className="relative w-full max-w-md rounded-[1.75rem] border border-[var(--border)] bg-[var(--glass-strong)] p-8 shadow-[var(--nav-shadow)] backdrop-blur-2xl">
         <PanoraLogo
           variant="full"
           href={null}
@@ -46,7 +56,7 @@ export default function AdminLoginPage() {
               required
               autoComplete="username"
               placeholder="victorm@panorago.co.zw"
-              className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)]/80 px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
             />
           </label>
           <label className="block space-y-1.5">
@@ -56,11 +66,13 @@ export default function AdminLoginPage() {
               type="password"
               required
               autoComplete="current-password"
-              className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)]/80 px-4 py-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
             />
           </label>
-          {state && !state.ok && (
-            <p className="text-sm text-[var(--danger)]">{state.error}</p>
+          {(gateError || (state && !state.ok)) && (
+            <p className="text-sm text-[var(--danger)]" role="alert">
+              {state && !state.ok ? state.error : gateError}
+            </p>
           )}
           <Button
             type="submit"
@@ -73,5 +85,19 @@ export default function AdminLoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center text-sm text-muted">
+          Loading…
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   );
 }

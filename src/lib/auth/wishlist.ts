@@ -7,7 +7,15 @@ export type WishlistSyncResult =
   | { ok: true; placeIds: string[] }
   | { ok: false; error: string };
 
-/** Merge localStorage place IDs into wishlists and return the full server set. */
+function isMissingRelationError(message: string) {
+  return /does not exist|relation|schema cache/i.test(message);
+}
+
+function uniquePlaceIds(ids: string[]) {
+  return [...new Set(ids.filter((id) => typeof id === "string" && id))];
+}
+
+/** Merge localStorage place IDs into wishlists and return the full server∪local set. */
 export async function syncWishlistAction(
   localPlaceIds: string[],
 ): Promise<WishlistSyncResult> {
@@ -18,11 +26,12 @@ export async function syncWishlistAction(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "Join Panora to sync your wishlist." };
 
-    await upsertExplorerProfile(supabase, user);
+    const profileResult = await upsertExplorerProfile(supabase, user);
+    if (!profileResult.ok) {
+      return { ok: false, error: profileResult.error };
+    }
 
-    const unique = [
-      ...new Set(localPlaceIds.filter((id) => typeof id === "string" && id)),
-    ];
+    const unique = uniquePlaceIds(localPlaceIds);
 
     if (unique.length > 0) {
       const rows = unique.map((place_id) => ({
@@ -34,8 +43,11 @@ export async function syncWishlistAction(
         .from("wishlists")
         .upsert(rows, { onConflict: "user_id,place_id,collection" });
       if (upsertError) {
-        // Table may not exist yet — soft-fail with local ids
-        return { ok: true, placeIds: unique };
+        // Soft-fail only when the table has not been migrated yet.
+        if (isMissingRelationError(upsertError.message)) {
+          return { ok: true, placeIds: unique };
+        }
+        return { ok: false, error: upsertError.message };
       }
     }
 
@@ -46,16 +58,19 @@ export async function syncWishlistAction(
       .eq("collection", "wishlist");
 
     if (error) {
-      return { ok: true, placeIds: unique };
+      if (isMissingRelationError(error.message)) {
+        return { ok: true, placeIds: unique };
+      }
+      return { ok: false, error: error.message };
     }
 
-    const placeIds = [
-      ...new Set([
+    return {
+      ok: true,
+      placeIds: uniquePlaceIds([
         ...unique,
         ...(data ?? []).map((r) => r.place_id as string),
       ]),
-    ];
-    return { ok: true, placeIds };
+    };
   } catch {
     return { ok: false, error: "Could not sync wishlist right now." };
   }
@@ -64,6 +79,7 @@ export async function syncWishlistAction(
 export async function savePlaceAction(
   placeId: string,
 ): Promise<WishlistSyncResult> {
+  if (!placeId) return { ok: false, error: "Missing place." };
   try {
     const supabase = await createClient();
     const {
@@ -71,7 +87,10 @@ export async function savePlaceAction(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "Join Panora to save places." };
 
-    await upsertExplorerProfile(supabase, user);
+    const profileResult = await upsertExplorerProfile(supabase, user);
+    if (!profileResult.ok) {
+      return { ok: false, error: profileResult.error };
+    }
 
     const { error } = await supabase.from("wishlists").upsert(
       {
@@ -83,10 +102,14 @@ export async function savePlaceAction(
     );
 
     if (error) {
-      return { ok: true, placeIds: [placeId] };
+      if (isMissingRelationError(error.message)) {
+        return { ok: true, placeIds: [placeId] };
+      }
+      return { ok: false, error: error.message };
     }
 
-    return syncWishlistAction([]);
+    // Return DB∪this place — callers should pass full local list via syncWishlistAction.
+    return syncWishlistAction([placeId]);
   } catch {
     return { ok: false, error: "Could not save this place." };
   }
@@ -95,6 +118,7 @@ export async function savePlaceAction(
 export async function unsavePlaceAction(
   placeId: string,
 ): Promise<WishlistSyncResult> {
+  if (!placeId) return { ok: false, error: "Missing place." };
   try {
     const supabase = await createClient();
     const {
@@ -102,14 +126,34 @@ export async function unsavePlaceAction(
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "Join Panora to manage saves." };
 
-    await supabase
+    const { error } = await supabase
       .from("wishlists")
       .delete()
       .eq("user_id", user.id)
       .eq("place_id", placeId)
       .eq("collection", "wishlist");
 
-    return syncWishlistAction([]);
+    if (error && !isMissingRelationError(error.message)) {
+      return { ok: false, error: error.message };
+    }
+
+    const { data, error: fetchError } = await supabase
+      .from("wishlists")
+      .select("place_id")
+      .eq("user_id", user.id)
+      .eq("collection", "wishlist");
+
+    if (fetchError) {
+      if (isMissingRelationError(fetchError.message)) {
+        return { ok: true, placeIds: [] };
+      }
+      return { ok: false, error: fetchError.message };
+    }
+
+    return {
+      ok: true,
+      placeIds: uniquePlaceIds((data ?? []).map((r) => r.place_id as string)),
+    };
   } catch {
     return { ok: false, error: "Could not update wishlist." };
   }
@@ -129,10 +173,15 @@ export async function fetchWishlistPlaceIdsAction(): Promise<WishlistSyncResult>
       .eq("user_id", user.id)
       .eq("collection", "wishlist");
 
-    if (error) return { ok: true, placeIds: [] };
+    if (error) {
+      if (isMissingRelationError(error.message)) {
+        return { ok: true, placeIds: [] };
+      }
+      return { ok: false, error: error.message };
+    }
     return {
       ok: true,
-      placeIds: (data ?? []).map((r) => r.place_id as string),
+      placeIds: uniquePlaceIds((data ?? []).map((r) => r.place_id as string)),
     };
   } catch {
     return { ok: true, placeIds: [] };

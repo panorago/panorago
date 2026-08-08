@@ -26,6 +26,7 @@ export type AuthIntent = {
 };
 
 export const AUTH_INTENT_STORAGE_KEY = "panora-auth-intent";
+/** Backup for save-after-auth when OAuth round-trips clear in-memory intent. */
 export const AUTH_PENDING_SAVE_KEY = "panora-pending-save";
 
 export function readAuthIntent(): AuthIntent | null {
@@ -50,4 +51,34 @@ export function writeAuthIntent(intent: AuthIntent | null) {
 
 export function clearAuthIntent() {
   writeAuthIntent(null);
+}
+
+export function readPendingSavePlaceId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(AUTH_PENDING_SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { placeId?: string };
+    return typeof parsed.placeId === "string" && parsed.placeId
+      ? parsed.placeId
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writePendingSavePlaceId(placeId: string | null) {
+  if (typeof window === "undefined") return;
+  if (!placeId) {
+    sessionStorage.removeItem(AUTH_PENDING_SAVE_KEY);
+    return;
+  }
+  sessionStorage.setItem(
+    AUTH_PENDING_SAVE_KEY,
+    JSON.stringify({ placeId }),
+  );
+}
+
+export function clearPendingSavePlaceId() {
+  writePendingSavePlaceId(null);
 }

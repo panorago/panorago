@@ -20,6 +20,11 @@ function siteOrigin() {
   return resolveSiteOrigin();
 }
 
+function safeNextPath(raw: string | undefined): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/explorer";
+  return raw;
+}
+
 export async function ensureExplorerSessionAction(): Promise<
   | { ok: true; userId: string; profile: ExplorerProfile | null }
   | { ok: false; error: string }
@@ -61,6 +66,7 @@ export async function signUpWithEmailAction(input: {
   email: string;
   password: string;
   displayName?: string;
+  nextPath?: string;
 }): Promise<AuthActionResult> {
   const email = input.email.trim().toLowerCase();
   const password = input.password;
@@ -69,6 +75,7 @@ export async function signUpWithEmailAction(input: {
   }
   const pwError = validateExplorerPassword(password);
   if (pwError) return { ok: false, error: pwError };
+  const next = safeNextPath(input.nextPath);
 
   try {
     const supabase = await createClient();
@@ -77,7 +84,7 @@ export async function signUpWithEmailAction(input: {
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/explorer")}`,
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
         data: {
           full_name: input.displayName?.trim() || undefined,
           display_name: input.displayName?.trim() || undefined,
@@ -138,18 +145,22 @@ export async function signInWithEmailAction(input: {
   }
 }
 
-export async function sendMagicLinkAction(emailRaw: string): Promise<AuthActionResult> {
+export async function sendMagicLinkAction(
+  emailRaw: string,
+  nextPath?: string,
+): Promise<AuthActionResult> {
   const email = emailRaw.trim().toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "Enter a valid email." };
   }
+  const next = safeNextPath(nextPath);
   try {
     const supabase = await createClient();
     const origin = siteOrigin();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/explorer")}`,
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
     if (error) {
@@ -169,16 +180,20 @@ export async function sendMagicLinkAction(emailRaw: string): Promise<AuthActionR
 
 export async function sendPasswordResetAction(
   emailRaw: string,
+  nextPath?: string,
 ): Promise<AuthActionResult> {
   const email = emailRaw.trim().toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "Enter a valid email." };
   }
+  const base = safeNextPath(nextPath);
+  const resetNext =
+    base.includes("?") ? `${base}&reset=1` : `${base}?reset=1`;
   try {
     const supabase = await createClient();
     const origin = siteOrigin();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/explorer?reset=1")}`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(resetNext)}`,
     });
     if (error) {
       return { ok: false, error: mapSupabaseAuthError(error.message) };

@@ -14,15 +14,18 @@ type Mode = "join" | "signin" | "forgot" | "magic";
 
 type AuthEmailFormProps = {
   initialMode?: Mode;
+  /** Path preserved through email confirm / magic / reset links. */
+  returnTo?: string;
   onSuccess: () => void;
   onModeChange?: (mode: Mode) => void;
 };
 
 const fieldClass =
-  "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
+  "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background-elevated)]/80 px-4 py-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
 
 export function AuthEmailForm({
   initialMode = "join",
+  returnTo,
   onSuccess,
   onModeChange,
 }: AuthEmailFormProps) {
@@ -47,11 +50,18 @@ export function AuthEmailForm({
     setMessage(null);
     setPending(true);
     try {
+      const nextPath =
+        returnTo ||
+        (typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : "/");
+
       if (mode === "join") {
         const result = await signUpWithEmailAction({
           email,
           password,
           displayName,
+          nextPath,
         });
         if (!result.ok) {
           setError(result.error);
@@ -74,7 +84,7 @@ export function AuthEmailForm({
         return;
       }
       if (mode === "forgot") {
-        const result = await sendPasswordResetAction(email);
+        const result = await sendPasswordResetAction(email, nextPath);
         if (!result.ok) {
           setError(result.error);
           return;
@@ -83,7 +93,7 @@ export function AuthEmailForm({
         return;
       }
       if (mode === "magic") {
-        const result = await sendMagicLinkAction(email);
+        const result = await sendMagicLinkAction(email, nextPath);
         if (!result.ok) {
           setError(result.error);
           return;
@@ -187,7 +197,7 @@ export function AuthEmailForm({
             className="font-medium text-[var(--accent)] hover:underline"
             onClick={() => switchMode("signin")}
           >
-            Already have an account? Sign In
+            Already have an account? Welcome Back
           </button>
         ) : null}
         {mode === "signin" ? (
