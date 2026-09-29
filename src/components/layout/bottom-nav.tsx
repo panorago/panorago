@@ -11,7 +11,6 @@ import {
   Compass,
   Heart,
   Home,
-  Map,
   Search,
   X,
 } from "lucide-react";
@@ -26,7 +25,6 @@ const ITEMS = [
   { href: "/", label: "Home", icon: Home, kind: "link" as const },
   { href: "/discover", label: "Discover", icon: Compass, kind: "link" as const },
   { href: "#search", label: "Search", icon: Search, kind: "search" as const },
-  { href: "/map", label: "Map", icon: Map, kind: "link" as const },
   { href: "/saved", label: "Wishlist", icon: Heart, kind: "link" as const },
 ];
 

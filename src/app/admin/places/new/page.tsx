@@ -1,11 +1,13 @@
 import { PlaceForm } from "@/components/admin/place-form";
-import { createPlace } from "@/lib/admin/actions";
+import { createPlace, getAdminSections } from "@/lib/admin/actions";
 
 export const metadata = {
   title: "Admin · Add place",
 };
 
-export default function AdminNewPlacePage() {
+export default async function AdminNewPlacePage() {
+  const sections = await getAdminSections();
+
   return (
     <div className="space-y-6">
       <div>
@@ -14,7 +16,14 @@ export default function AdminNewPlacePage() {
           Create a new listing in Supabase. Unpublished places stay in draft.
         </p>
       </div>
-      <PlaceForm action={createPlace} submitLabel="Create place" />
+      <PlaceForm
+        action={createPlace}
+        submitLabel="Create place"
+        sectionChoices={sections.map((section) => ({
+          key: section.key,
+          title: section.title,
+        }))}
+      />
     </div>
   );
 }

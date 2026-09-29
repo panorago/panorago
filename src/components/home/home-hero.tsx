@@ -121,7 +121,7 @@ export function HomeHero({
 
           <motion.div
             variants={prefersReduced ? undefined : fadeUp}
-            className="mt-8 max-w-xl"
+            className="mt-8 hidden max-w-xl md:block"
           >
             <SearchBar large className="text-[var(--foreground)]" />
           </motion.div>
@@ -142,13 +142,13 @@ export function HomeHero({
                 Start discovering
               </Button>
             </Link>
-            <Link href="/map">
+            <Link href="#venues-section">
               <Button
                 variant="outline"
                 size="lg"
                 className="rounded-full border-white/35 text-white hover:bg-white/10 hover:text-white"
               >
-                Explore the map
+                See this week
               </Button>
             </Link>
           </motion.div>

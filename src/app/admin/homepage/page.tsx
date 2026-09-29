@@ -1,5 +1,10 @@
+import { CollectionPlacePicker } from "@/components/admin/collection-place-picker";
 import { HomepageSectionBoard } from "@/components/admin/homepage-section-board";
-import { getAdminSections, updateSection } from "@/lib/admin/actions";
+import {
+  CreateSectionForm,
+  DeleteSectionButton,
+} from "@/components/admin/section-manager-forms";
+import { getAdminPlaces, getAdminSections, updateSection } from "@/lib/admin/actions";
 import Link from "next/link";
 
 export const metadata = {
@@ -9,9 +14,28 @@ export const metadata = {
 const field =
   "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
 
+const SECTION_TYPES = [
+  "grid",
+  "featured",
+  "hero",
+  "list",
+  "cta",
+  "testimonial",
+  "about",
+] as const;
+
 export default async function AdminHomepagePage() {
-  const sections = await getAdminSections();
+  const [sections, places] = await Promise.all([
+    getAdminSections(),
+    getAdminPlaces(),
+  ]);
   const ordered = [...sections].sort((a, b) => a.sortOrder - b.sortOrder);
+  const placeOptions = places.map((place) => ({
+    id: place.id,
+    name: place.name,
+    city: place.city,
+    slug: place.slug,
+  }));
 
   return (
     <div className="space-y-8">
@@ -22,7 +46,7 @@ export default async function AdminHomepagePage() {
           </p>
           <h1 className="mt-1 font-display text-4xl">Homepage</h1>
           <p className="mt-2 text-sm text-muted">
-            Drag to reorder, then edit each section below.
+            Add, rename, enable, reorder, or remove sections. Changes show on the public homepage.
           </p>
         </div>
         <Link
@@ -33,6 +57,8 @@ export default async function AdminHomepagePage() {
           Preview site →
         </Link>
       </div>
+
+      <CreateSectionForm />
 
       {ordered.length === 0 ? (
         <p className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] px-4 py-3 text-sm text-muted">
@@ -61,6 +87,7 @@ export default async function AdminHomepagePage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                     {section.key}
+                    {section.sectionType ? ` · ${section.sectionType}` : ""}
                   </p>
                   <label className="flex items-center gap-2 text-sm">
                     <input
@@ -97,22 +124,36 @@ export default async function AdminHomepagePage() {
                       className={field}
                     />
                   </label>
-                  <label className="space-y-1.5 md:col-span-2">
-                    <span className="text-xs text-muted">Place IDs</span>
-                    <textarea
-                      name="placeIds"
-                      rows={3}
-                      defaultValue={section.placeIds.join("\n")}
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-muted">Type</span>
+                    <select
+                      name="sectionType"
+                      defaultValue={section.sectionType ?? "grid"}
                       className={field}
-                    />
+                    >
+                      {SECTION_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
                   </label>
+                  <div className="md:col-span-2">
+                    <CollectionPlacePicker
+                      places={placeOptions}
+                      initialSelectedIds={section.placeIds}
+                    />
+                  </div>
                 </div>
-                <button
-                  type="submit"
-                  className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]"
-                >
-                  Save section
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]"
+                  >
+                    Save section
+                  </button>
+                  <DeleteSectionButton id={section.id} title={section.title} />
+                </div>
               </form>
             ))}
           </div>

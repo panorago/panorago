@@ -1,5 +1,5 @@
 import { PlaceForm } from "@/components/admin/place-form";
-import { getAdminPlace, updatePlace } from "@/lib/admin/actions";
+import { getAdminPlace, getAdminSections, updatePlace } from "@/lib/admin/actions";
 import { SEED_PLACES } from "@/data/seed-places";
 import { notFound } from "next/navigation";
 
@@ -13,7 +13,10 @@ export default async function AdminEditPlacePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const fromDb = await getAdminPlace(id);
+  const [fromDb, sections] = await Promise.all([
+    getAdminPlace(id),
+    getAdminSections(),
+  ]);
   const place = fromDb ?? SEED_PLACES.find((p) => p.id === id) ?? null;
   if (!place) notFound();
 
@@ -36,7 +39,15 @@ export default async function AdminEditPlacePage({
           </p>
         )}
       </div>
-      <PlaceForm place={place} action={save} submitLabel="Save changes" />
+      <PlaceForm
+        place={place}
+        action={save}
+        submitLabel="Save changes"
+        sectionChoices={sections.map((section) => ({
+          key: section.key,
+          title: section.title,
+        }))}
+      />
     </div>
   );
 }

@@ -64,6 +64,8 @@ const REFRESH_PATH_PREFIXES = [
   "/admin/submissions",
   "/admin/places",
   "/admin/analytics",
+  "/admin/homepage",
+  "/admin/sections",
 ] as const;
 
 function shouldRefreshPath(pathname: string) {
@@ -194,6 +196,14 @@ export function AdminRealtimeProvider({ children }: { children: ReactNode }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "places" },
+        () => {
+          if (cancelled) return;
+          bumpAndRefresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "homepage_sections" },
         () => {
           if (cancelled) return;
           bumpAndRefresh();

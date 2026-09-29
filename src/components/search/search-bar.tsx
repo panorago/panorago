@@ -185,7 +185,7 @@ export function SearchBar({
           <button
             type="submit"
             className={cn(
-              "focus-ring hidden h-9 shrink-0 items-center rounded-full px-4 text-sm font-medium sm:inline-flex",
+              "focus-ring inline-flex h-9 shrink-0 items-center rounded-full px-3 text-sm font-medium sm:px-4",
               "bg-[var(--brand-navy)] text-[var(--brand-white)]",
               "dark:bg-[var(--accent)] dark:text-[var(--accent-foreground)]",
               large && "h-11 px-5",

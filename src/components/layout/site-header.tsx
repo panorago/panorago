@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { PanoraLogo } from "@/components/brand/panora-logo";
+import { MobileSearchButton } from "@/components/search/mobile-search-button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,7 +16,6 @@ import { motionTokens } from "@/lib/motion/variants";
 
 const NAV_LINKS = [
   { href: "/discover", label: "Discover" },
-  { href: "/map", label: "Map" },
   { href: "/discover?vibe=Weekend%20Away", label: "Weekend" },
   { href: "/the-panora-way", label: "The Panora Way" },
 ] as const;
@@ -75,8 +75,6 @@ export function SiteHeader({ className }: SiteHeaderProps) {
    */
   const overDarkSurface =
     pathname === "/" ||
-    pathname === "/map" ||
-    pathname.startsWith("/map/") ||
     pathname.startsWith("/panoras/") ||
     pathname.startsWith("/p/");
   const glassActive = scrolled || open;
@@ -149,6 +147,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </nav>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <MobileSearchButton
+                onDark={!glassActive && overDarkSurface}
+              />
               <Link
                 href="/saved"
                 aria-label="Wishlist"

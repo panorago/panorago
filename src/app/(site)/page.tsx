@@ -1,11 +1,15 @@
 import { HomeHero } from "@/components/home/home-hero";
+import { HomepageLiveRefresh } from "@/components/home/homepage-live-refresh";
+import { MobileOpenOnContent } from "@/components/home/mobile-open-on-content";
 import { Reveal } from "@/components/motion/reveal";
 import { PlaceGrid } from "@/components/place/place-grid";
-import { SEED_SECRET_COLLECTIONS, SEED_SECTIONS } from "@/data/seed-places";
-import { getPlacesBySection } from "@/lib/data/places";
+import { SEED_SECRET_COLLECTIONS } from "@/data/seed-places";
+import {
+  getEnabledHomepageSections,
+  getPlacesBySection,
+} from "@/lib/data/places";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/utils";
-import type { HomepageSectionKey } from "@/types";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -26,38 +30,30 @@ export const metadata: Metadata = {
   },
 };
 
-const SECTION_ORDER: HomepageSectionKey[] = [
-  "trending",
-  "new_discoveries",
-  "panora_picks",
-  "weekend_escape",
-  "editors_choice",
-];
-
 export default async function HomePage() {
+  const homepageSections = await getEnabledHomepageSections();
   const sectionPlaces = await Promise.all(
-    SECTION_ORDER.map((key) => getPlacesBySection(key)),
+    homepageSections.map((section) =>
+      getPlacesBySection(section.key, section.placeIds),
+    ),
   );
 
   // Curated Victoria Falls still — full-bleed Zimbabwe hero
   const heroImage = "/images/hero-zimbabwe.jpg";
 
-  const sections = SECTION_ORDER.map((key, index) => {
-    const meta =
-      SEED_SECTIONS.find((section) => section.key === key) ?? {
-        title: key,
-        subtitle: "",
-      };
-    return {
-      key,
-      title: meta.title,
-      subtitle: meta.subtitle,
-      places: sectionPlaces[index] ?? [],
-    };
-  });
+  const sections = homepageSections.map((section, index) => ({
+    key: section.key,
+    title: section.title,
+    subtitle: section.subtitle,
+    places: sectionPlaces[index] ?? [],
+  }));
+
+  const firstSectionId = sections[0] ? "venues-section" : undefined;
 
   return (
     <>
+      <HomepageLiveRefresh />
+      {firstSectionId ? <MobileOpenOnContent targetId={firstSectionId} /> : null}
       <HomeHero heroImage={heroImage} />
 
       <div className="gradient-mesh">
@@ -86,7 +82,7 @@ export default async function HomePage() {
           <Reveal
             key={section.key}
             as="section"
-            id={section.key === "trending" ? "trending" : undefined}
+            id={index === 0 ? "venues-section" : undefined}
             className="container-panora py-[var(--space-section)] scroll-mt-[calc(var(--nav-height)+1rem)]"
             delay={index * 0.04}
           >

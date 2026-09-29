@@ -69,7 +69,7 @@ export function Reveal({
       variants={variants}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once, amount }}
+      viewport={{ once, amount, margin: "-50px" }}
       transition={
         prefersReduced
           ? { duration: 0.01 }
@@ -114,7 +114,7 @@ export function Stagger({
       }
       initial="hidden"
       whileInView="visible"
-      viewport={{ once, amount }}
+      viewport={{ once, amount, margin: "-50px" }}
       {...props}
     >
       {children}

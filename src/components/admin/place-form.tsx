@@ -96,9 +96,15 @@ interface PlaceFormProps {
     message?: string;
   }>;
   submitLabel: string;
+  sectionChoices?: { key: string; title: string }[];
 }
 
-export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
+export function PlaceForm({
+  place,
+  action,
+  submitLabel,
+  sectionChoices,
+}: PlaceFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -556,18 +562,31 @@ export function PlaceForm({ place, action, submitLabel }: PlaceFormProps) {
 
       <Section title="Publishing & SEO">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1.5 md:col-span-2">
-            <span className="text-xs font-medium text-muted">
-              Homepage sections (comma/newline)
-            </span>
-            <textarea
-              name="homepageSections"
-              rows={2}
-              defaultValue={place?.homepageSections.join(", ") ?? ""}
-              className={field}
-              placeholder={SECTION_KEYS.join(", ")}
-            />
-          </label>
+          <fieldset className="space-y-2 md:col-span-2">
+            <legend className="text-xs font-medium text-muted">
+              Homepage sections
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {(
+                sectionChoices?.length
+                  ? sectionChoices
+                  : SECTION_KEYS.map((key) => ({ key, title: key }))
+              ).map((section) => (
+                <label
+                  key={section.key}
+                  className="flex items-center gap-2 rounded-full border border-[var(--border)] px-3 py-1.5 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    name="homepageSections"
+                    value={section.key}
+                    defaultChecked={place?.homepageSections.includes(section.key)}
+                  />
+                  {section.title}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">Meta title</span>
             <input

@@ -20,12 +20,15 @@ export type MoodTag =
   | "Quiet Luxury"
   | "Celebration";
 
-export type HomepageSectionKey =
+export type BuiltinHomepageSectionKey =
   | "trending"
   | "new_discoveries"
   | "panora_picks"
   | "weekend_escape"
   | "editors_choice";
+
+/** Built-in keys, plus any section created in the admin section manager. */
+export type HomepageSectionKey = BuiltinHomepageSectionKey | (string & {});
 
 export type VerificationKey =
   | "photos_verified"
@@ -182,6 +185,7 @@ export interface HomepageSection {
   sortOrder: number;
   enabled: boolean;
   placeIds: string[];
+  sectionType?: string;
 }
 
 export interface SecretCollection {

@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 
 const EXPLORE_LINKS = [
   { href: "/discover", label: "Discover" },
-  { href: "/map", label: "Map" },
   { href: "/discover?vibe=Weekend%20Away", label: "Weekend escapes" },
   { href: "/saved", label: "Wishlist" },
   { href: "/enquiry", label: "Enquire" },

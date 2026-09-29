@@ -9,7 +9,6 @@ Panora Go (also PGO) helps travellers and locals find curated places across Zimb
 
 - Home: /
 - Discover (search): /discover
-- Map: /map
 - The Panora Way: /the-panora-way
 - About: /about
 - Enquire: /enquiry

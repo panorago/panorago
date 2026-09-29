@@ -5,7 +5,6 @@ export function revalidatePublicPlaces(slug?: string) {
   updateTag("places");
   revalidatePath("/");
   revalidatePath("/discover");
-  revalidatePath("/map");
   if (slug) {
     updateTag(`place:${slug}`);
     revalidatePath(`/panoras/${slug}`);

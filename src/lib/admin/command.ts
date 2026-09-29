@@ -1341,14 +1341,11 @@ export async function reorderHomepageSections(
 ): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdmin();
-    for (let i = 0; i < orderedIds.length; i += 1) {
-      const id = orderedIds[i]!;
-      const { error } = await supabase
-        .from("homepage_sections")
-        .update({ sort_order: i })
-        .eq("id", id);
-      if (error) return { ok: false, error: error.message };
-    }
+    const { error } = await supabase.from("homepage_sections").upsert(
+      orderedIds.map((id, index) => ({ id, sort_order: index })),
+      { onConflict: "id", defaultToNull: false },
+    );
+    if (error) return { ok: false, error: error.message };
     await writeAudit("homepage_reorder", "homepage_sections", null, {
       orderedIds,
     });

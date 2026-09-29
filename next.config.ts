@@ -3,6 +3,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: "/map",
+        destination: "/discover",
+        permanent: true,
+      },
+    ];
+  },
   experimental: {
     // lucide-react / date-fns are optimized by default; add heavier named-export libs.
     optimizePackageImports: ["framer-motion", "zod", "@supabase/supabase-js"],

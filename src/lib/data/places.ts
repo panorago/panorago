@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { SEED_PLACES, SEED_STORIES } from "@/data/seed-places";
+import { SEED_PLACES, SEED_SECTIONS, SEED_STORIES } from "@/data/seed-places";
 import {
   aiSearchPlaces,
   getDiverseRecommendations,
@@ -8,6 +8,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ExperienceStory,
+  HomepageSection,
   HomepageSectionKey,
   MoodTag,
   PaidTier,
@@ -258,13 +259,92 @@ export async function getPlaceBySlug(slug: string): Promise<Place | null> {
   )();
 }
 
-export async function getPlacesBySection(
-  key: HomepageSectionKey,
-): Promise<Place[]> {
+function sortByCuratedIds(places: Place[], placeIds: string[]): Place[] {
+  if (placeIds.length === 0) return places;
+  const rank = new Map(placeIds.map((id, index) => [id, index]));
+  return [...places].sort((a, b) => {
+    const left = rank.get(a.id);
+    const right = rank.get(b.id);
+    if (left == null && right == null) return 0;
+    if (left == null) return 1;
+    if (right == null) return -1;
+    return left - right;
+  });
+}
+
+function mapHomepageSection(row: {
+  id: string;
+  key: string;
+  title: string;
+  subtitle: string | null;
+  sort_order: number;
+  enabled: boolean;
+  place_ids: string[] | null;
+  section_type?: string | null;
+}): HomepageSection {
+  return {
+    id: row.id,
+    key: row.key,
+    title: row.title,
+    subtitle: row.subtitle ?? "",
+    sortOrder: row.sort_order,
+    enabled: Boolean(row.enabled),
+    placeIds: Array.isArray(row.place_ids) ? row.place_ids : [],
+    sectionType: row.section_type ?? "grid",
+  };
+}
+
+export async function getEnabledHomepageSections(): Promise<HomepageSection[]> {
   return unstable_cache(
     async () => {
       const supabase = createPublicClient();
-      if (!supabase) return seedPlacesBySection(key);
+      if (!supabase) return SEED_SECTIONS.filter((section) => section.enabled);
+
+      try {
+        const { data, error } = await supabase
+          .from("homepage_sections")
+          .select("*")
+          .eq("enabled", true)
+          .order("sort_order", { ascending: true });
+
+        if (error || !data || data.length === 0) {
+          return SEED_SECTIONS.filter((section) => section.enabled);
+        }
+
+        return data.map((row) =>
+          mapHomepageSection(
+            row as {
+              id: string;
+              key: string;
+              title: string;
+              subtitle: string | null;
+              sort_order: number;
+              enabled: boolean;
+              place_ids: string[] | null;
+              section_type?: string | null;
+            },
+          ),
+        );
+      } catch {
+        return SEED_SECTIONS.filter((section) => section.enabled);
+      }
+    },
+    ["homepage-sections"],
+    { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
+  )();
+}
+
+export async function getPlacesBySection(
+  key: HomepageSectionKey,
+  placeIds: string[] = [],
+): Promise<Place[]> {
+  const orderKey = placeIds.join(",");
+  return unstable_cache(
+    async () => {
+      const supabase = createPublicClient();
+      if (!supabase) {
+        return sortByCuratedIds(seedPlacesBySection(key), placeIds);
+      }
 
       try {
         const { data, error } = await supabase
@@ -276,15 +356,18 @@ export async function getPlacesBySection(
           .order("updated_at", { ascending: false });
 
         if (error || !data || data.length === 0) {
-          return seedPlacesBySection(key);
+          return sortByCuratedIds(seedPlacesBySection(key), placeIds);
         }
 
-        return (data as PlaceRow[]).map(mapPlaceRow);
+        return sortByCuratedIds(
+          (data as PlaceRow[]).map(mapPlaceRow),
+          placeIds,
+        );
       } catch {
-        return seedPlacesBySection(key);
+        return sortByCuratedIds(seedPlacesBySection(key), placeIds);
       }
     },
-    ["places-by-section", key],
+    ["places-by-section", key, orderKey],
     { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
   )();
 }

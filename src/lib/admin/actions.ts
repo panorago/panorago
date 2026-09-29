@@ -117,9 +117,9 @@ function placePayloadFromForm(formData: FormData) {
   const pricingItems = parsePricingItems(
     asString(formData.get("pricingItems")),
   );
-  const homepageSections = parseLines(
-    asString(formData.get("homepageSections")),
-  ) as HomepageSectionKey[];
+  const homepageSections = formData
+    .getAll("homepageSections")
+    .flatMap((value) => parseLines(asString(value))) as HomepageSectionKey[];
 
   const highlights: PlaceHighlights = {
     goldenHour: asString(formData.get("goldenHour")) || undefined,
@@ -602,6 +602,8 @@ export async function getAdminSections(): Promise<HomepageSection[]> {
       placeIds: Array.isArray(row.place_ids)
         ? (row.place_ids as string[])
         : [],
+      sectionType:
+        typeof row.section_type === "string" ? row.section_type : "grid",
     }));
   } catch {
     return [];
@@ -615,26 +617,173 @@ export async function updateSection(formData: FormData): Promise<ActionResult> {
     if (!id) return { ok: false, error: "Missing section id." };
 
     const placeIds = parseLines(asString(formData.get("placeIds")));
+    const sectionType = asString(formData.get("sectionType"));
 
-    const { error } = await supabase
+    const payload: Record<string, unknown> = {
+      title: asString(formData.get("title")),
+      subtitle: asString(formData.get("subtitle")),
+      sort_order: Number(asString(formData.get("sortOrder")) || "0"),
+      enabled: asBool(formData.get("enabled")),
+      place_ids: placeIds,
+    };
+    if (sectionType) payload.section_type = sectionType;
+
+    let { error } = await supabase
       .from("homepage_sections")
-      .update({
-        title: asString(formData.get("title")),
-        subtitle: asString(formData.get("subtitle")),
-        sort_order: Number(asString(formData.get("sortOrder")) || "0"),
-        enabled: asBool(formData.get("enabled")),
-        place_ids: placeIds,
-      })
+      .update(payload)
       .eq("id", id);
 
+    if (
+      error &&
+      sectionType &&
+      /section_type/i.test(error.message)
+    ) {
+      delete payload.section_type;
+      ({ error } = await supabase
+        .from("homepage_sections")
+        .update(payload)
+        .eq("id", id));
+    }
+
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePublicPlaces();
     revalidatePath("/admin/sections");
+    revalidatePath("/admin/homepage");
     return { ok: true, message: "Section updated." };
   } catch (error) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Update failed.",
+    };
+  }
+}
+
+const SECTION_TYPES = [
+  "hero",
+  "featured",
+  "grid",
+  "list",
+  "cta",
+  "testimonial",
+  "about",
+] as const;
+
+export async function createSection(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    const title = asString(formData.get("title")).trim();
+    if (!title) return { ok: false, error: "Section name is required." };
+
+    const requestedType = asString(formData.get("sectionType"), "grid");
+    const sectionType = SECTION_TYPES.includes(
+      requestedType as (typeof SECTION_TYPES)[number],
+    )
+      ? requestedType
+      : "grid";
+
+    const key = slugify(title, { lower: true, strict: true, trim: true });
+    if (!key) {
+      return { ok: false, error: "Could not make a key from that name." };
+    }
+
+    const { data: last } = await supabase
+      .from("homepage_sections")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const sortOrder = last ? Number(last.sort_order) + 1 : 0;
+    const payload: Record<string, unknown> = {
+      key,
+      title,
+      subtitle: "",
+      sort_order: sortOrder,
+      enabled: true,
+      place_ids: [],
+      section_type: sectionType,
+    };
+
+    let { error } = await supabase.from("homepage_sections").insert(payload);
+    if (error && /section_type/i.test(error.message)) {
+      delete payload.section_type;
+      ({ error } = await supabase.from("homepage_sections").insert(payload));
+    }
+
+    if (error) {
+      if (/check constraint|homepage_sections_key/i.test(error.message)) {
+        return {
+          ok: false,
+          error:
+            "Custom sections need migration 016_homepage_sections_manager.sql applied in Supabase.",
+        };
+      }
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePublicPlaces();
+    revalidatePath("/admin/homepage");
+    revalidatePath("/admin/sections");
+    return { ok: true, message: "Section added." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not add section.",
+    };
+  }
+}
+
+export async function deleteSection(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    const id = asString(formData.get("id"));
+    if (!id) return { ok: false, error: "Missing section id." };
+
+    const { data: row, error: lookupError } = await supabase
+      .from("homepage_sections")
+      .select("key")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (lookupError) return { ok: false, error: lookupError.message };
+    if (!row) return { ok: false, error: "Section not found." };
+
+    const key = String(row.key);
+    const { data: linked } = await supabase
+      .from("places")
+      .select("id, homepage_sections")
+      .contains("homepage_sections", [key]);
+
+    for (const place of linked ?? []) {
+      const current = Array.isArray(place.homepage_sections)
+        ? (place.homepage_sections as string[])
+        : [];
+      const next = current.filter((item) => item !== key);
+      if (next.length === current.length) continue;
+      await supabase
+        .from("places")
+        .update({ homepage_sections: next })
+        .eq("id", place.id);
+    }
+
+    const { error } = await supabase
+      .from("homepage_sections")
+      .delete()
+      .eq("id", id);
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePublicPlaces();
+    revalidatePath("/admin/homepage");
+    revalidatePath("/admin/sections");
+    return { ok: true, message: "Section deleted." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Delete failed.",
     };
   }
 }

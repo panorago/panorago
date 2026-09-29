@@ -82,7 +82,7 @@ export default async function DiscoverPage({
               ? collection.subtitle
               : "Filter by vibe or search by place, city, or feeling. Every listing is curated with insider notes."}
           </p>
-          <div className="mt-8">
+          <div className="mt-8 hidden md:block">
             <SearchBar initialQuery={q} initialVibe={vibe} large />
           </div>
           <div className="mt-6">

@@ -159,6 +159,9 @@ export default async function AdminPlacesPage({ searchParams }: PageProps) {
                   {place.name}
                 </Link>
                 <p className="text-xs text-muted">
+                  {place.homepageSections.length > 0
+                    ? `${place.homepageSections.join(", ")} · `
+                    : ""}
                   {place.city} · {place.category} · {place.paidTier}
                   {place.verified ? " · Verified" : ""}
                   {place.featured ? " · Featured" : ""}
