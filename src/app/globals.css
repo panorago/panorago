@@ -309,7 +309,9 @@ h4 {
 }
 
 .container-panora {
-  max-width: 1120px;
+  /* ~4% side gutters on desktop, without a narrow centred column. */
+  max-width: none;
+  padding-inline: clamp(1rem, 4vw, 4.5rem);
 }
 
 .container-narrow {
@@ -317,14 +319,12 @@ h4 {
 }
 
 @media (min-width: 40rem) {
-  .container-panora,
   .container-narrow {
     padding-inline: 1.5rem;
   }
 }
 
 @media (min-width: 64rem) {
-  .container-panora,
   .container-narrow {
     padding-inline: 2rem;
   }
@@ -371,4 +371,12 @@ h4 {
 
 .skip-link:focus {
   top: 1rem;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -6,7 +6,6 @@ import { useState } from "react";
 
 import { useOptionalAuth } from "@/components/auth/auth-provider";
 import {
-  ensureSavedPlaceId,
   getSavedPlaceIds,
   mergeSavedPlaceIds,
   replaceSavedPlaceIds,
@@ -73,12 +72,15 @@ export function SaveButton({
     e.preventDefault();
     e.stopPropagation();
 
-    // Signed-out: open Join Panora — still park the place locally so nothing is lost
+    // Signed-out visitors can browse freely. Saving needs an account.
     if (auth && !auth.loading && !auth.user) {
       if (!saved) {
-        ensureSavedPlaceId(placeId);
         auth.openAuth({
           kind: "save",
+          returnTo:
+            typeof window !== "undefined"
+              ? window.location.pathname + window.location.search
+              : undefined,
           place: {
             placeId,
             placeName,
@@ -86,9 +88,9 @@ export function SaveButton({
             atmospheres,
             slug,
           },
-          headline: "Save this experience forever.",
+          headline: "An account is required to save favourites.",
           subtitle:
-            "Create a free Panora account to keep this place on your wishlist across devices.",
+            "Log in or create a free Panora account. You will come back to this place.",
         });
         return;
       }
@@ -97,13 +99,10 @@ export function SaveButton({
       return;
     }
 
-    const wasSaved = saved;
-    toggle(); // optimistic local — must always succeed for UX
+    if (auth?.loading || !auth?.user) return;
 
-    if (!auth?.user) {
-      // Auth still loading / no provider: local-only is fine
-      return;
-    }
+    const wasSaved = saved;
+    toggle();
 
     try {
       if (wasSaved) {

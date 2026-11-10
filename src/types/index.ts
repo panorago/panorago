@@ -94,6 +94,11 @@ export interface PlaceHighlights {
   openingHours?: string;
   /** Optional sneak-peek pricing rows for admin / detail UI later */
   pricingItems?: PricingItem[];
+  /** Search descriptors stored on the existing highlights jsonb. */
+  searchTags?: string[];
+  searchKeywords?: string[];
+  searchOccasions?: string[];
+  searchSummary?: string;
 }
 
 export interface PlaceContact {
@@ -159,6 +164,14 @@ export interface Place {
   pricingItems?: PricingItem[];
   /** Optional venue video (mp4 URL or YouTube/Vimeo) shown below hero */
   videoUrl?: string | null;
+  /** Search tags such as outdoor, braai, romantic, scenic. */
+  tags?: string[];
+  /** Occasions such as date night, weekend away, honeymoon. */
+  occasions?: string[];
+  /** Freeform synonyms a guest might type. */
+  searchKeywords?: string[];
+  /** One plain-text sentence used as AI search context. */
+  summary?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -186,6 +199,8 @@ export interface HomepageSection {
   enabled: boolean;
   placeIds: string[];
   sectionType?: string;
+  cardLimit?: number;
+  vibeFilter?: string | null;
 }
 
 export interface SecretCollection {
@@ -244,6 +259,7 @@ export interface SiteSettings {
   instagram: string;
   facebook: string;
   tiktok: string;
+  x: string;
   mapsApiKeyNote: string;
 }
 

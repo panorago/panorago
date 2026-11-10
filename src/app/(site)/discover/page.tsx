@@ -1,21 +1,41 @@
+import { WeekStoriesRail } from "@/components/home/week-stories-rail";
 import { Reveal } from "@/components/motion/reveal";
 import { PlaceGrid } from "@/components/place/place-grid";
 import { QuickVibes } from "@/components/search/quick-vibes";
 import { SearchBar } from "@/components/search/search-bar";
-import { SEED_SECRET_COLLECTIONS } from "@/data/seed-places";
-import { getPublishedPlaces, searchPlaces } from "@/lib/data/places";
+import {
+  getEnabledSecretCollections,
+  getPublishedPlaces,
+  searchPlaces,
+} from "@/lib/data/places";
+import { getPublishedWeekStories } from "@/lib/stories/week-stories";
 import type { MoodTag } from "@/types";
 import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const revalidate = 120;
 
+const discoverTitle = "Discover Zimbabwe places";
+const discoverDescription =
+  "Search Panora Go for Zimbabwe tourism — curated places by name, city, or vibe. Discover Connect Belong across Panora Zimbabwe.";
+
 export const metadata: Metadata = {
-  title: "Discover Zimbabwe places",
-  description:
-    "Search Panora Go for Zimbabwe tourism — curated places by name, city, or vibe. Discover Connect Belong across Panora Zimbabwe.",
+  title: discoverTitle,
+  description: discoverDescription,
   alternates: {
     canonical: absoluteUrl("/discover"),
+  },
+  openGraph: {
+    title: discoverTitle,
+    description: discoverDescription,
+    url: absoluteUrl("/discover"),
+    images: [{ url: absoluteUrl("/opengraph-image") }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: discoverTitle,
+    description: discoverDescription,
+    images: [absoluteUrl("/opengraph-image")],
   },
 };
 
@@ -43,10 +63,11 @@ export default async function DiscoverPage({
   const q = params.q?.trim() ?? "";
   const vibe = isMoodTag(params.vibe) ? params.vibe : undefined;
   const collectionKey = params.collection?.trim() ?? "";
-  const collection = SEED_SECRET_COLLECTIONS.find(
-    (item) => item.key === collectionKey,
-  );
+  const collections = await getEnabledSecretCollections();
+  const collection = collections.find((item) => item.key === collectionKey);
 
+  const weekStories =
+    vibe === "Weekend Away" ? await getPublishedWeekStories() : [];
   let places = await searchPlaces(q, vibe);
 
   if (collection) {
@@ -89,6 +110,13 @@ export default async function DiscoverPage({
             <QuickVibes activeVibe={vibe} />
           </div>
         </Reveal>
+
+        {weekStories.length > 0 ? (
+          <div className="mt-10">
+            <h2 className="mb-4 font-display text-2xl">This week</h2>
+            <WeekStoriesRail stories={weekStories} />
+          </div>
+        ) : null}
 
         <Reveal className="mt-14" delay={0.08}>
           <div className="mb-6 flex items-center justify-between gap-4">

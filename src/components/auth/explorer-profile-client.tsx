@@ -6,14 +6,10 @@ import { CalendarDays, Compass, Heart, LogOut, Sparkles } from "lucide-react";
 
 import { ExplorerOnboarding } from "@/components/auth/explorer-onboarding";
 import { useAuth } from "@/components/auth/auth-provider";
+import { PlaceCard } from "@/components/place/place-card";
+import { useResolvedSavedPlaces } from "@/components/place/saved-places-client";
 import { Button } from "@/components/ui/button";
 import type { ExplorerProfile } from "@/lib/auth/profile";
-import { syncWishlistAction } from "@/lib/auth/wishlist";
-import {
-  getSavedPlaceIds,
-  mergeSavedPlaceIds,
-  replaceSavedPlaceIds,
-} from "@/components/place/use-saved-places";
 
 export function ExplorerProfileClient() {
   const { user, profile, loading, openAuth, signOut, refreshProfile } =
@@ -21,28 +17,13 @@ export function ExplorerProfileClient() {
   const [localProfile, setLocalProfile] = useState<ExplorerProfile | null>(
     profile,
   );
-  const [savedCount, setSavedCount] = useState(0);
+  const { places: savedPlaces, loading: savedLoading } =
+    useResolvedSavedPlaces();
+  const savedCount = savedPlaces.length;
 
   useEffect(() => {
     setLocalProfile(profile);
   }, [profile]);
-
-  useEffect(() => {
-    if (!user) return;
-    const local = getSavedPlaceIds();
-    setSavedCount(local.length);
-    void (async () => {
-      const synced = await syncWishlistAction(local);
-      if (synced.ok) {
-        replaceSavedPlaceIds(synced.placeIds);
-        setSavedCount(synced.placeIds.length);
-      } else {
-        const merged = mergeSavedPlaceIds(synced.placeIds ?? local);
-        setSavedCount(merged.length);
-        console.warn("[wishlist] explorer sync deferred", synced.error);
-      }
-    })();
-  }, [user]);
 
   if (loading) {
     return (
@@ -131,7 +112,9 @@ export function ExplorerProfileClient() {
             <Heart className="h-5 w-5 text-[var(--accent)]" />
             <p className="mt-3 font-display text-2xl">My Wishlist</p>
             <p className="mt-1 text-sm text-muted">
-              {savedCount} saved place{savedCount === 1 ? "" : "s"} · synced
+              {savedLoading
+                ? "Loading saved places…"
+                : `${savedCount} saved place${savedCount === 1 ? "" : "s"}`}
             </p>
           </Link>
         </li>
@@ -173,6 +156,39 @@ export function ExplorerProfileClient() {
         </li>
       </ul>
 
+      <section className="mt-10">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <h2 className="font-display text-2xl">Saved places</h2>
+          {savedCount > 0 ? (
+            <Link href="/saved" className="text-sm font-medium text-[var(--accent)]">
+              View wishlist
+            </Link>
+          ) : null}
+        </div>
+        {savedLoading ? (
+          <p className="text-sm text-muted">Loading your saved places…</p>
+        ) : savedPlaces.length === 0 ? (
+          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] px-6 py-10 text-center">
+            <p className="font-display text-xl">No saved places yet</p>
+            <p className="long-form mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
+              Tap the heart on a place and it will show up here and on your wishlist.
+            </p>
+            <Link
+              href="/discover"
+              className="mt-4 inline-flex text-sm font-medium text-[var(--accent)]"
+            >
+              Explore places →
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2">
+            {savedPlaces.map((place) => (
+              <PlaceCard key={place.id} place={place} />
+            ))}
+          </div>
+        )}
+      </section>
+
       {Array.isArray(localProfile?.preferences?.vibes) &&
       localProfile.preferences.vibes.length > 0 ? (
         <div className="mt-10">
@@ -193,8 +209,7 @@ export function ExplorerProfileClient() {
       ) : null}
 
       <p className="mt-10 text-xs text-muted">
-        Explorer points: {localProfile?.explorerPoints ?? 0} · Passport
-        gamification coming soon.
+        Explorer points: {localProfile?.explorerPoints ?? 0}
       </p>
     </div>
   );

@@ -9,16 +9,19 @@ import { VerifiedBadge } from "@/components/ui/badge";
 import { SaveButton } from "@/components/place/save-button";
 import { getSavedPlaceIds } from "@/components/place/use-saved-places";
 import { fadeUp, cardHover, floatSubtle } from "@/lib/motion/variants";
+import type { PlaceCardModel } from "@/lib/places/card";
 import { cn, formatDistance, formatPriceGuide } from "@/lib/utils";
-import type { Place } from "@/types";
 
 export { getSavedPlaceIds };
 
 type PlaceCardProps = {
-  place: Place;
+  place: PlaceCardModel;
   className?: string;
   float?: boolean;
   priority?: boolean;
+  size?: "default" | "compact";
+  /** Compact cards on the dark hero. Surface cards sit on the page background. */
+  tone?: "surface" | "on-dark";
 };
 
 export function PlaceCard({
@@ -26,14 +29,71 @@ export function PlaceCard({
   className,
   float = false,
   priority = false,
+  size = "default",
+  tone = "surface",
 }: PlaceCardProps) {
   const reduceMotion = useReducedMotion();
   const distance = formatDistance(place.distanceKm);
-  const mood = place.mood[0];
+  const mood = place.mood?.[0];
+  const story = place.story ?? "";
   const tease =
-    place.story.length > 96
-      ? `${place.story.slice(0, 96).trimEnd()}…`
-      : place.story;
+    story.length > 96 ? `${story.slice(0, 96).trimEnd()}…` : story;
+
+  if (size === "compact") {
+    const onDark = tone === "on-dark";
+    const location = [place.location, place.city].filter(Boolean).join(", ");
+    const price = formatPriceGuide(place.priceGuide);
+    return (
+      <Link
+        href={`/panoras/${place.slug}`}
+        className={cn(
+          "flex min-w-0 items-center gap-3 rounded-xl border p-3 transition-colors",
+          onDark
+            ? "border-white/[0.12] bg-white/[0.07] hover:bg-white/[0.10]"
+            : "border-[var(--border)] bg-[var(--background-elevated)] hover:border-[var(--accent)]",
+          className,
+        )}
+      >
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/[0.08]">
+          <ProgressiveImage
+            src={place.heroImage}
+            alt={place.name}
+            fill
+            sizes="48px"
+            className="object-cover"
+            containerClassName="absolute inset-0"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "mb-0.5 text-[10px] uppercase tracking-wider",
+              onDark ? "text-[#D4AF37]" : "text-[var(--accent)]",
+            )}
+          >
+            {mood || (place.verified ? "Panora Verified" : "Place")}
+          </p>
+          <p
+            className={cn(
+              "truncate text-sm font-medium",
+              onDark ? "text-white" : "text-[var(--foreground)]",
+            )}
+          >
+            {place.name}
+          </p>
+          <p
+            className={cn(
+              "mt-0.5 truncate text-[11px]",
+              onDark ? "text-white/40" : "text-[var(--foreground-muted)]",
+            )}
+          >
+            {location}
+            {price ? ` · ${price}` : ""}
+          </p>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <motion.article
@@ -44,8 +104,8 @@ export function PlaceCard({
       <motion.div
         className={cn(
           "relative overflow-hidden rounded-[var(--radius-xl)]",
-          "border border-[var(--border)] bg-[var(--surface-card)]",
-          "backdrop-blur-xl shadow-[var(--shadow)]",
+          "border border-[var(--border)] bg-[var(--background-elevated)]",
+          "shadow-[var(--shadow)]",
         )}
         initial="rest"
         whileHover={reduceMotion ? undefined : "hover"}
@@ -90,15 +150,17 @@ export function PlaceCard({
                     }
               }
             >
-              <ProgressiveImage
-                src={place.heroImage}
-                alt={place.name}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                priority={priority}
-                className="object-cover"
-                containerClassName="absolute inset-0"
-              />
+              {place.heroImage ? (
+                <ProgressiveImage
+                  src={place.heroImage}
+                  alt={place.name}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  priority={priority}
+                  className="object-cover"
+                  containerClassName="absolute inset-0"
+                />
+              ) : null}
             </motion.div>
 
             <div
@@ -107,7 +169,7 @@ export function PlaceCard({
             />
 
             {mood ? (
-              <span className="absolute bottom-3 left-3 z-10 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-md">
+              <span className="absolute bottom-3 left-3 z-10 rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-xs font-medium text-white">
                 {mood}
               </span>
             ) : null}

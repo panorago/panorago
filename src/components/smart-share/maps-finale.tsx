@@ -51,8 +51,7 @@ export function MapsFinale({ place }: MapsFinaleProps) {
         />
       ) : (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--glass)] p-6 text-sm text-muted">
-          Map coordinates are coming soon. You can still open Google Maps with
-          the venue name.
+          This listing has no map pin yet. Google Maps can still search the venue name.
         </div>
       )}
 

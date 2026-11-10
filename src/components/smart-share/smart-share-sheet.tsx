@@ -11,7 +11,6 @@ import { atmospheresForPlace } from "@/lib/panora/atmospheres";
 import {
   smartShareFacebookUrl,
   smartShareMessage,
-  smartSharePath,
   smartShareTelegramUrl,
   smartShareUrl,
   smartShareWhatsAppUrl,
@@ -83,12 +82,7 @@ export function SmartShareSheet({
   const [showQr, setShowQr] = useState(false);
   const [downloading, setDownloading] = useState<ShareCardRatio | null>(null);
 
-  const shareUrl = useMemo(() => {
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}${smartSharePath(place.slug)}`;
-    }
-    return smartShareUrl(place.slug);
-  }, [place.slug]);
+  const shareUrl = useMemo(() => smartShareUrl(place.slug), [place.slug]);
 
   const atmospheres = useMemo(
     () => atmospheresForPlace(place, 4),
@@ -135,7 +129,7 @@ export function SmartShareSheet({
   }
 
   async function nativeShare() {
-    const text = smartShareMessage(place);
+    const text = smartShareMessage(place, shareUrl);
     if (navigator.share) {
       try {
         await navigator.share({
@@ -173,7 +167,7 @@ export function SmartShareSheet({
     {
       id: "whatsapp",
       label: "WhatsApp",
-      href: smartShareWhatsAppUrl(place),
+      href: smartShareWhatsAppUrl(place, undefined, shareUrl),
       icon: MessageCircle,
       className: "bg-[#25D366]/15 text-[#25D366]",
     },
@@ -204,7 +198,7 @@ export function SmartShareSheet({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6"
+          className="pointer-events-none fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -213,7 +207,7 @@ export function SmartShareSheet({
           <button
             type="button"
             aria-label="Close share sheet"
-            className="absolute inset-0 bg-[var(--brand-navy)]/70 backdrop-blur-sm"
+            className="pointer-events-auto absolute inset-0 bg-[var(--brand-navy)]/70 backdrop-blur-sm"
             onClick={() => onOpenChange(false)}
           />
           <motion.div
@@ -221,7 +215,7 @@ export function SmartShareSheet({
             aria-modal="true"
             aria-labelledby="smart-share-title"
             className={cn(
-              "relative z-10 w-full max-w-lg overflow-hidden rounded-t-[var(--radius-xl)] border border-[var(--brand-gold)]/30",
+              "pointer-events-auto relative z-10 max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-[var(--radius-xl)] border border-[var(--brand-gold)]/30",
               "bg-[var(--brand-navy)] text-white shadow-[var(--shadow-gold)] sm:rounded-[var(--radius-xl)]",
             )}
             initial={

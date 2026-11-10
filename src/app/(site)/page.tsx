@@ -1,13 +1,23 @@
 import { HomeHero } from "@/components/home/home-hero";
 import { HomepageLiveRefresh } from "@/components/home/homepage-live-refresh";
-import { MobileOpenOnContent } from "@/components/home/mobile-open-on-content";
+import { WeekStoriesRail } from "@/components/home/week-stories-rail";
+import { WeeklyPeekStrip } from "@/components/home/weekly-peek-strip";
 import { Reveal } from "@/components/motion/reveal";
 import { PlaceGrid } from "@/components/place/place-grid";
-import { SEED_SECRET_COLLECTIONS } from "@/data/seed-places";
 import {
   getEnabledHomepageSections,
+  getEnabledSecretCollections,
+  getHeroLayoutSections,
   getPlacesBySection,
+  getPublishedPlaces,
 } from "@/lib/data/places";
+import {
+  HERO_PEEK_STRIP_KEY,
+  HERO_RIGHT_PANEL_KEY,
+  isHeroLayoutKey,
+  placesForHeroSlot,
+} from "@/lib/home/hero-layout";
+import { getPublishedWeekStories } from "@/lib/stories/week-stories";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
@@ -31,30 +41,71 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const homepageSections = await getEnabledHomepageSections();
+  const [homepageSections, secretCollections, heroLayout, published, weekStories] =
+    await Promise.all([
+      getEnabledHomepageSections(),
+      getEnabledSecretCollections(),
+      getHeroLayoutSections(),
+      getPublishedPlaces(),
+      getPublishedWeekStories(),
+    ]);
+  const contentSections = homepageSections.filter(
+    (section) => !isHeroLayoutKey(section.key),
+  );
   const sectionPlaces = await Promise.all(
-    homepageSections.map((section) =>
+    contentSections.map((section) =>
       getPlacesBySection(section.key, section.placeIds),
     ),
+  );
+  const trending =
+    sectionPlaces[
+      contentSections.findIndex((section) => section.key === "trending")
+    ] ?? [];
+  const heroPanel = placesForHeroSlot(
+    published,
+    trending,
+    heroLayout.find((section) => section.key === HERO_RIGHT_PANEL_KEY),
+    "panel",
+  );
+  const peekStrip = placesForHeroSlot(
+    published,
+    trending,
+    heroLayout.find((section) => section.key === HERO_PEEK_STRIP_KEY),
+    "peek",
   );
 
   // Curated Victoria Falls still — full-bleed Zimbabwe hero
   const heroImage = "/images/hero-zimbabwe.jpg";
 
-  const sections = homepageSections.map((section, index) => ({
+  const sections = contentSections.map((section, index) => ({
     key: section.key,
     title: section.title,
     subtitle: section.subtitle,
     places: sectionPlaces[index] ?? [],
   }));
 
-  const firstSectionId = sections[0] ? "venues-section" : undefined;
+  const newWeekIndex = sections.findIndex(
+    (section) =>
+      section.key === "new_discoveries" || /new this week/i.test(section.title),
+  );
 
   return (
     <>
       <HomepageLiveRefresh />
-      {firstSectionId ? <MobileOpenOnContent targetId={firstSectionId} /> : null}
-      <HomeHero heroImage={heroImage} />
+      <HomeHero
+        heroImage={heroImage}
+        trendingTitle={heroPanel.title}
+        trendingPlaces={heroPanel.visible ? heroPanel.places : []}
+      />
+      {peekStrip.visible ? (
+        <WeeklyPeekStrip title={peekStrip.title} places={peekStrip.places} />
+      ) : null}
+      {weekStories.length > 0 && newWeekIndex < 0 ? (
+        <section className="container-panora py-8">
+          <h2 className="mb-4 font-display text-3xl">New This Week</h2>
+          <WeekStoriesRail stories={weekStories} />
+        </section>
+      ) : null}
 
       <div className="gradient-mesh">
         <Reveal
@@ -82,7 +133,13 @@ export default async function HomePage() {
           <Reveal
             key={section.key}
             as="section"
-            id={index === 0 ? "venues-section" : undefined}
+            id={
+              section.key === "trending"
+                ? "trending"
+                : index === 0
+                  ? "venues-section"
+                  : undefined
+            }
             className="container-panora py-[var(--space-section)] scroll-mt-[calc(var(--nav-height)+1rem)]"
             delay={index * 0.04}
           >
@@ -105,10 +162,15 @@ export default async function HomePage() {
                 View all →
               </Link>
             </div>
-            <PlaceGrid places={section.places} />
+            {index === newWeekIndex && weekStories.length > 0 ? (
+              <WeekStoriesRail stories={weekStories} />
+            ) : (
+              <PlaceGrid places={section.places} />
+            )}
           </Reveal>
         ))}
 
+        {secretCollections.length > 0 ? (
         <Reveal
           as="section"
           className="container-panora py-[var(--space-section)]"
@@ -126,7 +188,7 @@ export default async function HomePage() {
             </p>
           </div>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {SEED_SECRET_COLLECTIONS.map((collection) => (
+            {secretCollections.map((collection) => (
               <li key={collection.key} className="min-w-0">
                 <Link
                   href={`/discover?collection=${encodeURIComponent(collection.key)}`}
@@ -149,6 +211,7 @@ export default async function HomePage() {
             ))}
           </ul>
         </Reveal>
+        ) : null}
       </div>
     </>
   );

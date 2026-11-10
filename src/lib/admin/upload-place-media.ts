@@ -1,5 +1,6 @@
 "use server";
 
+import { createPlaceMediaSlot } from "@/lib/media/place-media-slot";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -30,9 +31,37 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
+/** Tiny request that returns a storage token. The file itself never hits this action. */
+export async function preparePlaceMediaUpload(input: {
+  filename: string;
+  contentType: string;
+  kind: string;
+  size: number;
+}): Promise<
+  | {
+      ok: true;
+      bucket: string;
+      path: string;
+      token: string;
+      publicUrl: string;
+    }
+  | { ok: false; error: string }
+> {
+  try {
+    await requireAdmin();
+    return await createPlaceMediaSlot({ ...input, folder: "places" });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not start upload.",
+    };
+  }
+}
+
 /**
  * Upload a hero / gallery / menu / video file for a place.
  * Tries `place-images` first, then falls back to `media`.
+ * Used when a compressed file still fits in the server action.
  */
 export async function uploadPlaceMedia(
   formData: FormData,

@@ -1,16 +1,46 @@
 import type { MoodTag, Place, PlaceAmenityFlags, PlaceHighlights } from "@/types";
 
+const STOP_WORDS = new Set([
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "for",
+  "to",
+  "of",
+  "in",
+  "on",
+  "at",
+  "around",
+  "near",
+  "places",
+  "place",
+  "somewhere",
+  "something",
+  "with",
+]);
+
 const SYNONYM_MAP: Record<string, string[]> = {
   pool: ["swimming", "swim"],
   wifi: ["wi-fi", "wifi", "starlink", "internet"],
-  romantic: ["date night", "romance", "date"],
+  romantic: ["date night", "romance", "anniversary", "couple"],
+  romance: ["romantic", "date night"],
+  relax: ["relaxation", "spa", "wellness", "quiet luxury"],
+  relaxation: ["spa", "wellness", "quiet luxury", "massage", "retreat"],
+  food: ["dining", "restaurant", "kitchen", "lunch", "dinner"],
+  eat: ["dining", "restaurant", "food"],
+  restaurant: ["dining", "food", "kitchen"],
   coffee: ["coffee ritual", "cafe"],
   kids: ["kidfriendly", "kid friendly", "family", "family friendly"],
   pet: ["petfriendly", "pet friendly"],
-  weekend: ["weekend away", "getaway"],
+  weekend: ["weekend away", "getaway", "escape"],
+  activity: ["outdoors", "experience", "weekend"],
+  activities: ["outdoors", "experience", "weekend"],
+  harare: ["harare"],
   lake: ["kariba"],
   falls: ["victoria falls", "waterfall"],
-  spa: ["wellness", "massage", "relax"],
+  spa: ["wellness", "massage", "relax", "relaxation"],
   night: ["tonight", "nightlife", "date night"],
 };
 
@@ -27,25 +57,44 @@ function tokenize(value: string): string[] {
   return normalizeText(value).split(" ").filter(Boolean);
 }
 
-function expandQueryTokens(query: string): string[] {
-  const tokens = tokenize(query);
-  const expanded = new Set<string>();
+function synonymsFor(token: string): string[] {
+  if (SYNONYM_MAP[token]) return SYNONYM_MAP[token];
+  if (token.length < 5) return [];
+  for (const key of Object.keys(SYNONYM_MAP)) {
+    if (Math.abs(key.length - token.length) > 1) continue;
+    if (levenshteinLite(token, key, 1) <= 1) return SYNONYM_MAP[key];
+  }
+  return [];
+}
+
+type QueryToken = { token: string; fromSynonym: boolean };
+
+function expandQueryTokens(query: string): QueryToken[] {
+  const tokens = tokenize(query).filter((token) => !STOP_WORDS.has(token));
+  const expanded: QueryToken[] = [];
+  const seen = new Set<string>();
+
+  const add = (token: string, fromSynonym: boolean) => {
+    if (!token || seen.has(token)) return;
+    seen.add(token);
+    expanded.push({ token, fromSynonym });
+  };
 
   for (const token of tokens) {
-    expanded.add(token);
-    const synonyms = SYNONYM_MAP[token];
-    if (!synonyms) continue;
-
-    for (const synonym of synonyms) {
+    add(token, false);
+    for (const synonym of synonymsFor(token)) {
       const normalized = normalizeText(synonym);
-      if (normalized) expanded.add(normalized);
-      for (const part of tokenize(synonym)) {
-        expanded.add(part);
+      if (!normalized) continue;
+      add(normalized, true);
+      if (normalized.includes(" ")) {
+        for (const part of tokenize(normalized)) {
+          if (part.length >= 5) add(part, true);
+        }
       }
     }
   }
 
-  return [...expanded];
+  return expanded;
 }
 
 /** Levenshtein distance capped early for typo checks (distance <= 2). */
@@ -79,7 +128,10 @@ function tokenMatchesField(token: string, fieldNormalized: string, fieldTokens: 
   if (!token || !fieldNormalized) return 0;
 
   if (fieldNormalized === token) return 1;
-  if (fieldNormalized.includes(token)) return 0.85;
+  if (token.length >= 4 && fieldNormalized.includes(token)) {
+    const padded = ` ${fieldNormalized} `;
+    return padded.includes(` ${token} `) ? 1 : 0.8;
+  }
 
   let best = 0;
   for (const word of fieldTokens) {
@@ -87,7 +139,11 @@ function tokenMatchesField(token: string, fieldNormalized: string, fieldTokens: 
       best = Math.max(best, 1);
       continue;
     }
-    if (word.startsWith(token) || token.startsWith(word)) {
+    if (
+      token.length >= 4 &&
+      Math.abs(word.length - token.length) <= 3 &&
+      (word.startsWith(token) || token.startsWith(word))
+    ) {
       best = Math.max(best, 0.7);
       continue;
     }
@@ -151,13 +207,21 @@ function collectWeightedFields(place: Place): WeightedField[] {
     { text: amenitySearchTerms(place.amenities).join(" "), weight: 6 },
     { text: place.verifications.join(" "), weight: 5 },
     { text: place.country, weight: 3 },
+    { text: (place.tags ?? []).join(" "), weight: 7 },
+    { text: (place.occasions ?? []).join(" "), weight: 6 },
+    { text: (place.searchKeywords ?? []).join(" "), weight: 6 },
+    { text: place.summary ?? "", weight: 4 },
   ];
 }
 
-function scorePlace(place: Place, queryTokens: string[]): number {
-  if (queryTokens.length === 0) return 1;
+export function scoreSearchFields(
+  query: string,
+  fields: WeightedField[],
+): number {
+  const queryTokens = expandQueryTokens(query);
+  if (queryTokens.length === 0) return 0;
 
-  const fields = collectWeightedFields(place).map((field) => {
+  const prepared = fields.map((field) => {
     const normalized = normalizeText(field.text);
     return {
       weight: field.weight,
@@ -167,29 +231,25 @@ function scorePlace(place: Place, queryTokens: string[]): number {
   });
 
   let score = 0;
-
-  for (const token of queryTokens) {
+  for (const queryToken of queryTokens) {
     let tokenBest = 0;
-    for (const field of fields) {
-      const match = tokenMatchesField(token, field.normalized, field.tokens);
-      if (match > 0) {
-        tokenBest = Math.max(tokenBest, match * field.weight);
-      }
+    for (const field of prepared) {
+      if (queryToken.fromSynonym && field.weight < 6) continue;
+      const match = tokenMatchesField(
+        queryToken.token,
+        field.normalized,
+        field.tokens,
+      );
+      if (match > 0) tokenBest = Math.max(tokenBest, match * field.weight);
     }
     score += tokenBest;
   }
-
-  // Prefer places that hit more distinct query tokens
-  const hitCount = queryTokens.filter((token) =>
-    fields.some(
-      (field) => tokenMatchesField(token, field.normalized, field.tokens) > 0,
-    ),
-  ).length;
-  if (hitCount > 1) {
-    score += hitCount * 1.5;
-  }
-
   return score;
+}
+
+function scorePlace(place: Place, query: string): number {
+  if (!query.trim()) return 1;
+  return scoreSearchFields(query, collectWeightedFields(place));
 }
 
 export function aiSearchPlaces(
@@ -198,7 +258,6 @@ export function aiSearchPlaces(
   vibe?: MoodTag,
 ): Place[] {
   const trimmed = query.trim();
-  const queryTokens = trimmed ? expandQueryTokens(trimmed) : [];
 
   const candidates = vibe
     ? places.filter((place) => place.mood.includes(vibe))
@@ -209,8 +268,8 @@ export function aiSearchPlaces(
   }
 
   return candidates
-    .map((place) => ({ place, score: scorePlace(place, queryTokens) }))
-    .filter((entry) => entry.score > 0)
+    .map((place) => ({ place, score: scorePlace(place, trimmed) }))
+    .filter((entry) => entry.score >= 5)
     .sort((a, b) => b.score - a.score || a.place.name.localeCompare(b.place.name))
     .map((entry) => entry.place);
 }

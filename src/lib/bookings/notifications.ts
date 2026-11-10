@@ -171,7 +171,7 @@ function enquiryEmailHtml(input: NotifyBookingInput): string {
       <p style="margin:12px 0 0;font-size:13px">Reference ${escapeHtml(input.bookingReference)}</p>
     </div>
     <p><a href="${verify}" style="color:#C29B62">Verify your ticket</a></p>
-    <p style="font-size:13px;color:#9eb0c4">WhatsApp · ${escapeHtml(contacts.phone)} · ${escapeHtml(contacts.email)} · panora.co.zw</p>
+    <p style="font-size:13px;color:#9eb0c4">WhatsApp · ${escapeHtml(contacts.phone)} · ${escapeHtml(contacts.email)} · panorago.co.zw</p>
   </div>`;
 }
 
@@ -239,6 +239,51 @@ export async function notifyBookingConfirmed(
   if (!result.ok) {
     console.info(
       "[bookings] Confirmation email not sent (booking kept):",
+      result.error,
+    );
+  }
+
+  return { emailSent: result.ok, emailError: result.error };
+}
+
+export async function notifyBookingUnavailable(
+  input: NotifyBookingInput,
+): Promise<{ emailSent: boolean; emailError?: string }> {
+  if (!input.email) {
+    return { emailSent: false, emailError: "No guest email" };
+  }
+
+  const contacts = supportContacts();
+  const text = [
+    `Hi ${input.customerName},`,
+    "",
+    `Unfortunately ${input.venueName} is unavailable on ${input.preferredDate || "the date you asked for"}.`,
+    "Our concierge will suggest alternatives shortly.",
+    `Reference: ${input.bookingReference}`,
+    `Customer number: ${input.customerNumber}`,
+  ].join("\n");
+
+  const html = `
+  <div style="font-family:Georgia,serif;background:#0A192F;color:#fff;padding:32px">
+    <h1 style="color:#C29B62">Panora Go</h1>
+    <p>Hello ${escapeHtml(input.customerName)},</p>
+    <p>Unfortunately <strong>${escapeHtml(input.venueName)}</strong> is unavailable on ${escapeHtml(input.preferredDate || "the date you asked for")}.</p>
+    <p>Our concierge will suggest alternatives shortly.</p>
+    <p>Reference: ${escapeHtml(input.bookingReference)}</p>
+    <p>Customer Number: <strong style="color:#C29B62">${escapeHtml(input.customerNumber)}</strong></p>
+    <p style="font-size:13px;color:#9eb0c4">${escapeHtml(contacts.phone)} · ${escapeHtml(contacts.email)} · panorago.co.zw</p>
+  </div>`;
+
+  const result = await sendWithResend({
+    to: input.email,
+    subject: `Unavailable — ${input.venueName} (${input.customerNumber})`,
+    html,
+    text,
+  });
+
+  if (!result.ok) {
+    console.info(
+      "[bookings] Unavailable email not sent (booking kept):",
       result.error,
     );
   }

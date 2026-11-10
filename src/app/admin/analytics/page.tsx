@@ -1,13 +1,18 @@
-import { getAnalyticsSummary, getDashboardStats } from "@/lib/admin/command";
+import {
+  getAnalyticsSummary,
+  getDashboardStats,
+  getTopSearchTerms,
+} from "@/lib/admin/command";
 
 export const metadata = {
   title: "Command Center · Analytics",
 };
 
 export default async function AdminAnalyticsPage() {
-  const [analytics, stats] = await Promise.all([
+  const [analytics, stats, topSearches] = await Promise.all([
     getAnalyticsSummary(),
     getDashboardStats(),
+    getTopSearchTerms(),
   ]);
 
   const derived = [
@@ -85,6 +90,25 @@ export default async function AdminAnalyticsPage() {
               </div>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-6 shadow-[var(--shadow)]">
+        <h2 className="font-display text-2xl">Top search terms</h2>
+        {topSearches.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No searches logged yet. Guest searches are stored as{" "}
+            <code>analytics_events</code> with event name <code>search</code>.
+          </p>
+        ) : (
+          <ol className="mt-5 space-y-3">
+            {topSearches.map((row) => (
+              <li key={row.query} className="flex justify-between text-sm">
+                <span>{row.query}</span>
+                <span className="text-muted">{row.count}</span>
+              </li>
+            ))}
+          </ol>
         )}
       </section>
     </div>

@@ -114,6 +114,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    const warm = () => setModalMounted(true);
+    const idle = window.requestIdleCallback;
+    if (typeof idle === "function") {
+      const id = idle(warm, { timeout: 1200 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(warm, 250);
+    return () => window.clearTimeout(id);
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     if (!supabaseConfigured()) {
       setUser(null);
@@ -222,8 +233,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (resolved.kind === "save" && resolved.place?.placeId) {
       writePendingSavePlaceId(resolved.place.placeId);
-      // Local save must never wait on OAuth round-trip
-      ensureSavedPlaceId(resolved.place.placeId);
     }
     setIntent(resolved);
     writeAuthIntent(resolved);

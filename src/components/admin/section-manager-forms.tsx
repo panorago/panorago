@@ -28,7 +28,7 @@ export function CreateSectionForm() {
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-4 sm:flex-row sm:items-end"
+      className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-card)] p-4"
       action={(formData) => {
         startTransition(async () => {
           const next = await createSection(formData);
@@ -37,7 +37,7 @@ export function CreateSectionForm() {
         });
       }}
     >
-      <label className="min-w-0 flex-1 space-y-1.5">
+      <label className="min-w-0 space-y-1.5">
         <span className="text-xs text-muted">New section</span>
         <input
           name="title"
@@ -46,26 +46,28 @@ export function CreateSectionForm() {
           className={field}
         />
       </label>
-      <label className="space-y-1.5">
-        <span className="text-xs text-muted">Type</span>
-        <select name="sectionType" defaultValue="grid" className={field}>
-          {SECTION_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
-      >
-        {pending ? "Adding…" : "Add section"}
-      </button>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="w-full max-w-48 space-y-1.5">
+          <span className="text-xs text-muted">Type</span>
+          <select name="sectionType" defaultValue="grid" className={field}>
+            {SECTION_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          disabled={pending}
+          className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)] disabled:opacity-60"
+        >
+          {pending ? "Adding…" : "Add section"}
+        </button>
+      </div>
       {result ? (
         <p
-          className={`w-full text-sm sm:basis-full ${result.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
+          className={`text-sm ${result.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
         >
           {result.ok ? result.message : result.error}
         </p>

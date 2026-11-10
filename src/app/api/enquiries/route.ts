@@ -1,4 +1,5 @@
 import { createBooking } from "@/lib/bookings/create-booking";
+import { isPastDateInput } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import {
   assertSameOrigin,
@@ -69,6 +70,17 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid body", details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  if (
+    parsed.data.preferred_date &&
+    (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.data.preferred_date) ||
+      isPastDateInput(parsed.data.preferred_date))
+  ) {
+    return NextResponse.json(
+      { error: "Choose today or a later date." },
       { status: 400 },
     );
   }

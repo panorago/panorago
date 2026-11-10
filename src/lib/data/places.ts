@@ -1,11 +1,24 @@
 import { unstable_cache } from "next/cache";
-import { SEED_PLACES, SEED_SECTIONS, SEED_STORIES } from "@/data/seed-places";
+import {
+  SEED_PLACES,
+  SEED_SECRET_COLLECTIONS,
+  SEED_SECTIONS,
+  SEED_STORIES,
+} from "@/data/seed-places";
 import {
   aiSearchPlaces,
   getDiverseRecommendations,
 } from "@/lib/search/ai-search";
+import { enrichPlaceSearch } from "@/lib/search/search-profiles";
+import { repairStoredText } from "@/lib/text/repair-stored-text";
+import {
+  mergeHomepageSections,
+  readExtraSections,
+  toHomepageSection,
+} from "@/lib/home/extra-sections";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type {
   ExperienceStory,
   HomepageSection,
@@ -17,6 +30,7 @@ import type {
   PlaceContact,
   PlaceHighlights,
   PricingItem,
+  SecretCollection,
 } from "@/types";
 
 /** Public catalogue freshness — admin mutations already revalidatePath. */
@@ -108,56 +122,106 @@ function asPricingItems(value: unknown): PricingItem[] {
     .map((item) => ({ label: item.label, price: item.price }));
 }
 
+function repairHighlightText(highlights: PlaceHighlights): PlaceHighlights {
+  const next = { ...highlights };
+  for (const key of [
+    "goldenHour",
+    "bestTime",
+    "dressVibe",
+    "noiseLevel",
+    "averageSpend",
+    "openingHours",
+    "searchSummary",
+  ] as const) {
+    const value = next[key];
+    if (typeof value === "string") next[key] = repairStoredText(value);
+  }
+  for (const key of [
+    "perfectFor",
+    "paymentMethods",
+    "searchTags",
+    "searchKeywords",
+    "searchOccasions",
+  ] as const) {
+    const value = next[key];
+    if (Array.isArray(value)) next[key] = value.map((item) => repairStoredText(item));
+  }
+  if (next.pricingItems) {
+    next.pricingItems = next.pricingItems.map((item) => ({
+      label: repairStoredText(item.label),
+      price: repairStoredText(item.price),
+    }));
+  }
+  return next;
+}
+
+function repairPricing(items: PricingItem[]): PricingItem[] {
+  return items.map((item) => ({
+    label: repairStoredText(item.label),
+    price: repairStoredText(item.price),
+  }));
+}
+
 export function mapPlaceRow(row: PlaceRow): Place {
-  const highlights = asObject<PlaceHighlights>(row.highlights, {});
-  const pricingFromColumn = asPricingItems(row.pricing_items);
+  const rawHighlights = asObject<PlaceHighlights>(row.highlights, {});
+  const highlights = repairHighlightText(rawHighlights);
+  const pricingFromColumn = repairPricing(asPricingItems(row.pricing_items));
   const pricingFromHighlights = asPricingItems(highlights.pricingItems);
   const pricingItems =
     pricingFromColumn.length > 0 ? pricingFromColumn : pricingFromHighlights;
 
-  return {
+  return enrichPlaceSearch({
     id: row.id,
     slug: row.slug,
-    name: row.name,
-    location: row.location,
-    city: row.city,
-    country: row.country,
+    name: repairStoredText(row.name?.trim() || "Untitled"),
+    location: repairStoredText(row.location ?? ""),
+    city: repairStoredText(row.city ?? ""),
+    country: repairStoredText(row.country ?? "Zimbabwe"),
     latitude: row.latitude,
     longitude: row.longitude,
-    category: row.category,
+    category: repairStoredText(row.category || "dining"),
     mood: asMoodTags(row.mood),
-    story: row.story,
-    panoraNotes: row.panora_notes,
-    highlights,
+    story: repairStoredText(row.story ?? ""),
+    panoraNotes: repairStoredText(row.panora_notes ?? ""),
+    highlights: repairHighlightText(highlights),
     amenities: asObject<PlaceAmenityFlags>(row.amenities, {}),
     contact: asObject<PlaceContact>(row.contact, {}),
-    priceGuide: row.price_guide,
+    priceGuide: repairStoredText(row.price_guide ?? ""),
     distanceKm: row.distance_km,
     verified: row.verified,
     published: row.published,
     featured: Boolean(row.featured),
     archived: Boolean(row.archived),
     paidTier: (row.paid_tier ?? "basic") as PaidTier,
-    heroImage: row.hero_image,
+    heroImage: row.hero_image ?? "",
     gallery: asStringArray(row.gallery),
     menuImageUrls: asStringArray(row.menu_image_urls),
-    metaTitle: row.meta_title,
-    metaDescription: row.meta_description,
+    metaTitle: row.meta_title ? repairStoredText(row.meta_title) : null,
+    metaDescription: row.meta_description
+      ? repairStoredText(row.meta_description)
+      : null,
     homepageSections: asSectionKeys(row.homepage_sections),
     verifications: asStringArray(row.verifications),
     pricingItems,
     videoUrl: row.video_url ?? null,
+    tags: asStringArray(highlights.searchTags),
+    occasions: asStringArray(highlights.searchOccasions),
+    searchKeywords: asStringArray(highlights.searchKeywords),
+    summary:
+      typeof highlights.searchSummary === "string"
+        ? highlights.searchSummary
+        : undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  });
 }
 
 export function mapStoryRow(row: StoryRow): ExperienceStory {
   return {
     id: row.id,
     placeId: row.place_id,
-    authorName: row.author_name,
-    body: row.body,
+    authorName: repairStoredText(row.author_name),
+    body: repairStoredText(row.body),
     likesCount: row.likes_count,
     published: row.published,
     pinned: Boolean(row.pinned),
@@ -168,11 +232,14 @@ export function mapStoryRow(row: StoryRow): ExperienceStory {
 }
 
 function seedPublishedPlaces(): Place[] {
-  return SEED_PLACES.filter((place) => place.published && !place.archived);
+  return SEED_PLACES.filter((place) => place.published && !place.archived).map(
+    enrichPlaceSearch,
+  );
 }
 
 function seedPlaceBySlug(slug: string): Place | null {
-  return seedPublishedPlaces().find((place) => place.slug === slug) ?? null;
+  const place = seedPublishedPlaces().find((item) => item.slug === slug) ?? null;
+  return place;
 }
 
 function seedPlacesBySection(key: HomepageSectionKey): Place[] {
@@ -211,13 +278,12 @@ async function fetchPublishedPlaces(): Promise<Place[]> {
       .or("archived.is.null,archived.eq.false")
       .order("updated_at", { ascending: false });
 
-    if (error || !data || data.length === 0) {
-      return seedPublishedPlaces();
-    }
+    if (error || !data) return [];
+    if (data.length === 0) return [];
 
     return (data as PlaceRow[]).map(mapPlaceRow);
   } catch {
-    return seedPublishedPlaces();
+    return [];
   }
 }
 
@@ -245,13 +311,11 @@ export async function getPlaceBySlug(slug: string): Promise<Place | null> {
           .or("archived.is.null,archived.eq.false")
           .maybeSingle();
 
-        if (error || !data) {
-          return seedPlaceBySlug(normalized);
-        }
+        if (error || !data) return null;
 
         return mapPlaceRow(data as PlaceRow);
       } catch {
-        return seedPlaceBySlug(normalized);
+        return null;
       }
     },
     ["place-by-slug", normalized],
@@ -281,16 +345,24 @@ function mapHomepageSection(row: {
   enabled: boolean;
   place_ids: string[] | null;
   section_type?: string | null;
+  card_limit?: number | null;
+  vibe_filter?: string | null;
 }): HomepageSection {
   return {
     id: row.id,
     key: row.key,
-    title: row.title,
-    subtitle: row.subtitle ?? "",
+    title: repairStoredText(row.title),
+    subtitle: repairStoredText(row.subtitle ?? ""),
     sortOrder: row.sort_order,
     enabled: Boolean(row.enabled),
     placeIds: Array.isArray(row.place_ids) ? row.place_ids : [],
     sectionType: row.section_type ?? "grid",
+    cardLimit:
+      typeof row.card_limit === "number" ? row.card_limit : undefined,
+    vibeFilter:
+      typeof row.vibe_filter === "string"
+        ? repairStoredText(row.vibe_filter)
+        : null,
   };
 }
 
@@ -307,9 +379,53 @@ export async function getEnabledHomepageSections(): Promise<HomepageSection[]> {
           .eq("enabled", true)
           .order("sort_order", { ascending: true });
 
-        if (error || !data || data.length === 0) {
-          return SEED_SECTIONS.filter((section) => section.enabled);
-        }
+        const extras = (await readExtraSections(supabase))
+          .filter((section) => section.enabled)
+          .map(toHomepageSection);
+
+        if (error || !data) return extras;
+        if (data.length === 0) return extras;
+
+        return mergeHomepageSections(
+          data.map((row) =>
+            mapHomepageSection(
+              row as {
+                id: string;
+                key: string;
+                title: string;
+                subtitle: string | null;
+                sort_order: number;
+                enabled: boolean;
+                place_ids: string[] | null;
+                section_type?: string | null;
+              },
+            ),
+          ),
+          extras,
+        );
+      } catch {
+        return [];
+      }
+    },
+    ["homepage-sections"],
+    { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
+  )();
+}
+
+/** Hero panel and peek rows, including disabled ones so the homepage can hide them. */
+export async function getHeroLayoutSections(): Promise<HomepageSection[]> {
+  return unstable_cache(
+    async () => {
+      const supabase = createPublicClient();
+      if (!supabase) return [];
+
+      try {
+        const { data, error } = await supabase
+          .from("homepage_sections")
+          .select("*")
+          .in("key", ["hero_right_panel", "hero_peek_strip"]);
+
+        if (error || !data) return [];
 
         return data.map((row) =>
           mapHomepageSection(
@@ -322,14 +438,16 @@ export async function getEnabledHomepageSections(): Promise<HomepageSection[]> {
               enabled: boolean;
               place_ids: string[] | null;
               section_type?: string | null;
+              card_limit?: number | null;
+              vibe_filter?: string | null;
             },
           ),
         );
       } catch {
-        return SEED_SECTIONS.filter((section) => section.enabled);
+        return [];
       }
     },
-    ["homepage-sections"],
+    ["hero-layout-sections"],
     { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
   )();
 }
@@ -347,6 +465,21 @@ export async function getPlacesBySection(
       }
 
       try {
+        if (placeIds.length > 0) {
+          const { data, error } = await supabase
+            .from("places")
+            .select("*")
+            .in("id", placeIds)
+            .eq("published", true)
+            .or("archived.is.null,archived.eq.false");
+
+          if (error || !data) return [];
+          return sortByCuratedIds(
+            (data as PlaceRow[]).map(mapPlaceRow),
+            placeIds,
+          );
+        }
+
         const { data, error } = await supabase
           .from("places")
           .select("*")
@@ -355,16 +488,14 @@ export async function getPlacesBySection(
           .contains("homepage_sections", [key])
           .order("updated_at", { ascending: false });
 
-        if (error || !data || data.length === 0) {
-          return sortByCuratedIds(seedPlacesBySection(key), placeIds);
-        }
+        if (error || !data || data.length === 0) return [];
 
         return sortByCuratedIds(
           (data as PlaceRow[]).map(mapPlaceRow),
           placeIds,
         );
       } catch {
-        return sortByCuratedIds(seedPlacesBySection(key), placeIds);
+        return [];
       }
     },
     ["places-by-section", key, orderKey],
@@ -377,7 +508,17 @@ export async function searchPlaces(
   vibe?: MoodTag,
 ): Promise<Place[]> {
   const places = await getPublishedPlaces();
-  return aiSearchPlaces(places, query, vibe);
+  const results = aiSearchPlaces(places, query, vibe);
+  const trimmed = query.trim();
+  if (trimmed) {
+    const supabase = createPublicClient();
+    void supabase?.from("analytics_events").insert({
+      event_name: results.length === 0 ? "search_empty" : "search",
+      path: trimmed.toLowerCase().slice(0, 160),
+      meta: { result_count: results.length, vibe: vibe ?? null },
+    });
+  }
+  return results;
 }
 
 export async function getRecommendationsForPlace(
@@ -423,17 +564,66 @@ export async function getStoriesForPlace(
           .eq("published", true)
           .order("created_at", { ascending: false });
 
-        if (error || !data || data.length === 0) {
-          return seedStoriesForPlace(id);
-        }
+        if (error) return [];
+        if (!data || data.length === 0) return [];
 
         return (data as StoryRow[]).map(mapStoryRow);
       } catch {
-        return seedStoriesForPlace(id);
+        return [];
       }
     },
     ["stories-for-place", id],
     { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places", `stories:${id}`] },
+  )();
+}
+
+function mapCollectionRow(row: {
+  id: string;
+  key: string;
+  title: string;
+  subtitle: string | null;
+  sort_order: number | null;
+  enabled: boolean | null;
+  place_ids: string[] | null;
+}): SecretCollection {
+  return {
+    id: row.id,
+    key: row.key,
+    title: repairStoredText(row.title),
+    subtitle: repairStoredText(row.subtitle ?? ""),
+    sortOrder: Number(row.sort_order ?? 0),
+    enabled: Boolean(row.enabled),
+    placeIds: Array.isArray(row.place_ids) ? row.place_ids : [],
+  };
+}
+
+/**
+ * Enabled secret collections in admin sort order.
+ * Seed lists are used only when the table is missing or still empty.
+ * A service-role read is required so "all hidden" does not fall back to seeds
+ * (public RLS hides disabled rows).
+ */
+export async function getEnabledSecretCollections(): Promise<SecretCollection[]> {
+  return unstable_cache(
+    async () => {
+      const supabase = createServiceClient() ?? createPublicClient();
+      if (!supabase) {
+        return SEED_SECRET_COLLECTIONS.filter((item) => item.enabled);
+      }
+
+      const { data, error } = await supabase
+        .from("secret_collections")
+        .select("id, key, title, subtitle, sort_order, enabled, place_ids")
+        .order("sort_order", { ascending: true });
+
+      if (error || !data || data.length === 0) return [];
+
+      return (data as Parameters<typeof mapCollectionRow>[0][])
+        .map(mapCollectionRow)
+        .filter((item) => item.enabled);
+    },
+    ["secret-collections"],
+    { revalidate: PLACES_REVALIDATE_SECONDS, tags: ["places"] },
   )();
 }
 

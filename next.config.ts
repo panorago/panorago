@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
   experimental: {
     // lucide-react / date-fns are optimized by default; add heavier named-export libs.
     optimizePackageImports: ["framer-motion", "zod", "@supabase/supabase-js"],
+    // Phone photos and short clips. Vercel still caps the function body near 4.5MB;
+    // larger files upload straight to storage instead.
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
   },
   images: {
     formats: ["image/avif", "image/webp"],

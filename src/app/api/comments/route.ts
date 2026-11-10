@@ -1,6 +1,7 @@
 import { getStoriesForPlace } from "@/lib/data/places";
 import { createClient } from "@/lib/supabase/server";
 import { SEED_STORIES } from "@/data/seed-places";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (!error && data) {
+      revalidatePath("/admin/stories");
       return NextResponse.json(
         {
           comment: {

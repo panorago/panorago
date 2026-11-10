@@ -9,6 +9,7 @@ import {
 import {
   confirmationWhatsAppDeepLink,
   notifyBookingConfirmed,
+  notifyBookingUnavailable,
 } from "@/lib/bookings/notifications";
 import {
   bookingRowToRegenInput,
@@ -126,6 +127,22 @@ export async function updateBookingStatusAction(
       });
     }
 
+    if (status === "unavailable") {
+      await notifyBookingUnavailable({
+        bookingReference: booking.booking_reference,
+        customerNumber: booking.customer_number,
+        customerName: booking.customer_name,
+        email: booking.email,
+        phone: booking.phone,
+        venueName: booking.venue_name,
+        preferredDate: booking.preferred_date,
+        adults: booking.adults,
+        children: booking.children,
+        occasion: booking.occasion,
+        status: "unavailable",
+      });
+    }
+
     const { error: updateError } = await supabase
       .from("bookings")
       .update({
@@ -147,6 +164,9 @@ export async function updateBookingStatusAction(
     revalidatePath("/admin/tickets");
     revalidatePath("/admin/analytics");
     revalidatePath("/admin");
+    if (booking.customer_number) {
+      revalidatePath(`/verify/${booking.customer_number}`);
+    }
 
     const ticketUrl =
       ticketPdfUrl ||

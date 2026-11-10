@@ -1,23 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-} from "framer-motion";
-import {
-  Compass,
-  Heart,
-  Home,
-  Search,
-  X,
-} from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { usePathname } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
+import { Compass, Heart, Home, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { SearchBar } from "@/components/search/search-bar";
-import { QuickVibes } from "@/components/search/quick-vibes";
+import { MobileSearchOverlay } from "@/components/search/mobile-search-overlay";
 import { cn } from "@/lib/utils";
 import { motionTokens } from "@/lib/motion/variants";
 
@@ -30,27 +19,12 @@ const ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [searchOpen, setSearchOpen] = useState(false);
-  const titleId = useId();
 
   useEffect(() => {
     setSearchOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    if (!searchOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSearchOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [searchOpen]);
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -131,70 +105,10 @@ export function BottomNav() {
         </ul>
       </nav>
 
-      <AnimatePresence>
-        {searchOpen ? (
-          <motion.div
-            className="fixed inset-0 z-[60] md:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: motionTokens.duration.fast }}
-          >
-            <button
-              type="button"
-              aria-label="Close search"
-              className="absolute inset-0 bg-[var(--overlay)]"
-              onClick={() => setSearchOpen(false)}
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={titleId}
-              className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--border)] bg-[var(--background-elevated)] p-5 shadow-[var(--shadow)] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-              initial={reduceMotion ? false : { y: "100%" }}
-              animate={{ y: 0 }}
-              exit={reduceMotion ? undefined : { y: "100%" }}
-              transition={motionTokens.spring.soft}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <h2
-                  id={titleId}
-                  className="font-[family-name:var(--font-display)] text-xl"
-                >
-                  Search
-                </h2>
-                <button
-                  type="button"
-                  className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)]"
-                  aria-label="Close"
-                  onClick={() => setSearchOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <SearchBar
-                autoFocus
-                onNavigate={() => {
-                  setSearchOpen(false);
-                }}
-              />
-              <div className="mt-5">
-                <p className="mb-3 text-xs font-medium tracking-wide text-[var(--foreground-muted)] uppercase">
-                  Quick vibes
-                </p>
-                <QuickVibes
-                  onSelect={(vibe) => {
-                    setSearchOpen(false);
-                    router.push(
-                      `/discover?vibe=${encodeURIComponent(vibe)}`,
-                    );
-                  }}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <MobileSearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
     </>
   );
 }

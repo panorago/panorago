@@ -84,7 +84,7 @@ export function EnquireModal({
       <AnimatePresence>
         {open ? (
           <motion.div
-            className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 p-3 backdrop-blur-md sm:items-center sm:p-6"
+            className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 sm:items-center sm:p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -96,11 +96,11 @@ export function EnquireModal({
             }}
           >
             <motion.div
-              className="relative mb-[calc(var(--bottom-nav-height)+0.25rem)] max-h-[min(92dvh,720px)] w-full max-w-lg overflow-y-auto rounded-[var(--radius-xl)] border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--glass)_92%,transparent)] p-6 shadow-[var(--shadow)] backdrop-blur-2xl sm:mb-0"
-              initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: 16, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="relative mb-[calc(var(--bottom-nav-height)+0.25rem)] max-h-[min(92dvh,720px)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-xl)] border border-[var(--border-strong)] bg-[var(--background)] p-6 text-[var(--foreground)] shadow-[var(--shadow)] sm:mb-0"
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: 12 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

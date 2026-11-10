@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "About Panora Go",
+  title: "About",
   description:
     "About Panora Go — Zimbabwe tourism and lifestyle discovery. Discover Connect Belong with curated places, insider notes, and concierge enquiries.",
   alternates: {
     canonical: absoluteUrl("/about"),
+  },
+  openGraph: {
+    title: "About",
+    description:
+      "About Panora Go — Zimbabwe tourism and lifestyle discovery. Discover Connect Belong with curated places, insider notes, and concierge enquiries.",
+    url: absoluteUrl("/about"),
+    images: [{ url: absoluteUrl("/opengraph-image") }],
   },
 };
 
 export default function AboutPage() {
   return (
     <div className="gradient-mesh">
-      <Reveal className="container-narrow py-[var(--space-section)]">
+      <section className="container-narrow py-[var(--space-section)]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
           About
         </p>
@@ -52,7 +58,7 @@ export default function AboutPage() {
             </Button>
           </Link>
         </div>
-      </Reveal>
+      </section>
     </div>
   );
 }

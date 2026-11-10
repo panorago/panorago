@@ -1,10 +1,13 @@
 "use client";
 
-import { uploadPlaceMedia } from "@/lib/admin/upload-place-media";
+import {
+  uploadAdminPlaceFile,
+  type PlaceFileUploadResult,
+} from "@/lib/media/upload-place-file";
 import { cn } from "@/lib/utils";
 import { ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState } from "react";
 
 type MediaDropzoneProps = {
   label: string;
@@ -19,6 +22,10 @@ type MediaDropzoneProps = {
   kind?: string;
   /** When false, only updates React state (pair with a separate named input). */
   includeHiddenField?: boolean;
+  /** Defaults to the admin storage upload. */
+  uploader?: (file: File, kind: string) => Promise<PlaceFileUploadResult>;
+  /** True while a file is still uploading, so the parent can hold Save. */
+  onBusyChange?: (busy: boolean) => void;
 };
 
 export function MediaDropzone({
@@ -31,8 +38,11 @@ export function MediaDropzone({
   accept = "image/*",
   kind = "gallery",
   includeHiddenField = true,
+  uploader = uploadAdminPlaceFile,
+  onBusyChange,
 }: MediaDropzoneProps) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -41,31 +51,45 @@ export function MediaDropzone({
   const uploadFiles = useCallback(
     (files: FileList | File[]) => {
       const list = Array.from(files);
-      if (list.length === 0) return;
+      if (list.length === 0 || pending) return;
       setError(null);
+      setPending(true);
+      onBusyChange?.(true);
 
-      startTransition(async () => {
+      void (async () => {
         const uploaded: string[] = [];
-        for (const file of list) {
-          const data = new FormData();
-          data.set("file", file);
-          data.set("kind", kind);
-          const result = await uploadPlaceMedia(data);
-          if (!result.ok) {
-            setError(result.error);
-            return;
+        try {
+          for (let index = 0; index < list.length; index += 1) {
+            const file = list[index];
+            setStatus(
+              list.length > 1
+                ? `Uploading ${index + 1} of ${list.length}…`
+                : "Uploading…",
+            );
+            const result = await uploader(file, kind);
+            if (!result.ok) {
+              setError(result.error);
+              break;
+            }
+            uploaded.push(result.url);
           }
-          uploaded.push(result.url);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Upload failed.");
+        } finally {
+          setPending(false);
+          setStatus(null);
+          onBusyChange?.(false);
         }
 
+        if (uploaded.length === 0) return;
         if (multiple) {
           onChange([...urls, ...uploaded]);
         } else {
-          onChange(uploaded[0] ?? "");
+          onChange(uploaded[uploaded.length - 1] ?? "");
         }
-      });
+      })();
     },
-    [kind, multiple, onChange, urls],
+    [kind, multiple, onBusyChange, onChange, pending, uploader, urls],
   );
 
   function removeAt(index: number) {
@@ -120,12 +144,14 @@ export function MediaDropzone({
           )}
           <p>
             {pending
-              ? "Uploading…"
+              ? (status ?? "Uploading…")
               : "Drag & drop or click to upload"}
           </p>
           <p className="inline-flex items-center gap-1 text-[11px]">
             <ImagePlus className="h-3.5 w-3.5" />
-            Saves to Supabase storage · public URL stored on the place
+            {accept.startsWith("video")
+              ? "Video goes straight to storage"
+              : "Photos are resized, then saved to storage"}
           </p>
         </div>
       </div>

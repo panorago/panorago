@@ -25,6 +25,7 @@ import {
   smartSharePath,
   smartShareUrl,
 } from "@/lib/panora/smart-share";
+import { titleWithoutBrandSuffix } from "@/lib/text/repair-stored-text";
 import { absoluteUrl, formatDistance, formatPriceGuide } from "@/lib/utils";
 import {
   Accessibility,
@@ -60,8 +61,9 @@ export async function generateMetadata({
   const atmospheres = atmospheresForPlace(place, 3)
     .map((a) => a.label)
     .join(" · ");
-  const title =
-    place.metaTitle ?? `${place.name} — ${atmospheres || place.city}`;
+  const title = titleWithoutBrandSuffix(
+    place.metaTitle ?? `${place.name} — ${atmospheres || place.city}`,
+  );
   const description = ogDescriptionForPlace(place);
   const url = smartShareUrl(place.slug);
 

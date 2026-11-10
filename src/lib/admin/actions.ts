@@ -21,7 +21,18 @@ import type {
   PlaceContact,
   PlaceHighlights,
 } from "@/types";
+import { revalidateStoryById } from "@/lib/admin/revalidate-story";
 import { revalidatePublicPlaces } from "@/lib/data/revalidate-places";
+import { isHeroLayoutKey } from "@/lib/home/hero-layout";
+import {
+  extraSectionKey,
+  isExtraSectionId,
+  mergeHomepageSections,
+  readExtraSections,
+  saveExtraSections,
+  toHomepageSection,
+  type StoredExtraSection,
+} from "@/lib/home/extra-sections";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import slugify from "slugify";
@@ -78,6 +89,49 @@ function parseLines(raw: string): string[] {
     .filter(Boolean);
 }
 
+async function syncSectionPlaces(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  key: string,
+  placeIds: string[],
+) {
+  if (!key || isHeroLayoutKey(key)) return;
+  const selected = new Set(placeIds);
+  const { data: linked } = await supabase
+    .from("places")
+    .select("id, homepage_sections")
+    .contains("homepage_sections", [key]);
+
+  for (const place of linked ?? []) {
+    if (selected.has(String(place.id))) continue;
+    const current = Array.isArray(place.homepage_sections)
+      ? (place.homepage_sections as string[])
+      : [];
+    const next = current.filter((item) => item !== key);
+    if (next.length === current.length) continue;
+    await supabase
+      .from("places")
+      .update({ homepage_sections: next })
+      .eq("id", place.id);
+  }
+
+  if (placeIds.length === 0) return;
+  const { data: chosen } = await supabase
+    .from("places")
+    .select("id, homepage_sections")
+    .in("id", placeIds);
+
+  for (const place of chosen ?? []) {
+    const current = Array.isArray(place.homepage_sections)
+      ? (place.homepage_sections as string[])
+      : [];
+    if (current.includes(key)) continue;
+    await supabase
+      .from("places")
+      .update({ homepage_sections: [...current, key] })
+      .eq("id", place.id);
+  }
+}
+
 /** Label|Price per line or semicolon. Also accepts "Label: Price". */
 function parsePricingItems(raw: string): { label: string; price: string }[] {
   return raw
@@ -131,6 +185,11 @@ function placePayloadFromForm(formData: FormData) {
     perfectFor: parseLines(asString(formData.get("perfectFor"))),
     paymentMethods: parseLines(asString(formData.get("paymentMethods"))),
     pricingItems: pricingItems.length > 0 ? pricingItems : undefined,
+    searchTags: parseLines(asString(formData.get("tags"))),
+    searchKeywords: parseLines(asString(formData.get("searchKeywords"))),
+    searchOccasions: parseLines(asString(formData.get("occasions"))),
+    searchSummary:
+      asString(formData.get("summary")).slice(0, 200) || undefined,
   };
 
   const otherAmenities = parseLines(asString(formData.get("otherAmenities")));
@@ -183,6 +242,7 @@ function placePayloadFromForm(formData: FormData) {
     country: asString(formData.get("country")) || "Zimbabwe",
     latitude: latRaw ? Number(latRaw) : null,
     longitude: lngRaw ? Number(lngRaw) : null,
+    google_place_id: asString(formData.get("googlePlaceId")) || null,
     category: asString(formData.get("category"), "dining") as PlaceCategory,
     mood,
     story: asString(formData.get("story")),
@@ -426,14 +486,33 @@ export async function createPlace(formData: FormData): Promise<ActionResult> {
       };
     }
 
-    const { data, error } = await supabase
+    const { data: existingSlug } = await supabase
       .from("places")
-      .insert({
-        ...payload,
-        created_at: new Date().toISOString(),
-      })
+      .select("id")
+      .eq("slug", payload.slug)
+      .maybeSingle();
+    if (existingSlug) {
+      return { ok: false, error: "A place with this slug already exists." };
+    }
+
+    const inserted = {
+      ...payload,
+      created_at: new Date().toISOString(),
+    };
+    let { data, error } = await supabase
+      .from("places")
+      .insert(inserted)
       .select("id")
       .maybeSingle();
+
+    if (error && /google_place_id/i.test(error.message)) {
+      const { google_place_id: _dropped, ...withoutPlaceId } = inserted;
+      ({ data, error } = await supabase
+        .from("places")
+        .insert(withoutPlaceId)
+        .select("id")
+        .maybeSingle());
+    }
 
     if (error) return { ok: false, error: error.message };
 
@@ -458,7 +537,20 @@ export async function updatePlace(
     const { supabase } = await requireAdmin();
     const payload = placePayloadFromForm(formData);
 
-    const { error } = await supabase.from("places").update(payload).eq("id", id);
+    const { data: slugOwner } = await supabase
+      .from("places")
+      .select("id")
+      .eq("slug", payload.slug)
+      .maybeSingle();
+    if (slugOwner && slugOwner.id !== id) {
+      return { ok: false, error: "A place with this slug already exists." };
+    }
+
+    let { error } = await supabase.from("places").update(payload).eq("id", id);
+    if (error && /google_place_id/i.test(error.message)) {
+      const { google_place_id: _dropped, ...withoutPlaceId } = payload;
+      ({ error } = await supabase.from("places").update(withoutPlaceId).eq("id", id));
+    }
     if (error) return { ok: false, error: error.message };
 
     revalidatePublicPlaces(payload.slug);
@@ -489,7 +581,7 @@ export async function setPlacePublished(
     revalidatePath("/admin/places");
     return {
       ok: true,
-      message: published ? "Place published." : "Place unpublished.",
+      message: published ? "Pushed to the site." : "Place unpublished.",
     };
   } catch (error) {
     return {
@@ -499,14 +591,120 @@ export async function setPlacePublished(
   }
 }
 
+async function quiet(
+  work: PromiseLike<{ error: { message: string } | null }>,
+) {
+  try {
+    await work;
+  } catch {
+    // Related tables differ between environments. The place delete is the check.
+  }
+}
+
 export async function deletePlace(id: string): Promise<ActionResult> {
   try {
-    const { supabase } = await requireAdmin();
-    const { error } = await supabase.from("places").delete().eq("id", id);
+    const { supabase, user } = await requireAdmin();
+    const { data: existing, error: lookupError } = await supabase
+      .from("places")
+      .select("id, slug, name")
+      .eq("id", id)
+      .maybeSingle();
+    if (lookupError) return { ok: false, error: lookupError.message };
+    if (!existing) return { ok: false, error: "Place not found." };
+
+    const { data: sections } = await supabase
+      .from("homepage_sections")
+      .select("id, place_ids");
+    for (const section of sections ?? []) {
+      const ids = Array.isArray(section.place_ids)
+        ? (section.place_ids as string[])
+        : [];
+      if (!ids.includes(id)) continue;
+      await quiet(
+        supabase
+          .from("homepage_sections")
+          .update({ place_ids: ids.filter((item) => item !== id) })
+          .eq("id", section.id),
+      );
+    }
+
+    const extras = await readExtraSections(supabase);
+    const nextExtras = extras.map((section) => ({
+      ...section,
+      placeIds: section.placeIds.filter((item) => item !== id),
+    }));
+    if (nextExtras.some((section, index) => section.placeIds.length !== extras[index]?.placeIds.length)) {
+      await saveExtraSections(supabase, user.id, nextExtras);
+    }
+
+    const { data: collections } = await supabase
+      .from("secret_collections")
+      .select("id, place_ids");
+    for (const collection of collections ?? []) {
+      const ids = Array.isArray(collection.place_ids)
+        ? (collection.place_ids as string[])
+        : [];
+      if (!ids.includes(id)) continue;
+      await quiet(
+        supabase
+          .from("secret_collections")
+          .update({ place_ids: ids.filter((item) => item !== id) })
+          .eq("id", collection.id),
+      );
+    }
+
+    const { data: stories } = await supabase
+      .from("experience_stories")
+      .select("id")
+      .eq("place_id", id);
+    const storyIds = (stories ?? []).map((story) => String(story.id));
+    if (storyIds.length > 0) {
+      await quiet(
+        supabase.from("story_likes").delete().in("story_id", storyIds),
+      );
+      await quiet(
+        supabase.from("experience_stories").delete().eq("place_id", id),
+      );
+    }
+
+    await quiet(supabase.from("place_images").delete().eq("place_id", id));
+    await quiet(supabase.from("wishlists").delete().eq("place_id", id));
+    await quiet(
+      supabase.from("enquiries").update({ place_id: null }).eq("place_id", id),
+    );
+    await quiet(
+      supabase.from("bookings").update({ venue_id: null }).eq("venue_id", id),
+    );
+    await quiet(
+      supabase
+        .from("place_submissions")
+        .update({ created_place_id: null })
+        .eq("created_place_id", id),
+    );
+    await quiet(
+      supabase
+        .from("analytics_events")
+        .update({ place_id: null })
+        .eq("place_id", id),
+    );
+
+    const { data: removed, error } = await supabase
+      .from("places")
+      .delete()
+      .eq("id", id)
+      .select("id");
     if (error) return { ok: false, error: error.message };
-    revalidatePublicPlaces();
+    if (!removed || removed.length === 0) {
+      return {
+        ok: false,
+        error: "The place is still in the database. Delete was blocked.",
+      };
+    }
+
+    revalidatePublicPlaces(String(existing.slug));
     revalidatePath("/admin/places");
-    return { ok: true, message: "Place deleted." };
+    revalidatePath(`/admin/places/${id}`);
+    return { ok: true, message: `${existing.name} deleted.` };
   } catch (error) {
     return {
       ok: false,
@@ -551,6 +749,7 @@ export async function setStoryPublished(
       .update({ published })
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
+    await revalidateStoryById(supabase, id);
     revalidatePath("/admin/stories");
     return {
       ok: true,
@@ -567,6 +766,7 @@ export async function setStoryPublished(
 export async function deleteStory(id: string): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdmin();
+    await revalidateStoryById(supabase, id);
     const { error } = await supabase
       .from("experience_stories")
       .delete()
@@ -590,21 +790,27 @@ export async function getAdminSections(): Promise<HomepageSection[]> {
       .select("*")
       .order("sort_order", { ascending: true });
 
-    if (error || !data) return [];
-
-    return data.map((row) => ({
-      id: row.id as string,
-      key: row.key as HomepageSectionKey,
-      title: row.title as string,
-      subtitle: row.subtitle as string,
-      sortOrder: row.sort_order as number,
-      enabled: Boolean(row.enabled),
-      placeIds: Array.isArray(row.place_ids)
-        ? (row.place_ids as string[])
-        : [],
-      sectionType:
-        typeof row.section_type === "string" ? row.section_type : "grid",
-    }));
+    const rows = !error && data
+      ? data.map((row) => ({
+          id: row.id as string,
+          key: row.key as HomepageSectionKey,
+          title: row.title as string,
+          subtitle: row.subtitle as string,
+          sortOrder: row.sort_order as number,
+          enabled: Boolean(row.enabled),
+          placeIds: Array.isArray(row.place_ids)
+            ? (row.place_ids as string[])
+            : [],
+          sectionType:
+            typeof row.section_type === "string" ? row.section_type : "grid",
+          cardLimit:
+            typeof row.card_limit === "number" ? row.card_limit : undefined,
+          vibeFilter:
+            typeof row.vibe_filter === "string" ? row.vibe_filter : null,
+        }))
+      : [];
+    const extras = (await readExtraSections(supabase)).map(toHomepageSection);
+    return mergeHomepageSections(rows, extras);
   } catch {
     return [];
   }
@@ -612,12 +818,46 @@ export async function getAdminSections(): Promise<HomepageSection[]> {
 
 export async function updateSection(formData: FormData): Promise<ActionResult> {
   try {
-    const { supabase } = await requireAdmin();
+    const { supabase, user } = await requireAdmin();
     const id = asString(formData.get("id"));
     if (!id) return { ok: false, error: "Missing section id." };
 
     const placeIds = parseLines(asString(formData.get("placeIds")));
     const sectionType = asString(formData.get("sectionType"));
+
+    if (isExtraSectionId(id)) {
+      const key = extraSectionKey(id);
+      const extras = await readExtraSections(supabase);
+      const index = extras.findIndex((section) => section.key === key);
+      if (index < 0) return { ok: false, error: "Section not found." };
+      const current = extras[index]!;
+      const limitRaw = asString(formData.get("cardLimit"));
+      const vibe = asString(formData.get("vibeFilter")).trim();
+      extras[index] = {
+        ...current,
+        title: asString(formData.get("title")) || current.title,
+        subtitle: asString(formData.get("subtitle")),
+        sortOrder: Number(asString(formData.get("sortOrder")) || "0"),
+        enabled: asBool(formData.get("enabled")),
+        placeIds,
+        sectionType: sectionType || current.sectionType || "grid",
+        cardLimit: formData.has("cardLimit")
+          ? Math.min(6, Math.max(1, Math.round(Number(limitRaw) || 3)))
+          : current.cardLimit,
+        vibeFilter: formData.has("vibeFilter") ? vibe || null : current.vibeFilter,
+      };
+      const saved = await saveExtraSections(supabase, user.id, extras);
+      if (saved.error) return { ok: false, error: saved.error };
+      try {
+        await syncSectionPlaces(supabase, key, placeIds);
+      } catch {
+        // The section list is already stored. Place tags can be repaired on the next save.
+      }
+      revalidatePublicPlaces();
+      revalidatePath("/admin/sections");
+      revalidatePath("/admin/homepage");
+      return { ok: true, message: "Section updated." };
+    }
 
     const payload: Record<string, unknown> = {
       title: asString(formData.get("title")),
@@ -627,11 +867,32 @@ export async function updateSection(formData: FormData): Promise<ActionResult> {
       place_ids: placeIds,
     };
     if (sectionType) payload.section_type = sectionType;
+    if (formData.has("cardLimit")) {
+      const limit = Number(asString(formData.get("cardLimit")));
+      if (Number.isFinite(limit)) {
+        payload.card_limit = Math.min(6, Math.max(1, Math.round(limit)));
+      }
+    }
+    if (formData.has("vibeFilter")) {
+      const vibe = asString(formData.get("vibeFilter")).trim();
+      payload.vibe_filter = vibe || null;
+    }
 
-    let { error } = await supabase
+    let { data: updated, error } = await supabase
       .from("homepage_sections")
       .update(payload)
-      .eq("id", id);
+      .eq("id", id)
+      .select("id, key, place_ids");
+
+    if (error && /card_limit|vibe_filter/i.test(error.message)) {
+      delete payload.card_limit;
+      delete payload.vibe_filter;
+      ({ data: updated, error } = await supabase
+        .from("homepage_sections")
+        .update(payload)
+        .eq("id", id)
+        .select("id, key, place_ids"));
+    }
 
     if (
       error &&
@@ -639,13 +900,47 @@ export async function updateSection(formData: FormData): Promise<ActionResult> {
       /section_type/i.test(error.message)
     ) {
       delete payload.section_type;
-      ({ error } = await supabase
+      ({ data: updated, error } = await supabase
         .from("homepage_sections")
         .update(payload)
-        .eq("id", id));
+        .eq("id", id)
+        .select("id, key, place_ids"));
     }
 
     if (error) return { ok: false, error: error.message };
+    const savedRow = updated?.[0];
+    if (!savedRow) {
+      return { ok: false, error: "Section was not saved." };
+    }
+    const rawIds = savedRow.place_ids;
+    const savedIds = Array.isArray(rawIds)
+      ? rawIds.map(String)
+      : typeof rawIds === "string"
+        ? rawIds
+            .replace(/^\{|\}$/g, "")
+            .split(",")
+            .map((item) => item.trim().replaceAll('"', ""))
+            .filter(Boolean)
+        : [];
+    if (
+      savedIds.length !== placeIds.length ||
+      placeIds.some(
+        (placeId, index) =>
+          savedIds[index]?.toLowerCase() !== placeId.toLowerCase(),
+      )
+    ) {
+      return {
+        ok: false,
+        error: "The places were not stored on this section. Save again.",
+      };
+    }
+    if (savedRow.key) {
+      try {
+        await syncSectionPlaces(supabase, String(savedRow.key), placeIds);
+      } catch {
+        // The section list is already stored.
+      }
+    }
     revalidatePublicPlaces();
     revalidatePath("/admin/sections");
     revalidatePath("/admin/homepage");
@@ -672,7 +967,7 @@ export async function createSection(
   formData: FormData,
 ): Promise<ActionResult> {
   try {
-    const { supabase } = await requireAdmin();
+    const { supabase, user } = await requireAdmin();
     const title = asString(formData.get("title")).trim();
     if (!title) return { ok: false, error: "Section name is required." };
 
@@ -713,11 +1008,34 @@ export async function createSection(
     }
 
     if (error) {
+      if (/duplicate|unique/i.test(error.message)) {
+        return { ok: false, error: "A section with that name already exists." };
+      }
       if (/check constraint|homepage_sections_key/i.test(error.message)) {
+        const extras = await readExtraSections(supabase);
+        if (extras.some((section) => section.key === key)) {
+          return { ok: false, error: "A section with that name already exists." };
+        }
+        const stored: StoredExtraSection = {
+          key,
+          title,
+          subtitle: "",
+          sortOrder,
+          enabled: true,
+          placeIds: [],
+          sectionType,
+        };
+        const saved = await saveExtraSections(supabase, user.id, [
+          ...extras,
+          stored,
+        ]);
+        if (saved.error) return { ok: false, error: saved.error };
+        revalidatePublicPlaces();
+        revalidatePath("/admin/homepage");
+        revalidatePath("/admin/sections");
         return {
-          ok: false,
-          error:
-            "Custom sections need migration 016_homepage_sections_manager.sql applied in Supabase.",
+          ok: true,
+          message: "Section added. Choose its places below, then save.",
         };
       }
       return { ok: false, error: error.message };
@@ -739,9 +1057,25 @@ export async function deleteSection(
   formData: FormData,
 ): Promise<ActionResult> {
   try {
-    const { supabase } = await requireAdmin();
+    const { supabase, user } = await requireAdmin();
     const id = asString(formData.get("id"));
     if (!id) return { ok: false, error: "Missing section id." };
+
+    if (isExtraSectionId(id)) {
+      const key = extraSectionKey(id);
+      const extras = await readExtraSections(supabase);
+      const saved = await saveExtraSections(
+        supabase,
+        user.id,
+        extras.filter((section) => section.key !== key),
+      );
+      if (saved.error) return { ok: false, error: saved.error };
+      await syncSectionPlaces(supabase, key, []);
+      revalidatePublicPlaces();
+      revalidatePath("/admin/homepage");
+      revalidatePath("/admin/sections");
+      return { ok: true, message: "Section deleted." };
+    }
 
     const { data: row, error: lookupError } = await supabase
       .from("homepage_sections")
@@ -819,6 +1153,14 @@ export async function updatePlaceJson(
       .eq("id", id);
 
     if (error) return { ok: false, error: error.message };
+    const { data: place } = await supabase
+      .from("places")
+      .select("slug")
+      .eq("id", id)
+      .maybeSingle();
+    revalidatePublicPlaces(
+      typeof place?.slug === "string" ? place.slug : undefined,
+    );
     revalidatePath(`/admin/places/${id}`);
     return { ok: true, message: "JSON fields updated." };
   } catch (error) {

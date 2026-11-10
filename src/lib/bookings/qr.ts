@@ -1,5 +1,5 @@
 import QRCode from "qrcode";
-import { isCustomerNumber, normalizeTicketCode } from "@/lib/bookings/codes";
+import { normalizeTicketCode } from "@/lib/bookings/codes";
 import { absoluteUrl } from "@/lib/utils";
 
 export type QrPayload = {
@@ -102,25 +102,24 @@ export async function generateQrDataUrl(
   payload: QrPayload,
   retries = 2,
 ): Promise<string> {
-  const text =
-    payload.verificationUrl ||
-    (isCustomerNumber(payload.customerNumber)
-      ? buildVerificationUrl({
-          customerNumber: payload.customerNumber,
-          bookingReference: payload.bookingReference,
-          venueName: payload.venue,
-          customerName: payload.customerName,
-          visitDate: payload.visitDate,
-        })
-      : absoluteUrl(`/verify/${encodeURIComponent(payload.customerNumber)}`));
+  const scanUrl = new URL(
+    absoluteUrl(`/verify/${encodeURIComponent(payload.customerNumber)}`),
+  );
+  if (
+    payload.bookingReference &&
+    payload.bookingReference !== payload.customerNumber
+  ) {
+    scanUrl.searchParams.set("ref", payload.bookingReference);
+  }
+  const text = scanUrl.toString();
 
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
       return await QRCode.toDataURL(text, {
-        errorCorrectionLevel: "M",
-        margin: 1,
-        width: 320,
+        errorCorrectionLevel: "Q",
+        margin: 2,
+        width: 512,
         color: {
           dark: "#0A192F",
           light: "#FFFFFF",

@@ -1,5 +1,5 @@
+import { DeletePlaceButton } from "@/components/admin/delete-place-button";
 import {
-  deletePlace,
   getAdminPlaces,
   setPlacePublished,
 } from "@/lib/admin/actions";
@@ -243,19 +243,7 @@ export default async function AdminPlacesPage({ searchParams }: PageProps) {
                         Duplicate
                       </button>
                     </form>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await deletePlace(place.id);
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        className="rounded-full border border-[var(--danger)]/40 px-3 py-1 text-xs text-[var(--danger)]"
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    <DeletePlaceButton id={place.id} name={place.name} />
                   </>
                 )}
               </div>

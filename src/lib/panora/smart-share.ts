@@ -20,11 +20,14 @@ export function placeDetailUrl(slug: string, origin?: string | null) {
   return absoluteUrl(placeDetailPath(slug), origin);
 }
 
-export function smartShareMessage(place: Pick<Place, "name" | "city" | "slug" | "mood" | "category" | "amenities" | "story">) {
+export function smartShareMessage(
+  place: Pick<Place, "name" | "city" | "slug" | "mood" | "category" | "amenities" | "story">,
+  shareUrl?: string,
+) {
   const atmospheres = atmospheresForPlace(place, 3)
     .map((a) => a.label)
     .join(" · ");
-  const url = smartShareUrl(place.slug);
+  const url = shareUrl || smartShareUrl(place.slug);
   const lines = [
     `Discover ${place.name} on Panora Go`,
     `${place.city}${atmospheres ? ` · ${atmospheres}` : ""}`,
@@ -39,8 +42,9 @@ export function smartShareMessage(place: Pick<Place, "name" | "city" | "slug" | 
 export function smartShareWhatsAppUrl(
   place: Pick<Place, "name" | "city" | "slug" | "mood" | "category" | "amenities" | "story">,
   phone?: string | null,
+  shareUrl?: string,
 ) {
-  const message = smartShareMessage(place);
+  const message = smartShareMessage(place, shareUrl);
   if (phone?.trim()) return whatsappUrl(phone, message);
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }

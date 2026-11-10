@@ -5,7 +5,7 @@ import { MediaDropzone } from "@/components/admin/media-dropzone";
 import { Button } from "@/components/ui/button";
 import type { Place, PricingItem } from "@/types";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 
 const LocationMapPicker = dynamic(
   () =>
@@ -60,17 +60,34 @@ const AMENITY_TOGGLES: { key: keyof Place["amenities"]; label: string }[] = [
 const field =
   "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
 
+const FORM_STEPS = [
+  ["basics", "Basics"],
+  ["photos", "Photos"],
+  ["location", "Location"],
+  ["story", "Story"],
+  ["details", "Details"],
+  ["amenities", "Amenities"],
+  ["search", "Search"],
+  ["contact", "Contact"],
+  ["publishing", "Publishing"],
+] as const;
+
 function Section({
+  id,
   title,
   subtitle,
   children,
 }: {
+  id?: string;
   title: string;
   subtitle?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background-elevated)] p-5">
+    <section
+      id={id}
+      className="scroll-mt-24 space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background-elevated)] p-5"
+    >
       <div>
         <h2 className="font-display text-xl text-[var(--foreground)]">{title}</h2>
         {subtitle ? (
@@ -109,6 +126,7 @@ export function PlaceForm({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [uploadsBusy, setUploadsBusy] = useState(0);
 
   const [heroImage, setHeroImage] = useState(place?.heroImage ?? "");
   const [gallery, setGallery] = useState<string[]>(place?.gallery ?? []);
@@ -123,6 +141,9 @@ export function PlaceForm({
     latitude: place?.latitude ?? null,
     longitude: place?.longitude ?? null,
   });
+  const nameRef = useRef<HTMLInputElement>(null);
+  const locationRef = useRef<HTMLInputElement>(null);
+  const cityRef = useRef<HTMLInputElement>(null);
 
   const initialOther = place?.amenities.other?.join(", ") ?? "";
   const [otherAmenities, setOtherAmenities] = useState(initialOther);
@@ -130,35 +151,70 @@ export function PlaceForm({
     Boolean(initialOther.trim()),
   );
 
+  function onUploadBusy(busy: boolean) {
+    setUploadsBusy((count) => Math.max(0, count + (busy ? 1 : -1)));
+  }
+
   function onSubmit(formData: FormData) {
     setError(null);
     setMessage(null);
+    if (uploadsBusy > 0) {
+      setError("Wait for the photos to finish uploading, then save.");
+      return;
+    }
     startTransition(async () => {
-      const result = await action(formData);
-      if (!result.ok) {
-        setError(result.error ?? "Something went wrong.");
-        return;
-      }
-      setMessage(result.message ?? "Saved.");
-      if (result.id) {
-        router.push(`/admin/places/${result.id}`);
-        router.refresh();
-      } else {
-        router.refresh();
+      try {
+        const result = await action(formData);
+        if (!result.ok) {
+          setError(result.error ?? "Something went wrong.");
+          return;
+        }
+        setMessage(result.message ?? "Saved.");
+        if (result.id) {
+          router.push(`/admin/places/${result.id}`);
+          router.refresh();
+        } else {
+          router.refresh();
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not save this place.";
+        setError(
+          /body exceeded|1 mb|413/i.test(message)
+            ? "The form was too large to save. Upload photos in the dropzones instead of pasting image data."
+            : message,
+        );
       }
     });
   }
 
   return (
     <form action={onSubmit} className="space-y-6">
+      <nav className="sticky top-0 z-20 -mx-1 flex gap-2 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background-elevated)]/95 px-3 py-2 backdrop-blur">
+        {FORM_STEPS.map(([id, label]) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium text-muted hover:bg-[var(--accent)]/10 hover:text-[var(--foreground)]"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
       <Section
+        id="basics"
         title="Basics"
         subtitle="Identity and category shown across Discover, map, and SmartShare."
       >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1.5 md:col-span-2">
             <span className="text-xs font-medium text-muted">Name</span>
-            <input name="name" required defaultValue={place?.name} className={field} />
+            <input
+              ref={nameRef}
+              name="name"
+              required
+              defaultValue={place?.name}
+              className={field}
+            />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">Slug</span>
@@ -203,10 +259,12 @@ export function PlaceForm({
       </Section>
 
       <Section
+        id="photos"
         title="Hero"
-        subtitle="Full-bleed image at the top of the public place page. Prefer venue-owned photos — seed listings may use area/landmark context until you upload the real venue."
+        subtitle="Full-bleed image at the top of the public place page. Drop a phone photo — it is resized and stored before you save."
       >
         <MediaDropzone
+          onBusyChange={onUploadBusy}
           label="Hero image"
           hint="Shown behind the place name"
           name="heroImage"
@@ -222,6 +280,7 @@ export function PlaceForm({
         subtitle="Plays directly under the hero (before the gallery). Upload an mp4 or paste a YouTube/Vimeo URL."
       >
         <MediaDropzone
+          onBusyChange={onUploadBusy}
           label="Venue video file"
           hint="Optional — mp4/webm upload"
           kind="video"
@@ -237,7 +296,7 @@ export function PlaceForm({
           }
           onChange={(v) => {
             const next = typeof v === "string" ? v : (v[0] ?? "");
-            if (next) setVideoUrl(next);
+            setVideoUrl(next);
           }}
         />
         <label className="block space-y-1.5">
@@ -262,6 +321,7 @@ export function PlaceForm({
         subtitle="Photo grid on the place page (after video). Not the same as menu photos."
       >
         <MediaDropzone
+          onBusyChange={onUploadBusy}
           label="Gallery images"
           hint="Atmosphere, interiors, views — multi upload"
           name="gallery"
@@ -278,6 +338,7 @@ export function PlaceForm({
         subtitle="Menu / price-list photos shown in the Pricing sneak peek section (not the main gallery)."
       >
         <MediaDropzone
+          onBusyChange={onUploadBusy}
           label="Menu images"
           hint="Photos of menus, boards, or rate cards"
           name="menuImageUrls"
@@ -321,6 +382,7 @@ export function PlaceForm({
       </Section>
 
       <Section
+        id="location"
         title="Location"
         subtitle="Address fields plus map pin for directions and SmartShare maps."
       >
@@ -328,6 +390,7 @@ export function PlaceForm({
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">Location / area</span>
             <input
+              ref={locationRef}
               name="location"
               required
               defaultValue={place?.location}
@@ -336,7 +399,13 @@ export function PlaceForm({
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">City</span>
-            <input name="city" required defaultValue={place?.city} className={field} />
+            <input
+              ref={cityRef}
+              name="city"
+              required
+              defaultValue={place?.city}
+              className={field}
+            />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">Country</span>
@@ -363,10 +432,21 @@ export function PlaceForm({
           onChange={({ latitude, longitude }) =>
             setCoords({ latitude, longitude })
           }
+          onPlacePicked={(picked) => {
+            if (nameRef.current && !nameRef.current.value.trim() && picked.name) {
+              nameRef.current.value = picked.name;
+            }
+            if (locationRef.current && picked.address) {
+              locationRef.current.value = picked.address;
+            }
+            if (cityRef.current && picked.city && !cityRef.current.value.trim()) {
+              cityRef.current.value = picked.city;
+            }
+          }}
         />
       </Section>
 
-      <Section title="Story" subtitle="Long-form atmosphere copy on the place page.">
+      <Section id="story" title="Story" subtitle="Long-form atmosphere copy on the place page.">
         <label className="block space-y-1.5">
           <span className="text-xs font-medium text-muted">Story</span>
           <textarea
@@ -381,7 +461,6 @@ export function PlaceForm({
           <span className="text-xs font-medium text-muted">Panora notes</span>
           <textarea
             name="panoraNotes"
-            required
             rows={4}
             defaultValue={place?.panoraNotes}
             className={field}
@@ -389,7 +468,7 @@ export function PlaceForm({
         </label>
       </Section>
 
-      <Section title="Highlights" subtitle="Insider details in the highlights panel.">
+      <Section id="details" title="Highlights" subtitle="Insider details in the highlights panel.">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted">Golden hour</span>
@@ -457,6 +536,7 @@ export function PlaceForm({
       </Section>
 
       <Section
+        id="amenities"
         title="Amenities"
         subtitle="Tick common amenities, or add custom ones under Other."
       >
@@ -532,7 +612,85 @@ export function PlaceForm({
         </div>
       </Section>
 
-      <Section title="Contact">
+      <Section
+        id="search"
+        title="Search"
+        subtitle="Words guests type, plus one sentence for AI search. Saved with the place."
+      >
+        <div className="grid gap-4">
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              Search tags (comma or newline)
+            </span>
+            <p className="text-xs text-muted">
+              Mood and style. e.g. outdoor, romantic, scenic, quiet, family, luxury
+            </p>
+            <textarea
+              name="tags"
+              rows={2}
+              defaultValue={place?.highlights.searchTags?.join(", ") ?? place?.tags?.join(", ") ?? ""}
+              className={field}
+              placeholder="outdoor, romantic, scenic"
+            />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              Search keywords (comma or newline)
+            </span>
+            <p className="text-xs text-muted">
+              Words someone might type. e.g. BBQ, fire, swim, caves, boat, coffee
+            </p>
+            <textarea
+              name="searchKeywords"
+              rows={2}
+              defaultValue={
+                place?.highlights.searchKeywords?.join(", ") ??
+                place?.searchKeywords?.join(", ") ??
+                ""
+              }
+              className={field}
+              placeholder="BBQ, fire, swim"
+            />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              Occasions (comma or newline)
+            </span>
+            <p className="text-xs text-muted">
+              e.g. date night, anniversary, family outing, business, weekend away
+            </p>
+            <textarea
+              name="occasions"
+              rows={2}
+              defaultValue={
+                place?.highlights.searchOccasions?.join(", ") ??
+                place?.occasions?.join(", ") ??
+                ""
+              }
+              className={field}
+              placeholder="date night, anniversary"
+            />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted">
+              AI search summary
+            </span>
+            <p className="text-xs text-muted">
+              One plain sentence. e.g. Outdoor braai garden in Chinhoyi — woodsmoke, open fires, maize roasting
+            </p>
+            <textarea
+              name="summary"
+              rows={2}
+              maxLength={200}
+              defaultValue={place?.highlights.searchSummary ?? place?.summary ?? ""}
+              className={field}
+              placeholder="One sentence describing this place for AI search"
+            />
+          </label>
+        </div>
+      </Section>
+
+      <Section id="contact" title="Contact">
         <div className="grid gap-4 md:grid-cols-2">
           {(
             [
@@ -560,7 +718,7 @@ export function PlaceForm({
         </div>
       </Section>
 
-      <Section title="Publishing & SEO">
+      <Section id="publishing" title="Publishing & SEO">
         <div className="grid gap-4 md:grid-cols-2">
           <fieldset className="space-y-2 md:col-span-2">
             <legend className="text-xs font-medium text-muted">
@@ -651,12 +809,31 @@ export function PlaceForm({
         </div>
       </Section>
 
-      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
-      {message && <p className="text-sm text-[var(--success)]">{message}</p>}
-
-      <Button type="submit" variant="accent" disabled={pending} className="rounded-full">
-        {pending ? "Saving…" : submitLabel}
-      </Button>
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background-elevated)]/95 px-4 py-3 shadow-[var(--shadow)] backdrop-blur">
+        <div className="min-w-0 text-sm">
+          {error ? (
+            <p className="text-[var(--danger)]" role="alert">
+              {error}
+            </p>
+          ) : message ? (
+            <p className="text-[var(--success)]">{message}</p>
+          ) : uploadsBusy > 0 ? (
+            <p className="text-muted">Uploading photos… save unlocks when they finish.</p>
+          ) : !heroImage ? (
+            <p className="text-muted">A hero photo is required before this listing can be saved.</p>
+          ) : (
+            <p className="text-muted">Name, story, and hero photo are kept with every other field you fill in.</p>
+          )}
+        </div>
+        <Button
+          type="submit"
+          variant="accent"
+          disabled={pending || uploadsBusy > 0}
+          className="rounded-full"
+        >
+          {pending ? "Saving…" : uploadsBusy > 0 ? "Uploading…" : submitLabel}
+        </Button>
+      </div>
     </form>
   );
 }

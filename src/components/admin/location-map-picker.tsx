@@ -8,24 +8,48 @@ import { useEffect, useRef, useState } from "react";
 const field =
   "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]";
 
+export type PickedLocation = {
+  name: string;
+  address: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  placeId: string;
+};
+
 type LocationMapPickerProps = {
   latitude: number | null;
   longitude: number | null;
   onChange: (coords: { latitude: number; longitude: number }) => void;
+  onPlacePicked?: (place: PickedLocation) => void;
 };
 
 const DEFAULT_CENTER = { lat: -17.3667, lng: 30.2 }; // Chinhoyi
+
+function cityFromComponents(
+  components?: google.maps.GeocoderAddressComponent[],
+) {
+  if (!components) return "";
+  const locality = components.find((part) => part.types.includes("locality"));
+  return locality?.long_name ?? "";
+}
 
 export function LocationMapPicker({
   latitude,
   longitude,
   onChange,
+  onPlacePicked,
 }: LocationMapPickerProps) {
   const apiKey = getMapsApiKey();
   const mapRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const onPickedRef = useRef(onPlacePicked);
   const [mapFailed, setMapFailed] = useState(false);
+  const [placeId, setPlaceId] = useState("");
+  const [searchNote, setSearchNote] = useState("");
+  onPickedRef.current = onPlacePicked;
 
   const [latInput, setLatInput] = useState(
     latitude != null ? String(latitude) : "",
@@ -45,7 +69,7 @@ export function LocationMapPicker({
 
     async function init() {
       try {
-        const g = await loadGoogleMaps(apiKey!);
+        const g = await loadGoogleMaps(apiKey!, { places: true });
         if (cancelled || !mapRef.current) return;
 
         const center =
@@ -60,6 +84,7 @@ export function LocationMapPicker({
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          gestureHandling: "cooperative",
         });
         mapInstance.current = map;
 
@@ -90,6 +115,42 @@ export function LocationMapPicker({
           if (!pos) return;
           emit(pos.lat(), pos.lng());
         });
+
+        if (g.places && searchRef.current) {
+          const autocomplete = new g.places.Autocomplete(searchRef.current, {
+            fields: [
+              "name",
+              "formatted_address",
+              "geometry",
+              "place_id",
+              "address_components",
+            ],
+          });
+          autocomplete.addListener("place_changed", () => {
+            const picked = autocomplete.getPlace();
+            const lat = picked.geometry?.location?.lat();
+            const lng = picked.geometry?.location?.lng();
+            if (lat == null || lng == null) {
+              setSearchNote("That suggestion has no map position. Try another result.");
+              return;
+            }
+            const next = { lat, lng };
+            marker.setPosition(next);
+            map.panTo(next);
+            map.setZoom(16);
+            emit(lat, lng);
+            setPlaceId(picked.place_id ?? "");
+            setSearchNote("");
+            onPickedRef.current?.({
+              name: picked.name ?? "",
+              address: picked.formatted_address ?? "",
+              city: cityFromComponents(picked.address_components),
+              latitude: lat,
+              longitude: lng,
+              placeId: picked.place_id ?? "",
+            });
+          });
+        }
       } catch {
         if (!cancelled) setMapFailed(true);
       }
@@ -126,10 +187,34 @@ export function LocationMapPicker({
 
   return (
     <div className="space-y-3">
+      <label className="block space-y-1.5">
+        <span className="text-xs font-medium text-muted">
+          Search a business or address
+        </span>
+        <input
+          ref={searchRef}
+          type="search"
+          className={field}
+          placeholder={
+            apiKey
+              ? "Start typing a place in Zimbabwe"
+              : "Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to search locations"
+          }
+          disabled={!apiKey}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
+        />
+        {searchNote ? (
+          <p className="text-xs text-muted">{searchNote}</p>
+        ) : null}
+      </label>
+      <input type="hidden" name="googlePlaceId" value={placeId} />
+
       <div className="flex items-center gap-2">
         <MapPin className="h-4 w-4 text-[var(--accent)]" />
         <p className="text-xs font-medium text-muted">
-          Drop a pin on the map (or enter coordinates)
+          Scroll the page normally. Use two fingers, or Ctrl and scroll, to zoom the map. Drag the pin to adjust.
         </p>
       </div>
 

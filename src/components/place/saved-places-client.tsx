@@ -2,104 +2,101 @@
 
 import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { Reveal } from "@/components/motion/reveal";
+import { PlaceCard } from "@/components/place/place-card";
 import {
   getSavedPlaceIds,
-  PlaceCard,
-} from "@/components/place/place-card";
-import {
-  mergeSavedPlaceIds,
   replaceSavedPlaceIds,
+  useSavedPlaces,
 } from "@/components/place/use-saved-places";
-import { SEED_PLACES } from "@/data/seed-places";
 import { syncWishlistAction } from "@/lib/auth/wishlist";
-import type { Place } from "@/types";
+import type { PlaceCardModel } from "@/lib/places/card";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-function resolveSavedPlaces(ids: string[], published: Place[]): Place[] {
-  const byId = new Map<string, Place>();
-  for (const place of published) byId.set(place.id, place);
-  for (const place of SEED_PLACES) {
-    if (!byId.has(place.id) && place.published && !place.archived) {
-      byId.set(place.id, place);
-    }
+const WishlistCatalogContext = createContext<PlaceCardModel[]>([]);
+
+export function WishlistCatalogProvider({
+  places,
+  children,
+}: {
+  places: PlaceCardModel[];
+  children: ReactNode;
+}) {
+  return (
+    <WishlistCatalogContext.Provider value={places}>
+      {children}
+    </WishlistCatalogContext.Provider>
+  );
+}
+
+function resolveSavedPlaces(
+  ids: string[],
+  catalog: PlaceCardModel[],
+): PlaceCardModel[] {
+  const byId = new Map<string, PlaceCardModel>();
+  const bySlug = new Map<string, PlaceCardModel>();
+  const rows = catalog;
+  for (const place of rows) {
+    if (!byId.has(place.id)) byId.set(place.id, place);
+    if (!bySlug.has(place.slug)) bySlug.set(place.slug, place);
   }
-  return ids
-    .map((id) => byId.get(id))
-    .filter((place): place is Place => Boolean(place));
+
+  const seen = new Set<string>();
+  const resolved: PlaceCardModel[] = [];
+  for (const id of ids) {
+    const place = byId.get(id) ?? bySlug.get(id);
+    if (!place || seen.has(place.id)) continue;
+    seen.add(place.id);
+    resolved.push(place);
+  }
+  return resolved;
+}
+
+export function useResolvedSavedPlaces() {
+  const auth = useOptionalAuth();
+  const catalog = useContext(WishlistCatalogContext);
+  const { saved } = useSavedPlaces();
+  const [hydrated, setHydrated] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const places = useMemo(
+    () => resolveSavedPlaces(saved, catalog),
+    [saved, catalog],
+  );
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    const userId = auth?.user?.id;
+    if (!userId) return;
+    let cancelled = false;
+    const local = getSavedPlaceIds();
+    if (local.length === 0) setSyncing(true);
+    void syncWishlistAction(local).then((synced) => {
+      if (cancelled) return;
+      if (synced.ok) {
+        const prev = local.slice().sort().join(",");
+        const next = synced.placeIds.slice().sort().join(",");
+        if (prev !== next) replaceSavedPlaceIds(synced.placeIds);
+      } else {
+        console.warn("[wishlist] saved sync deferred", synced.error);
+      }
+      setSyncing(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth?.user?.id]);
+
+  const loading = !hydrated || (syncing && places.length === 0);
+  return { places, loading };
 }
 
 export function SavedPlacesClient() {
   const auth = useOptionalAuth();
-  const [places, setPlaces] = useState<Place[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPlaces(ids: string[]) {
-      if (ids.length === 0) {
-        if (!cancelled) {
-          setPlaces([]);
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/places/published");
-        if (!res.ok) throw new Error("Failed to load places");
-        const all = (await res.json()) as Place[];
-        if (!cancelled) {
-          setPlaces(resolveSavedPlaces(ids, all));
-          setLoading(false);
-        }
-      } catch (err) {
-        console.warn("[wishlist] /saved load failed — using seed fallback", err);
-        if (!cancelled) {
-          setPlaces(resolveSavedPlaces(ids, []));
-          setLoading(false);
-        }
-      }
-    }
-
-    async function init() {
-      let ids = getSavedPlaceIds();
-
-      // Signed-in: merge localStorage ↔ Supabase so /saved matches /explorer
-      if (auth?.user) {
-        const synced = await syncWishlistAction(ids);
-        if (!cancelled) {
-          if (synced.ok) {
-            const prev = ids.slice().sort().join(",");
-            const next = synced.placeIds.slice().sort().join(",");
-            if (prev !== next) replaceSavedPlaceIds(synced.placeIds);
-            ids = synced.placeIds;
-          } else {
-            // Never wipe local on sync failure
-            ids = mergeSavedPlaceIds(synced.placeIds ?? ids);
-            console.warn("[wishlist] /saved sync deferred", synced.error);
-          }
-        }
-      }
-
-      if (!cancelled) await loadPlaces(getSavedPlaceIds().length ? getSavedPlaceIds() : ids);
-    }
-
-    void init();
-    const onChange = () => {
-      void loadPlaces(getSavedPlaceIds());
-    };
-    window.addEventListener("panora-saved-changed", onChange);
-    window.addEventListener("panora-saved-change", onChange);
-    window.addEventListener("storage", onChange);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("panora-saved-changed", onChange);
-      window.removeEventListener("panora-saved-change", onChange);
-      window.removeEventListener("storage", onChange);
-    };
-  }, [auth?.user]);
+  const { places, loading } = useResolvedSavedPlaces();
 
   return (
     <div className="gradient-mesh pt-8">

@@ -1,6 +1,6 @@
 import { PlaceForm } from "@/components/admin/place-form";
+import { PlacePublishBar } from "@/components/admin/place-publish-bar";
 import { getAdminPlace, getAdminSections, updatePlace } from "@/lib/admin/actions";
-import { SEED_PLACES } from "@/data/seed-places";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -17,7 +17,7 @@ export default async function AdminEditPlacePage({
     getAdminPlace(id),
     getAdminSections(),
   ]);
-  const place = fromDb ?? SEED_PLACES.find((p) => p.id === id) ?? null;
+  const place = fromDb;
   if (!place) notFound();
 
   async function save(formData: FormData) {
@@ -33,12 +33,15 @@ export default async function AdminEditPlacePage({
           Update story, Panora notes, highlights, amenities, gallery, contact,
           verification, and homepage sections.
         </p>
-        {!fromDb && (
-          <p className="mt-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] px-4 py-3 text-sm text-muted">
-            Showing seed data. Saving requires a live Supabase row with this id.
-          </p>
-        )}
       </div>
+      {fromDb ? (
+        <PlacePublishBar
+          id={place.id}
+          slug={place.slug}
+          published={place.published}
+          placeName={place.name}
+        />
+      ) : null}
       <PlaceForm
         place={place}
         action={save}

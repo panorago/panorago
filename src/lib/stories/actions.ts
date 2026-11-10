@@ -2,6 +2,7 @@
 
 import { toggleStoryLike, likeStory } from "@/lib/data/places";
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function likeStoryAction(storyId: string, visitorKey: string) {
   return likeStory(storyId, visitorKey);
@@ -89,6 +90,8 @@ export async function createStoryAction(input: {
         story: localStory,
       };
     }
+
+    revalidatePath("/admin/stories");
 
     return {
       ok: true as const,

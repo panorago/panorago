@@ -2,39 +2,49 @@
 
 import { SmartShareButton } from "@/components/smart-share/smart-share-button";
 import type { SmartSharePlace } from "@/components/smart-share/smart-share-sheet";
-import { Reveal } from "@/components/motion/reveal";
+import { useState } from "react";
 
 type ViralShareBandProps = {
   place: SmartSharePlace;
 };
 
 export function ViralShareBand({ place }: ViralShareBandProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Reveal>
-      <div className="rounded-[var(--radius-xl)] border border-[var(--accent)]/30 bg-[var(--brand-navy)] px-6 py-8 text-white shadow-[var(--shadow-gold)] md:px-10 md:py-10">
+    <div className="rounded-[var(--radius-xl)] border border-[var(--accent)]/30 bg-[var(--brand-navy)] px-4 py-3 text-white md:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-gold)]">
-          Panora SmartShare™
+          Panora SmartShare
         </p>
-        <h2 className="mt-3 font-display text-2xl md:text-3xl">
-          Know someone who would love this place?
-        </h2>
-        <p className="long-form mt-3 max-w-lg text-sm leading-relaxed text-white/90">
-          Send them a beautiful Panora page — story, atmosphere, and nearby gems
-          — before they open Maps.
-        </p>
-        <div className="mt-6">
-          <SmartShareButton
-            place={place}
-            label="Share the discovery"
-            variant="accent"
-            size="lg"
-            className="opacity-100"
-          />
-        </div>
-        <p className="mt-6 text-xs tracking-wide text-white/70">
-          Discover. Connect. Belong.
-        </p>
+        <button
+          type="button"
+          className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-white"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          {open ? "Hide" : "Share"}
+        </button>
       </div>
-    </Reveal>
+      {open ? (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <h2 className="font-display text-2xl">
+            Know someone who would love this place?
+          </h2>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/90">
+            Send them a Panora page with the story, atmosphere, and nearby gems.
+          </p>
+          <div className="mt-4">
+            <SmartShareButton
+              place={place}
+              label="Share the discovery"
+              variant="accent"
+              size="lg"
+              className="opacity-100"
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

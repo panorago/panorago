@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Flame, Sun } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ export const QUICK_VIBES: {
   emoji: string;
   label: string;
 }[] = [
-  { vibe: "Golden Hour", emoji: "✨", label: "Golden Hour" },
+  { vibe: "Golden Hour", emoji: "", label: "Golden Hour" },
   { vibe: "Date Night", emoji: "🍷", label: "Date Night" },
   { vibe: "Hidden Escape", emoji: "🌿", label: "Hidden Escape" },
   { vibe: "Weekend Away", emoji: "🏕", label: "Weekend Away" },
@@ -62,9 +63,7 @@ export function QuickVibes({
                   : "border-[var(--border)] bg-[var(--glass)] text-[var(--foreground)] shadow-[var(--shadow)] hover:border-[color-mix(in_srgb,var(--accent)_55%,transparent)] hover:shadow-[var(--shadow-gold)]",
               )}
             >
-              <span aria-hidden className="text-base leading-none">
-                🔥
-              </span>
+              <Flame className="h-4 w-4 text-[var(--accent)]" aria-hidden />
               <span>Trending</span>
             </Link>
           </motion.div>
@@ -92,9 +91,13 @@ export function QuickVibes({
 
         const content = (
           <>
-            <span aria-hidden className="text-base leading-none">
-              {item.emoji}
-            </span>
+            {item.vibe === "Golden Hour" ? (
+              <Sun className="h-4 w-4 text-[var(--accent)]" aria-hidden />
+            ) : (
+              <span aria-hidden className="text-base leading-none">
+                {item.emoji}
+              </span>
+            )}
             <span>{item.label}</span>
           </>
         );

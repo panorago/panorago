@@ -1,5 +1,5 @@
+import { ApproveSubmissionButton } from "@/components/admin/approve-submission-button";
 import {
-  approvePlaceSubmission,
   getPlaceSubmissions,
   rejectPlaceSubmission,
 } from "@/lib/admin/command";
@@ -22,7 +22,7 @@ export default async function AdminSubmissionsPage() {
           </p>
           <h1 className="mt-1 font-display text-4xl">Place submissions</h1>
           <p className="mt-2 text-sm text-muted">
-            Public Add Your Place → approve creates an unpublished place draft.
+            Approve creates a hidden draft. Preview it, edit it, then push it live.
           </p>
         </div>
         <Link
@@ -71,20 +71,14 @@ export default async function AdminSubmissionsPage() {
                   </p>
                 </div>
                 {sub.status === "pending" && (
-                  <div className="flex gap-2">
-                    <form
-                      action={async () => {
-                        "use server";
-                        await approvePlaceSubmission(sub.id);
-                      }}
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/admin/places/new?submission=${sub.id}`}
+                      className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs hover:bg-[var(--glass)]"
                     >
-                      <button
-                        type="submit"
-                        className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-foreground)]"
-                      >
-                        Approve → draft
-                      </button>
-                    </form>
+                      Convert to place
+                    </Link>
+                    <ApproveSubmissionButton id={sub.id} />
                     <form
                       action={async () => {
                         "use server";
@@ -101,12 +95,20 @@ export default async function AdminSubmissionsPage() {
                   </div>
                 )}
                 {sub.createdPlaceId && (
-                  <Link
-                    href={`/admin/places/${sub.createdPlaceId}`}
-                    className="text-sm text-[var(--accent)]"
-                  >
-                    Open place draft →
-                  </Link>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <Link
+                      href={`/preview/places/${sub.createdPlaceId}`}
+                      className="text-[var(--accent)]"
+                    >
+                      Preview listing
+                    </Link>
+                    <Link
+                      href={`/admin/places/${sub.createdPlaceId}`}
+                      className="text-[var(--accent)]"
+                    >
+                      Edit draft
+                    </Link>
+                  </div>
                 )}
               </div>
               {sub.story && (

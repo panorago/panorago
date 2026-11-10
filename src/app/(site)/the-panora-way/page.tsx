@@ -4,12 +4,27 @@ import { absoluteUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+const wayTitle = "The Panora Way — Discover Connect Belong";
+const wayDescription =
+  "Discover. Connect. Belong. How Panora Go curates tourism in Panora Zimbabwe through stories, atmosphere, and honest local insight.";
+
 export const metadata: Metadata = {
-  title: "The Panora Way — Discover Connect Belong",
-  description:
-    "Discover. Connect. Belong. How Panora Go curates tourism in Panora Zimbabwe through stories, atmosphere, and honest local insight.",
+  title: wayTitle,
+  description: wayDescription,
   alternates: {
     canonical: absoluteUrl("/the-panora-way"),
+  },
+  openGraph: {
+    title: wayTitle,
+    description: wayDescription,
+    url: absoluteUrl("/the-panora-way"),
+    images: [{ url: absoluteUrl("/opengraph-image") }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: wayTitle,
+    description: wayDescription,
+    images: [absoluteUrl("/opengraph-image")],
   },
 };
 

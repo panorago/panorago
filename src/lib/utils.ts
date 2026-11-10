@@ -9,29 +9,38 @@ function isLocalhostUrl(value: string) {
   return /localhost|127\.0\.0\.1/i.test(value);
 }
 
-/** Resolve canonical origin for QR/verify/OG links (never a bare relative path). */
+function isVercelAppUrl(value: string) {
+  return /(^|\.)vercel\.app$/i.test(
+    value.replace(/^https?:\/\//i, "").split("/")[0] ?? "",
+  );
+}
+
+/** Public site. Enquiry QR codes and PDFs must not use *.vercel.app. */
+export const PUBLIC_SITE_ORIGIN = "https://panorago.co.zw";
+
+/**
+ * Canonical origin for share links, QR codes, and tickets.
+ * Never localhost or *.vercel.app — those are not the public site.
+ */
 export function resolveSiteOrigin(baseOverride?: string | null) {
-  if (baseOverride?.trim()) {
-    return baseOverride.replace(/\/$/, "");
+  const override = baseOverride?.trim().replace(/\/$/, "") ?? "";
+  if (override && !isLocalhostUrl(override) && !isVercelAppUrl(override)) {
+    return override;
   }
 
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
-  const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "";
-  const vercel = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "";
-
-  // Prefer configured URL, but ignore a localhost placeholder while deployed on Vercel.
-  if (configured) {
-    if (!isLocalhostUrl(configured) || (!vercelProd && !vercel)) {
-      return configured;
-    }
-    return vercelProd || vercel || configured;
+  if (configured && !isLocalhostUrl(configured) && !isVercelAppUrl(configured)) {
+    return configured;
   }
 
-  return vercelProd || vercel || "http://localhost:3000";
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin.replace(/\/$/, "");
+    if (origin && !isLocalhostUrl(origin) && !isVercelAppUrl(origin)) {
+      return origin;
+    }
+  }
+
+  return PUBLIC_SITE_ORIGIN;
 }
 
 export function absoluteUrl(path = "", baseOverride?: string | null) {
@@ -40,7 +49,7 @@ export function absoluteUrl(path = "", baseOverride?: string | null) {
   return `${base}${normalized}`;
 }
 
-/** Prefer the live request host when minting QR/ticket verify links. */
+/** Request host for auth callbacks. Verify links ignore *.vercel.app hosts. */
 export function siteOriginFromRequest(request: Request): string {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const host = (forwardedHost ?? request.headers.get("host") ?? "")

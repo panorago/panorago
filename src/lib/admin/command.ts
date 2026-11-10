@@ -16,7 +16,11 @@ import type {
   SecretCollection,
   SiteSettings,
 } from "@/types";
-import { revalidatePublicPlaces } from "@/lib/data/revalidate-places";
+import { revalidateStoryById } from "@/lib/admin/revalidate-story";
+import {
+  revalidatePublicPlaces,
+  revalidatePublicSettings,
+} from "@/lib/data/revalidate-places";
 import { revalidatePath } from "next/cache";
 import slugify from "slugify";
 
@@ -235,6 +239,25 @@ export async function updateBookingStatus(
       });
     }
 
+    if (status === "unavailable") {
+      const { notifyBookingUnavailable } = await import(
+        "@/lib/bookings/notifications"
+      );
+      await notifyBookingUnavailable({
+        bookingReference: existing.bookingReference,
+        customerNumber: existing.customerNumber,
+        customerName: existing.customerName,
+        email: existing.email,
+        phone: existing.phone,
+        venueName: existing.venueName,
+        preferredDate: existing.preferredDate,
+        adults: existing.adults,
+        children: existing.children,
+        occasion: existing.occasion,
+        status: "unavailable",
+      });
+    }
+
     const { error } = await supabase
       .from("bookings")
       .update({
@@ -255,6 +278,9 @@ export async function updateBookingStatus(
     revalidatePath("/admin/bookings");
     revalidatePath("/admin/analytics");
     revalidatePath(`/admin/enquiries/${id}`);
+    if (existing.customerNumber) {
+      revalidatePath(`/verify/${existing.customerNumber}`);
+    }
     return { ok: true, message: `Booking marked ${status}.` };
   } catch (error) {
     return {
@@ -498,6 +524,7 @@ export async function setStoryFlags(
       .update(flags)
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
+    await revalidateStoryById(supabase, id);
     revalidatePath("/admin/stories");
     return { ok: true, message: "Story updated." };
   } catch (error) {
@@ -568,6 +595,7 @@ export async function upsertCollection(formData: FormData): Promise<ActionResult
       if (error) return { ok: false, error: error.message };
     }
 
+    revalidatePublicPlaces();
     revalidatePath("/admin/collections");
     return { ok: true, message: "Collection saved." };
   } catch (error) {
@@ -586,6 +614,7 @@ export async function deleteCollection(id: string): Promise<ActionResult> {
       .delete()
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
+    revalidatePublicPlaces();
     revalidatePath("/admin/collections");
     return { ok: true, message: "Collection deleted." };
   } catch (error) {
@@ -606,6 +635,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     instagram: "",
     facebook: "",
     tiktok: "",
+    x: "",
     mapsApiKeyNote:
       "Browser Maps key lives in NEXT_PUBLIC_GOOGLE_MAPS_API_KEY only — never put service keys in the client.",
   };
@@ -627,7 +657,17 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 export async function saveSiteSettings(formData: FormData): Promise<ActionResult> {
   try {
     const { supabase, user } = await requireAdmin();
-    const settings: SiteSettings = {
+    const { data: existing } = await supabase
+      .from("site_settings")
+      .select("settings")
+      .eq("id", "default")
+      .maybeSingle();
+    const previous =
+      existing?.settings && typeof existing.settings === "object"
+        ? (existing.settings as Record<string, unknown>)
+        : {};
+    const settings = {
+      ...previous,
       whatsapp: String(formData.get("whatsapp") ?? "").trim(),
       email: String(formData.get("email") ?? "").trim(),
       phone: String(formData.get("phone") ?? "").trim(),
@@ -636,6 +676,7 @@ export async function saveSiteSettings(formData: FormData): Promise<ActionResult
       instagram: String(formData.get("instagram") ?? "").trim(),
       facebook: String(formData.get("facebook") ?? "").trim(),
       tiktok: String(formData.get("tiktok") ?? "").trim(),
+      x: String(formData.get("x") ?? "").trim(),
       mapsApiKeyNote: String(formData.get("mapsApiKeyNote") ?? "").trim(),
     };
 
@@ -648,6 +689,7 @@ export async function saveSiteSettings(formData: FormData): Promise<ActionResult
 
     if (error) return { ok: false, error: error.message };
     await writeAudit("settings_update", "site_settings", "default");
+    revalidatePublicSettings();
     revalidatePath("/admin/settings");
     return { ok: true, message: "Settings saved." };
   } catch (error) {
@@ -1043,19 +1085,43 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
           (u): u is string => typeof u === "string" && u.trim().length > 0,
         )
       : [];
+    const textList = (value: unknown) =>
+      Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        : [];
+    const text = (value: unknown) =>
+      typeof value === "string" && value.trim() ? value.trim() : "";
     const highlights: Record<string, unknown> = {};
-    if (typeof extra.average_spend === "string" && extra.average_spend) {
-      highlights.averageSpend = extra.average_spend;
+    if (text(extra.average_spend)) highlights.averageSpend = text(extra.average_spend);
+    if (text(extra.opening_hours)) highlights.openingHours = text(extra.opening_hours);
+    if (text(extra.best_time)) highlights.bestTime = text(extra.best_time);
+    if (text(extra.dress_vibe)) highlights.dressVibe = text(extra.dress_vibe);
+    if (text(extra.golden_hour)) highlights.goldenHour = text(extra.golden_hour);
+    if (text(extra.noise_level)) highlights.noiseLevel = text(extra.noise_level);
+    if (textList(extra.perfect_for).length) highlights.perfectFor = textList(extra.perfect_for);
+    if (textList(extra.payment_methods).length) {
+      highlights.paymentMethods = textList(extra.payment_methods);
     }
-    if (typeof extra.opening_hours === "string" && extra.opening_hours) {
-      highlights.openingHours = extra.opening_hours;
+    if (textList(extra.search_tags).length) highlights.searchTags = textList(extra.search_tags);
+    if (textList(extra.search_keywords).length) {
+      highlights.searchKeywords = textList(extra.search_keywords);
     }
-    if (typeof extra.best_time === "string" && extra.best_time) {
-      highlights.bestTime = extra.best_time;
+    if (textList(extra.search_occasions).length) {
+      highlights.searchOccasions = textList(extra.search_occasions);
     }
-    if (typeof extra.dress_vibe === "string" && extra.dress_vibe) {
-      highlights.dressVibe = extra.dress_vibe;
-    }
+    if (text(extra.search_summary)) highlights.searchSummary = text(extra.search_summary);
+    const pricingItems = Array.isArray(extra.pricing_items)
+      ? extra.pricing_items.filter(
+          (item): item is { label: string; price: string } =>
+            Boolean(item) &&
+            typeof item === "object" &&
+            typeof (item as { label?: unknown }).label === "string" &&
+            typeof (item as { price?: unknown }).price === "string",
+        )
+      : [];
+    if (pricingItems.length) highlights.pricingItems = pricingItems;
+    const menuImages = textList(extra.menu_image_urls);
+    const mood = textList(extra.mood);
 
     const { data: place, error: placeError } = await supabase
       .from("places")
@@ -1068,7 +1134,7 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
         latitude: sub.latitude,
         longitude: sub.longitude,
         category: sub.category || "dining",
-        mood: [],
+        mood,
         story: sub.story || `${name} — submitted via Add Your Place.`,
         panora_notes:
           (typeof extra.panora_notes === "string" && extra.panora_notes) ||
@@ -1088,6 +1154,7 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
           instagram:
             typeof extra.instagram === "string" ? extra.instagram : null,
           facebook: typeof extra.facebook === "string" ? extra.facebook : null,
+          tiktok: text(extra.tiktok) || null,
           googleMapsUrl:
             typeof extra.google_maps_url === "string"
               ? extra.google_maps_url
@@ -1105,8 +1172,9 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
           sub.hero_image ||
           "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80",
         gallery,
-        menu_image_urls: [],
-        pricing_items: [],
+        menu_image_urls: menuImages,
+        pricing_items: pricingItems,
+        video_url: text(extra.video_url) || null,
         homepage_sections: [],
         verifications: [],
         created_at: now,
@@ -1136,7 +1204,7 @@ export async function approvePlaceSubmission(id: string): Promise<ActionResult> 
     return {
       ok: true,
       id: place?.id as string | undefined,
-      message: "Approved — place draft created.",
+      message: "Approved as a draft. Preview it, edit, then push to the site.",
     };
   } catch (error) {
     return {
@@ -1219,6 +1287,36 @@ export async function getAnalyticsSummary() {
     return { available: true, total: data.length, byName };
   } catch {
     return { available: false, total: 0, byName: {} as Record<string, number> };
+  }
+}
+
+export async function getTopSearchTerms(): Promise<
+  { query: string; count: number }[]
+> {
+  try {
+    const { supabase } = await requireAdmin();
+    const { data, error } = await supabase
+      .from("analytics_events")
+      .select("path")
+      .eq("event_name", "search")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (error || !data) return [];
+
+    const counts: Record<string, number> = {};
+    for (const row of data) {
+      const query = String(row.path ?? "").trim();
+      if (!query) continue;
+      counts[query] = (counts[query] ?? 0) + 1;
+    }
+
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([query, count]) => ({ query, count }));
+  } catch {
+    return [];
   }
 }
 
@@ -1340,12 +1438,30 @@ export async function reorderHomepageSections(
   orderedIds: string[],
 ): Promise<ActionResult> {
   try {
-    const { supabase } = await requireAdmin();
-    const { error } = await supabase.from("homepage_sections").upsert(
-      orderedIds.map((id, index) => ({ id, sort_order: index })),
-      { onConflict: "id", defaultToNull: false },
-    );
-    if (error) return { ok: false, error: error.message };
+    const { supabase, user } = await requireAdmin();
+    const { isExtraSectionId, readExtraSections, saveExtraSections } =
+      await import("@/lib/home/extra-sections");
+    for (const [index, id] of orderedIds.entries()) {
+      if (isExtraSectionId(id)) continue;
+      const { error } = await supabase
+        .from("homepage_sections")
+        .update({ sort_order: index })
+        .eq("id", id);
+      if (error) return { ok: false, error: error.message };
+    }
+    const extras = await readExtraSections(supabase);
+    let extrasChanged = false;
+    for (const [index, id] of orderedIds.entries()) {
+      if (!isExtraSectionId(id)) continue;
+      const row = extras.find((section) => `extra:${section.key}` === id);
+      if (!row || row.sortOrder === index) continue;
+      row.sortOrder = index;
+      extrasChanged = true;
+    }
+    if (extrasChanged) {
+      const saved = await saveExtraSections(supabase, user.id, extras);
+      if (saved.error) return { ok: false, error: saved.error };
+    }
     await writeAudit("homepage_reorder", "homepage_sections", null, {
       orderedIds,
     });

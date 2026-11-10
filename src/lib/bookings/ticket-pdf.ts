@@ -60,9 +60,9 @@ function supportLine(fields: TicketPdfInput) {
   const email = winAnsi(
     fields.supportEmail ||
       process.env.NEXT_PUBLIC_PANORA_EMAIL ||
-      "info@panora.co.zw",
-  );
-  return `WhatsApp ${wa}  |  Phone ${phone}  |  ${email}  |  panora.co.zw`;
+      "info@panorago.co.zw",
+  ).replace(/@panora\.co\.zw\b/i, "@panorago.co.zw");
+  return `WhatsApp ${wa}  |  Phone ${phone}  |  ${email}  |  panorago.co.zw`;
 }
 
 async function drawWrapped(
@@ -79,7 +79,27 @@ async function drawWrapped(
   },
 ): Promise<number> {
   const safe = winAnsi(text) || "-";
-  const words = safe.split(/\s+/);
+  const words = safe.split(/\s+/).flatMap((word) => {
+    if (opts.font.widthOfTextAtSize(word, opts.size) <= opts.maxWidth) {
+      return [word];
+    }
+    const parts: string[] = [];
+    let chunk = "";
+    for (const char of word) {
+      const next = chunk + char;
+      if (
+        chunk &&
+        opts.font.widthOfTextAtSize(next, opts.size) > opts.maxWidth
+      ) {
+        parts.push(chunk);
+        chunk = char;
+      } else {
+        chunk = next;
+      }
+    }
+    if (chunk) parts.push(chunk);
+    return parts;
+  });
   let line = "";
   let y = opts.y;
   const lh = opts.lineHeight ?? opts.size + 4;
@@ -223,6 +243,11 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
     color: NAVY,
   });
 
+  const qrSize = 120;
+  const qrX = width - 28 - qrSize;
+  const qrY = 96;
+  const textMax = qrX - 48;
+
   const rows: { label: string; value: string }[] = [
     { label: "Guest", value: dash(fields.customerName) },
     { label: "Venue", value: dash(fields.venueName) },
@@ -252,38 +277,10 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
       size: 10,
       font: regular,
       color: NAVY,
-      maxWidth: width - 180,
+      maxWidth: textMax,
       lineHeight: 13,
     });
     y -= 6;
-  }
-
-  if (fields.qrDataUrl?.startsWith("data:image/")) {
-    try {
-      const comma = fields.qrDataUrl.indexOf(",");
-      const b64 = comma >= 0 ? fields.qrDataUrl.slice(comma + 1) : "";
-      if (b64) {
-        const bytes = Buffer.from(b64, "base64");
-        const png = fields.qrDataUrl.startsWith("data:image/png")
-          ? await pdf.embedPng(bytes)
-          : await pdf.embedJpg(bytes);
-        page.drawImage(png, {
-          x: width - 132,
-          y: Math.max(y - 20, 200),
-          width: 88,
-          height: 88,
-        });
-        page.drawText("Scan on arrival", {
-          x: width - 130,
-          y: Math.max(y - 32, 188),
-          size: 7,
-          font: regular,
-          color: MUTED,
-        });
-      }
-    } catch {
-      // QR optional — ticket text + verification URL remain
-    }
   }
 
   const message = fields.confirmed
@@ -309,7 +306,7 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
   page.drawRectangle({
     x: 28,
     y: boxBottom,
-    width: width - 56,
+    width: Math.max(120, textMax),
     height: boxHeight,
     color: LIGHT,
     borderColor: GOLD,
@@ -325,7 +322,7 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
       size: 8,
       font: regular,
       color: NAVY,
-      maxWidth: width - 80,
+      maxWidth: Math.max(100, textMax - 16),
       lineHeight: 11,
     });
     my -= 2;
@@ -344,13 +341,50 @@ async function buildOnce(fields: TicketPdfInput): Promise<Uint8Array> {
   if (fields.verificationUrl) {
     await drawWrapped(page, fields.verificationUrl, {
       x: 28,
-      y: 34,
-      size: 6.5,
+      y: 32,
+      size: 7,
       font: regular,
       color: GOLD,
-      maxWidth: width - 56,
+      maxWidth: textMax,
       lineHeight: 9,
     });
+  }
+
+  if (fields.qrDataUrl?.startsWith("data:image/")) {
+    try {
+      const comma = fields.qrDataUrl.indexOf(",");
+      const b64 = comma >= 0 ? fields.qrDataUrl.slice(comma + 1) : "";
+      if (b64) {
+        const bytes = Buffer.from(b64, "base64");
+        const image = fields.qrDataUrl.startsWith("data:image/png")
+          ? await pdf.embedPng(bytes)
+          : await pdf.embedJpg(bytes);
+        page.drawRectangle({
+          x: qrX - 8,
+          y: qrY - 18,
+          width: qrSize + 16,
+          height: qrSize + 28,
+          color: WHITE,
+          borderColor: GOLD,
+          borderWidth: 0.75,
+        });
+        page.drawImage(image, {
+          x: qrX,
+          y: qrY,
+          width: qrSize,
+          height: qrSize,
+        });
+        page.drawText("Scan on arrival", {
+          x: qrX,
+          y: qrY - 12,
+          size: 7,
+          font: regular,
+          color: MUTED,
+        });
+      }
+    } catch {
+      // QR optional — ticket text + verification URL remain
+    }
   }
 
   return pdf.save();

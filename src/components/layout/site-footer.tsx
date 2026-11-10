@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { PanoraLogo } from "@/components/brand/panora-logo";
+import { getPublicSiteSettings } from "@/lib/data/settings";
 import { cn } from "@/lib/utils";
 
 const EXPLORE_LINKS = [
@@ -84,36 +85,49 @@ type SiteFooterProps = {
   className?: string;
 };
 
-export function SiteFooter({ className }: SiteFooterProps) {
+export async function SiteFooter({ className }: SiteFooterProps) {
   const year = new Date().getFullYear();
-  const whatsapp = process.env.NEXT_PUBLIC_PANORA_WHATSAPP ?? "263715708327";
+  const settings = await getPublicSiteSettings();
+  const whatsapp =
+    settings.whatsapp ||
+    process.env.NEXT_PUBLIC_PANORA_WHATSAPP ||
+    "263715708327";
   const phoneDisplay =
-    process.env.NEXT_PUBLIC_PANORA_PHONE_DISPLAY ?? "+263 71 553 5982";
-  const phone = process.env.NEXT_PUBLIC_PANORA_PHONE ?? "+263715535982";
-  const email = process.env.NEXT_PUBLIC_PANORA_EMAIL ?? "info@panora.co.zw";
+    settings.phoneDisplay ||
+    process.env.NEXT_PUBLIC_PANORA_PHONE_DISPLAY ||
+    "+263 71 553 5982";
+  const phone =
+    settings.phone ||
+    process.env.NEXT_PUBLIC_PANORA_PHONE ||
+    "+263715535982";
+  const email =
+    settings.email ||
+    process.env.NEXT_PUBLIC_PANORA_EMAIL ||
+    "info@panora.co.zw";
 
   const socials = [
     {
       label: "Instagram",
-      href: process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM,
+      href: settings.instagram || process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM,
       type: "instagram" as const,
     },
     {
       label: "Facebook",
-      href: process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK,
+      href: settings.facebook || process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK,
       type: "facebook" as const,
     },
     {
       label: "TikTok",
-      href: process.env.NEXT_PUBLIC_SOCIAL_TIKTOK,
+      href: settings.tiktok || process.env.NEXT_PUBLIC_SOCIAL_TIKTOK,
       type: "tiktok" as const,
     },
     {
       label: "X",
-      href: process.env.NEXT_PUBLIC_SOCIAL_X,
+      href: settings.x || process.env.NEXT_PUBLIC_SOCIAL_X,
       type: "x" as const,
     },
   ];
+  const hasSocial = socials.some((social) => Boolean(social.href?.trim()));
 
   return (
     <footer
@@ -184,7 +198,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
                   rel="noreferrer"
                 >
                   <MessageCircle className="h-4 w-4 text-[var(--accent)]" />
-                  WhatsApp · 0715 708 327
+                  WhatsApp · {settings.phoneDisplay || "0715 708 327"}
                 </a>
               </li>
               <li>
@@ -211,6 +225,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
               </li>
             </ul>
 
+            {hasSocial ? (
             <div className="mt-6">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
                 Follow Panora
@@ -218,43 +233,25 @@ export function SiteFooter({ className }: SiteFooterProps) {
               <ul className="mt-3 flex flex-wrap gap-2">
                 {socials.map((social) => {
                   const href = social.href?.trim();
-                  const ready = Boolean(href);
-                  const className = cn(
-                    "focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--foreground)] transition",
-                    ready
-                      ? "hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                      : "cursor-default opacity-55",
-                  );
+                  if (!href) return null;
                   return (
                     <li key={social.label}>
-                      {ready ? (
-                        <a
-                          href={href}
-                          aria-label={social.label}
-                          title={social.label}
-                          className={className}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <SocialGlyph type={social.type} className="h-4 w-4" />
-                        </a>
-                      ) : (
-                        <span
-                          aria-label={`${social.label} (link coming soon)`}
-                          title={`${social.label} — link coming soon`}
-                          className={className}
-                        >
-                          <SocialGlyph type={social.type} className="h-4 w-4" />
-                        </span>
-                      )}
+                      <a
+                        href={href}
+                        aria-label={social.label}
+                        title={social.label}
+                        className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--foreground)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <SocialGlyph type={social.type} className="h-4 w-4" />
+                      </a>
                     </li>
                   );
                 })}
               </ul>
-              <p className="mt-2 text-xs text-[var(--foreground-muted)]">
-                Social links launching soon — icons are ready for your URLs.
-              </p>
             </div>
+            ) : null}
           </div>
         </div>
 

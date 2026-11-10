@@ -10,7 +10,7 @@ import {
   SITE_TITLE_TEMPLATE,
   rootJsonLd,
 } from "@/lib/seo";
-import { absoluteUrl } from "@/lib/utils";
+import { absoluteUrl, PUBLIC_SITE_ORIGIN } from "@/lib/utils";
 import "./globals.css";
 
 const display = Cormorant_Garamond({
@@ -32,7 +32,7 @@ const body = Outfit({
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(absoluteUrl("/")),
+  metadataBase: new URL(PUBLIC_SITE_ORIGIN),
   title: {
     default: SITE_TITLE,
     template: SITE_TITLE_TEMPLATE,

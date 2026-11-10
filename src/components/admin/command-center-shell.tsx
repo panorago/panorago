@@ -28,6 +28,7 @@ import {
   X,
   Layers,
   FilePlus2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -45,6 +46,7 @@ const NAV = [
   { href: "/admin/places", label: "Places", icon: MapPin },
   { href: "/admin/enquiries", label: "Enquiries", icon: CalendarCheck },
   { href: "/admin/stories", label: "The Story Continues", icon: BookOpen },
+  { href: "/admin/week-stories", label: "New This Week", icon: Sparkles },
   { href: "/admin/collections", label: "Collections", icon: FolderKanban },
   { href: "/admin/media", label: "Media Library", icon: ImageIcon },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },

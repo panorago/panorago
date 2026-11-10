@@ -2,6 +2,7 @@
 
 import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
+import { isPastDateInput, todayDateInputValue } from "@/lib/dates";
 import {
   buildEnquiryMessage,
   ticketDownloadUrl,
@@ -81,6 +82,7 @@ export function EnquiryBookingForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
+  const minDate = todayDateInputValue();
 
   const panoraWhatsapp =
     process.env.NEXT_PUBLIC_PANORA_WHATSAPP ?? "263715708327";
@@ -93,6 +95,9 @@ export function EnquiryBookingForm({
       next.phone = "Enter a valid phone number";
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       next.email = "Enter a valid email";
+    }
+    if (date && isPastDateInput(date)) {
+      next.date = "Choose today or a later date";
     }
     const adultsNum = Number(adults);
     const childrenNum = Number(children);
@@ -408,10 +413,32 @@ export function EnquiryBookingForm({
         <span className="text-xs font-medium text-muted">Preferred date</span>
         <input
           type="date"
+          min={minDate}
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next && isPastDateInput(next)) {
+              setDate("");
+              setFieldErrors((prev) => ({
+                ...prev,
+                date: "Choose today or a later date",
+              }));
+              return;
+            }
+            setFieldErrors((prev) => {
+              if (!prev.date) return prev;
+              const rest = { ...prev };
+              delete rest.date;
+              return rest;
+            });
+            setDate(next);
+          }}
           className={fieldClass}
+          aria-invalid={Boolean(fieldErrors.date)}
         />
+        {fieldErrors.date ? (
+          <span className="text-xs text-red-500">{fieldErrors.date}</span>
+        ) : null}
       </label>
 
       <div className="grid grid-cols-2 gap-3">

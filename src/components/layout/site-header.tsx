@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 import { useOptionalAuth } from "@/components/auth/auth-provider";
 import { PanoraLogo } from "@/components/brand/panora-logo";
+import { DesktopSearch } from "@/components/search/desktop-search";
 import { MobileSearchButton } from "@/components/search/mobile-search-button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -87,12 +88,12 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     <header
       className={cn(
         "pointer-events-none fixed inset-x-0 top-0 z-50",
-        "pl-[max(var(--nav-float-inset),env(safe-area-inset-left,0px))] pr-[max(var(--nav-float-inset),env(safe-area-inset-right,0px))]",
-        "pt-[max(var(--nav-float-inset),env(safe-area-inset-top,0px))]",
+        "px-[clamp(1rem,4vw,4.5rem)]",
+        "pt-[max(0.5rem,env(safe-area-inset-top,0px))]",
         className,
       )}
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-[1120px]">
+      <div className="pointer-events-auto w-full">
         <div
           className={cn(
             "rounded-full border transition-[background-color,backdrop-filter,border-color,box-shadow,-webkit-backdrop-filter] duration-150",
@@ -147,6 +148,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </nav>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <DesktopSearch onDark={!glassActive && overDarkSurface} />
               <MobileSearchButton
                 onDark={!glassActive && overDarkSurface}
               />
@@ -251,7 +253,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: motionTokens.duration.base }}
-              className="mt-2 overflow-hidden rounded-[1.75rem] border border-[var(--border)] bg-[var(--glass-strong)] shadow-[var(--nav-shadow)] backdrop-blur-2xl lg:hidden"
+              className="mt-2 max-h-[calc(100dvh-var(--nav-bar-height)-var(--bottom-nav-height)-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1.5rem)] overflow-y-auto overscroll-contain rounded-[1.75rem] border border-[var(--border)] bg-[var(--glass-strong)] shadow-[var(--nav-shadow)] backdrop-blur-2xl lg:hidden"
             >
               <nav
                 aria-label="Mobile primary"

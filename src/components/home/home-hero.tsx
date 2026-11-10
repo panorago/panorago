@@ -1,8 +1,10 @@
 "use client";
 
+import { TrendingHeroPanel } from "@/components/home/trending-hero-panel";
+import { PlaceSearch } from "@/components/search/place-search";
 import { QuickVibes } from "@/components/search/quick-vibes";
-import { SearchBar } from "@/components/search/search-bar";
 import { Button } from "@/components/ui/button";
+import type { PlaceCardModel } from "@/lib/places/card";
 import { fadeUp, staggerContainer } from "@/lib/motion/variants";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
@@ -11,6 +13,8 @@ import { useEffect, useRef, useState } from "react";
 
 interface HomeHeroProps {
   heroImage: string;
+  trendingTitle?: string;
+  trendingPlaces?: PlaceCardModel[];
   /**
    * Optional MP4/WebM URL. Defaults to the locally hosted Victoria Falls clip.
    * Override with NEXT_PUBLIC_HERO_VIDEO, or pass explicitly.
@@ -27,6 +31,8 @@ const HERO_VIDEO_SRC =
 export function HomeHero({
   heroImage,
   heroVideoSrc = HERO_VIDEO_SRC,
+  trendingTitle = "Trending Now",
+  trendingPlaces = [],
 }: HomeHeroProps) {
   const prefersReduced = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -47,8 +53,9 @@ export function HomeHero({
   }, [showVideo, heroVideoSrc]);
 
   return (
-    <section className="relative -mt-[var(--nav-height)] min-h-dvh overflow-hidden bg-[var(--brand-navy)]">
-      <motion.div
+    <section className="relative z-20 -mt-[var(--nav-height)] min-h-[55vh] bg-[var(--brand-navy)] lg:min-h-[72vh]">
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
         className="absolute inset-0"
         initial={{ scale: 1 }}
         animate={prefersReduced ? { scale: 1 } : { scale: 1.05 }}
@@ -85,6 +92,7 @@ export function HomeHero({
           </video>
         ) : null}
       </motion.div>
+      </div>
 
       <div
         className="absolute inset-0"
@@ -92,7 +100,10 @@ export function HomeHero({
         aria-hidden
       />
 
-      <div className="relative z-10 flex min-h-dvh flex-col justify-end pb-16 pt-[calc(var(--nav-height)+2rem)] md:justify-center md:pb-24">
+      <div className="relative z-10 flex min-h-[55vh] flex-col justify-start pb-16 pt-[var(--nav-height)] md:justify-center md:pb-24 lg:min-h-[72vh] lg:pt-[calc(var(--nav-height)+2rem)]">
+        {/* HERO LAYOUT WRAPPER — 2-column desktop split */}
+        <div className="grid w-full grid-cols-1 items-center lg:grid-cols-[55%_45%]">
+          <div className="min-w-0">
         <motion.div
           className="container-narrow text-white"
           initial="hidden"
@@ -123,14 +134,20 @@ export function HomeHero({
             variants={prefersReduced ? undefined : fadeUp}
             className="mt-8 hidden max-w-xl md:block"
           >
-            <SearchBar large className="text-[var(--foreground)]" />
+            <PlaceSearch
+              large
+              placeholder="Where do you want to go this weekend?"
+            />
           </motion.div>
 
           <motion.div
             variants={prefersReduced ? undefined : fadeUp}
             className="mt-6"
           >
-            <QuickVibes onLight />
+            <QuickVibes
+              onLight
+              className="max-lg:flex-nowrap max-lg:overflow-x-auto scrollbar-hide pb-1 max-lg:[&>li]:shrink-0"
+            />
           </motion.div>
 
           <motion.div
@@ -142,7 +159,7 @@ export function HomeHero({
                 Start discovering
               </Button>
             </Link>
-            <Link href="#venues-section">
+            <Link href="/discover?vibe=Weekend%20Away">
               <Button
                 variant="outline"
                 size="lg"
@@ -153,6 +170,12 @@ export function HomeHero({
             </Link>
           </motion.div>
         </motion.div>
+          </div>
+          <div className="hidden flex-col justify-center py-6 pr-4 pl-6 lg:flex">
+            <TrendingHeroPanel title={trendingTitle} places={trendingPlaces} />
+          </div>
+        </div>
+        {/* END HERO LAYOUT WRAPPER */}
       </div>
     </section>
   );

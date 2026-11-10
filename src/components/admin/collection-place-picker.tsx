@@ -16,12 +16,16 @@ type CollectionPlacePickerProps = {
   places: CollectionPlaceOption[];
   initialSelectedIds?: string[];
   name?: string;
+  label?: string;
+  onSelectedChange?: (ids: string[]) => void;
 };
 
 export function CollectionPlacePicker({
   places,
   initialSelectedIds = [],
   name = "placeIds",
+  label = "Places in collection",
+  onSelectedChange,
 }: CollectionPlacePickerProps) {
   const [selected, setSelected] = useState<string[]>(() => initialSelectedIds);
   const [query, setQuery] = useState("");
@@ -44,35 +48,43 @@ export function CollectionPlacePicker({
     [places],
   );
 
+  function commit(next: string[]) {
+    setSelected(next);
+    onSelectedChange?.(next);
+  }
+
   function toggle(id: string) {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    commit(
+      selected.includes(id)
+        ? selected.filter((item) => item !== id)
+        : [...selected, id],
     );
   }
 
   function move(id: string, direction: -1 | 1) {
-    setSelected((prev) => {
-      const index = prev.indexOf(id);
-      const nextIndex = index + direction;
-      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(nextIndex, 0, item!);
-      return next;
-    });
+    const index = selected.indexOf(id);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= selected.length) return;
+    const next = [...selected];
+    const [item] = next.splice(index, 1);
+    next.splice(nextIndex, 0, item!);
+    commit(next);
   }
 
   return (
     <div className="space-y-3">
-      <input type="hidden" name={name} value={serialized} />
+      <input type="hidden" name={name} value={serialized} readOnly />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-muted">
-          Places in collection ({selected.length} selected)
+          {label} ({selected.length} selected)
         </span>
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
           placeholder="Filter places…"
           className={`${field} max-w-xs`}
         />

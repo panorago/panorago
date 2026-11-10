@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import {
   AnimatePresence,
   motion,
+  useDragControls,
   useReducedMotion,
   type PanInfo,
 } from "framer-motion";
@@ -87,12 +88,17 @@ export function AuthModal({
   onAuthenticated,
 }: AuthModalProps) {
   const reduceMotion = useReducedMotion();
+  const dragControls = useDragControls();
   const titleId = useId();
   const [showEmail, setShowEmail] = useState(false);
   const [welcomeBack, setWelcomeBack] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches,
+  );
   const [heartPulse, setHeartPulse] = useState(false);
 
   const place = intent?.place;
@@ -187,10 +193,10 @@ export function AuthModal({
       aria-modal="true"
       aria-labelledby={titleId}
       className={cn(
-        "relative w-full overflow-hidden border border-[var(--border)] bg-[var(--glass-strong)] shadow-[var(--nav-shadow)] backdrop-blur-2xl",
+        "relative flex w-full flex-col overflow-hidden border border-[var(--border-strong)] bg-[var(--background)] text-[var(--foreground)] shadow-[var(--nav-shadow)]",
         isMobile
-          ? "max-h-[92dvh] rounded-t-[1.75rem] border-b-0"
-          : "max-w-md rounded-[1.75rem] shadow-[var(--shadow-gold)]",
+          ? "h-[100dvh] max-h-[100dvh] rounded-none border-x-0 border-b-0"
+          : "max-h-[min(92dvh,44rem)] max-w-md rounded-[1.75rem] shadow-[var(--shadow-gold)]",
       )}
       initial={
         reduceMotion
@@ -210,25 +216,24 @@ export function AuthModal({
       transition={
         reduceMotion
           ? { duration: 0.01 }
-          : isMobile
-            ? motionTokens.spring.soft
-            : {
-                duration: motionTokens.duration.base,
-                ease: motionTokens.ease.premium,
-              }
+          : {
+              duration: isMobile ? 0.2 : motionTokens.duration.fast,
+              ease: motionTokens.ease.out,
+            }
       }
       drag={isMobile ? "y" : false}
+      dragListener={false}
+      dragControls={dragControls}
       dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0.05, bottom: 0.55 }}
+      dragElastic={{ top: 0.05, bottom: 0.35 }}
       onDragEnd={isMobile ? onDragEnd : undefined}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--accent)_14%,transparent),transparent_55%)]"
-      />
-
       {isMobile ? (
-        <div className="relative flex justify-center pt-3" aria-hidden>
+        <div
+          className="relative flex shrink-0 cursor-grab justify-center py-3 active:cursor-grabbing"
+          aria-hidden
+          onPointerDown={(event) => dragControls.start(event)}
+        >
           <span className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
         </div>
       ) : null}
@@ -236,13 +241,13 @@ export function AuthModal({
       <button
         type="button"
         onClick={onClose}
-        className="focus-ring absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--glass)] text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+        className="focus-ring absolute right-3 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--background-elevated)] text-[var(--foreground)]"
         aria-label="Continue Exploring"
       >
         <X className="h-4 w-4" />
       </button>
 
-      <div className="relative max-h-[calc(92dvh-1rem)] overflow-y-auto px-5 pb-6 pt-4 sm:px-7 sm:pb-8 sm:pt-6">
+      <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-7 sm:pb-8 sm:pt-6">
         <div className="mb-5 flex items-center gap-3">
           <PanoraLogo
             variant="full"
@@ -255,7 +260,7 @@ export function AuthModal({
 
         {place?.imageUrl || place?.placeName ? (
           <div className="mb-5 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)]">
-            <div className="relative aspect-[16/9]">
+            <div className="relative aspect-[21/9] sm:aspect-[16/9]">
               {place.imageUrl ? (
                 <ProgressiveImage
                   src={place.imageUrl}
@@ -329,8 +334,8 @@ export function AuthModal({
             <>
               <Button
                 type="button"
-                variant="outline"
-                className="w-full rounded-full border-[var(--border-strong)] bg-[var(--background-elevated)]/70"
+                variant="secondary"
+                className="w-full rounded-full border-[var(--border-strong)] bg-[var(--background-elevated)] text-[var(--foreground)]"
                 disabled={googlePending}
                 onClick={() => void continueWithGoogle()}
               >
@@ -339,7 +344,7 @@ export function AuthModal({
               </Button>
               <Button
                 type="button"
-                variant="primary"
+                variant="gold"
                 className="w-full rounded-full"
                 onClick={() => setShowEmail(true)}
               >
@@ -394,21 +399,21 @@ export function AuthModal({
           className={cn(
             "fixed inset-0 z-[120] flex",
             isMobile
-              ? "items-end justify-center"
+              ? "items-stretch justify-center"
               : "items-center justify-center p-4",
           )}
-          initial={{ opacity: 0 }}
+          initial={isMobile ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: motionTokens.duration.fast }}
+          exit={isMobile ? undefined : { opacity: 0 }}
+          transition={{ duration: isMobile ? 0.01 : motionTokens.duration.fast }}
         >
           <motion.button
             type="button"
             aria-label="Continue Exploring"
-            className="absolute inset-0 bg-[rgba(10,25,47,0.55)] backdrop-blur-md"
-            initial={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/70"
+            initial={isMobile ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={isMobile ? undefined : { opacity: 0 }}
             onClick={onClose}
           />
           <div className="relative z-10 w-full max-w-md">{panel}</div>

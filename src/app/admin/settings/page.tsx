@@ -99,9 +99,10 @@ export default async function AdminSettingsPage() {
               ["phone", "Phone (E.164)"],
               ["phoneDisplay", "Phone display"],
               ["heroVideoUrl", "Hero video URL"],
-              ["instagram", "Instagram"],
-              ["facebook", "Facebook"],
-              ["tiktok", "TikTok"],
+              ["instagram", "Instagram URL"],
+              ["facebook", "Facebook URL"],
+              ["tiktok", "TikTok URL"],
+              ["x", "X (Twitter) URL"],
             ] as const
           ).map(([name, label]) => (
             <label key={name} className="space-y-1.5">
